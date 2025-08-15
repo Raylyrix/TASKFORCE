@@ -52,8 +52,13 @@ class RTXApp {
         try {
             const editorContainer = document.getElementById('emailEditor');
             if (!editorContainer || !window.Quill) return;
+            // Register optional modules if present
+            try { if (window.Quill && window.Quill.imports && window.Quill.imports['modules/table']) {} } catch(_) {}
             this.quill = new window.Quill('#emailEditor', {
-                modules: { toolbar: '#editorToolbar' },
+                modules: {
+                    toolbar: '#editorToolbar',
+                    table: true
+                },
                 theme: 'snow',
                 placeholder: 'Enter your email content... Use ((Name)), ((Email)), ((Company))'
             });
@@ -286,10 +291,25 @@ class RTXApp {
                 if (!res.canceled && res.filePaths?.length) {
                     this.attachmentsPaths = res.filePaths;
                     if (attachmentsLabel) attachmentsLabel.textContent = `${this.attachmentsPaths.length} file(s) selected`;
+                    this.renderAttachmentsList();
                     this.showSuccess('Attachments selected');
+                    const flagged = this.attachmentsPaths.filter(p => /\.exe$|\.bat$|\.cmd$|\.js$|\.vbs$/i.test(p));
+                    if (flagged.length) {
+                        this.showError('Some selected files are potentially unsafe (executables/scripts). These may be blocked by email providers. Prefer PDFs, images, or documents.');
+                    }
                 } else {
                     if (attachmentsLabel) attachmentsLabel.textContent = 'No files selected';
+                    this.renderAttachmentsList();
                 }
+            });
+        }
+        const clearBtn = document.getElementById('clearAttachmentsBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.attachmentsPaths = [];
+                const attachmentsLabel = document.getElementById('attachmentsLabel');
+                if (attachmentsLabel) attachmentsLabel.textContent = 'No files selected';
+                this.renderAttachmentsList();
             });
         }
 
@@ -305,6 +325,12 @@ class RTXApp {
         const deleteTemplateBtn = document.getElementById('deleteTemplateBtn');
         if (deleteTemplateBtn) {
             deleteTemplateBtn.addEventListener('click', () => this.deleteSelectedTemplate());
+        }
+
+        // Preset templates
+        const insertPresetBtn = document.getElementById('insertPresetBtn');
+        if (insertPresetBtn) {
+            insertPresetBtn.addEventListener('click', () => this.insertSelectedPreset());
         }
 
         // Signature builder actions (enhanced)
@@ -349,6 +375,31 @@ class RTXApp {
         }
 
         console.log('Event listeners setup complete');
+    }
+
+    renderAttachmentsList() {
+        try {
+            const list = document.getElementById('attachmentsList'); if (!list) return;
+            if (!this.attachmentsPaths || this.attachmentsPaths.length === 0) { list.innerHTML = ''; return; }
+            let html = '';
+            this.attachmentsPaths.forEach((p, idx) => {
+                const name = p.split(/[\\/]/).pop();
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; border:1px solid #e5e5e7; border-radius:6px; padding:6px 8px;">
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">${this.escapeHtml(name)}</span>
+                    <button class="btn btn-danger" data-remove-idx="${idx}"><i class="fas fa-times"></i>Remove</button>
+                </div>`;
+            });
+            list.innerHTML = html;
+            list.querySelectorAll('[data-remove-idx]')?.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const i = parseInt(btn.getAttribute('data-remove-idx')); if (isNaN(i)) return;
+                    this.attachmentsPaths.splice(i,1);
+                    const attachmentsLabel = document.getElementById('attachmentsLabel');
+                    if (attachmentsLabel) attachmentsLabel.textContent = this.attachmentsPaths.length ? `${this.attachmentsPaths.length} file(s) selected` : 'No files selected';
+                    this.renderAttachmentsList();
+                });
+            });
+        } catch (_) {}
     }
 
     setupMenuHandlers() {
@@ -1377,12 +1428,33 @@ class RTXApp {
         (Array.isArray(recent) ? recent : []).forEach(t => byId.set(t.id, t));
         this.templates = Array.from(byId.values());
         this.renderTemplatesSelect();
+        // Load preset list
+        const presetSel = document.getElementById('presetTemplateSelect');
+        if (presetSel) {
+            const presets = [
+                { name: 'Newsletter (simple)', url: 'https://raw.githubusercontent.com/htmlemail/htmlemail/master/dist/simple.html' },
+                { name: 'Announcement (basic)', url: 'https://raw.githubusercontent.com/leemunroe/responsive-html-email-template/master/dist/index.html' },
+                { name: 'Event (bulletin)', url: 'https://raw.githubusercontent.com/mailgun/transactional-email-templates/master/templates/promo.html' }
+            ];
+            presetSel.innerHTML = '';
+            presets.forEach(p => { const opt = document.createElement('option'); opt.value = p.url; opt.textContent = p.name; presetSel.appendChild(opt); });
+        }
     }
 
     renderTemplatesSelect() {
         const sel = document.getElementById('templateSelect');
         if (!sel) return; sel.innerHTML = '';
         this.templates.forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt); });
+    }
+
+    async insertSelectedPreset() {
+        try {
+            const sel = document.getElementById('presetTemplateSelect'); if (!sel || !sel.value) { this.showError('Pick a preset'); return; }
+            const url = sel.value;
+            const res = await fetch(url); const html = await res.text();
+            if (this.quill) { this.quill.root.innerHTML = html; this.showSuccess('Preset inserted'); return; }
+            const ta = document.getElementById('emailContent'); if (ta) { ta.value = html; this.showSuccess('Preset inserted'); }
+        } catch (e) { this.showError('Failed to insert preset'); }
     }
 
     saveCurrentTemplate() {
