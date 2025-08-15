@@ -207,6 +207,11 @@ function createWindow() {
       // Pulse always-on-top to defeat z-order issues
       mainWindow.setAlwaysOnTop(true);
       setTimeout(() => { try { mainWindow.setAlwaysOnTop(false); } catch (_) {} }, 200);
+      // On macOS force visible across spaces briefly, then revert
+      if (process.platform === 'darwin') {
+        try { mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); } catch (_) {}
+        setTimeout(() => { try { mainWindow.setVisibleOnAllWorkspaces(false); } catch (_) {} }, 300);
+      }
     } catch (_) {}
   };
   mainWindow.once('ready-to-show', bringToFront);
@@ -223,10 +228,12 @@ function createWindow() {
       else mainWindow.loadURL('about:blank');
     }
   } catch (_) {}
-  mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
     try {
-      const html = 'data:text/html;charset=utf-8,' + encodeURIComponent(`<html><body style="font-family:sans-serif;padding:24px"><h2>Failed to load UI</h2><p>${code}: ${desc}</p><p>Please restart the app or reinstall.</p></body></html>`);
-      mainWindow.loadURL(html);
+      if (isMainFrame) {
+        const html = 'data:text/html;charset=utf-8,' + encodeURIComponent(`<html><body style=\"font-family:sans-serif;padding:24px\"><h2>Failed to load UI</h2><p>${code}: ${desc}</p><p>Please restart the app or reinstall.</p></body></html>`);
+        mainWindow.loadURL(html);
+      }
       if (!mainWindow.isVisible()) mainWindow.show();
     } catch (_) {}
   });
