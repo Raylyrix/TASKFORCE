@@ -3,8 +3,13 @@ echo 🚀 RTX Innovations - Setup Script
 echo ===================================
 echo.
 
+echo 🧹 Cleaning old app data (if any)...
+if exist "%LOCALAPPDATA%\task-force-mailer" rmdir /S /Q "%LOCALAPPDATA%\task-force-mailer"
+if exist "%APPDATA%\task-force-mailer" rmdir /S /Q "%APPDATA%\task-force-mailer"
+if exist "%USERPROFILE%\Documents\TaskForce\logs" rmdir /S /Q "%USERPROFILE%\Documents\TaskForce\logs"
+
 echo 📦 Installing dependencies...
-npm install
+npm install --no-fund --no-audit
 
 if %errorlevel% neq 0 (
     echo ❌ Failed to install dependencies

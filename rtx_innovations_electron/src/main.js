@@ -1135,10 +1135,21 @@ ipcMain.handle('templates-delete', async (e, fpath) => {
 ipcMain.handle('smtp-save-creds', async (_e, { email, appPassword }) => {
     try {
         if (!email || !appPassword) return { success: false, error: 'Email and App Password required' };
+        await ensureMailer();
+        // Verify Gmail App Password by logging in (no mail sent)
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com', port: 465, secure: true,
+            auth: { user: email, pass: appPassword },
+            connectionTimeout: 15000,
+        });
+        await transporter.verify();
         saveSmtpCreds(email, appPassword);
-        logEvent('info', 'SMTP credentials saved', { email: email.replace(/(.{2}).+(@.*)/, '$1***$2') });
+        logEvent('info', 'SMTP credentials verified & saved', { email: email.replace(/(.{2}).+(@.*)/, '$1***$2') });
         return { success: true };
-    } catch (e) { return { success: false, error: e.message }; }
+    } catch (e) {
+        logEvent('error', 'SMTP verify failed', { error: e.message });
+        return { success: false, error: 'Login failed: ' + (e?.message || 'invalid credentials') };
+    }
 });
 ipcMain.handle('smtp-clear-creds', async (_e, email) => {
     try { clearSmtpCreds(email); return { success: true }; } catch (e) { return { success: false, error: e.message }; }
