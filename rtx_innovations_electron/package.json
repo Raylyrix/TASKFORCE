@@ -93,7 +93,7 @@
       "icon": "assets/icons/icon.icns",
       "category": "public.app-category.business",
       "identity": null,
-      "artifactName": "TASK-FORCE-${version}.${ext}"
+      "artifactName": "TASK-FORCE-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": "AppImage",

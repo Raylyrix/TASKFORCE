@@ -81,7 +81,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --mac dmg --x64 --arm64 --publish never
+        run: npx electron-builder --mac dmg --x64 --arm64 --publish never || npx electron-builder --mac dmg --arm64 --publish never
 
       - name: List macOS build folder
         run: ls -la dist-builds
@@ -92,7 +92,8 @@ jobs:
           name: macos
           path: |
             rtx_innovations_electron/dist-builds/*.dmg
-            rtx_innovations_electron/dist-builds/mac-*/**/*.dmg
+            rtx_innovations_electron/dist-builds/mac/*.dmg
+            rtx_innovations_electron/dist-builds/mac-arm64/*.dmg
             rtx_innovations_electron/dist-builds/*latest-mac.yml
             rtx_innovations_electron/dist-builds/*.blockmap
           if-no-files-found: error
