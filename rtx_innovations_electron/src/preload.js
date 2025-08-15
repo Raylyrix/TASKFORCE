@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const { contextBridge, ipcRenderer } = require('electron');
 
 function wrapInvoke(channel, ...args) {
     return ipcRenderer.invoke(channel, ...args);
@@ -96,8 +95,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     quitAndInstall: () => wrapInvoke('update-quit-and-install'),
 });
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
+// LEGACY DUPLICATE BRIDGE (remove to avoid redeclaration errors)
+/*
 contextBridge.exposeInMainWorld('electronAPI', {
 	// App information
 	getAppVersion: () => ipcRenderer.invoke('get-app-version'),
@@ -174,6 +173,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// Remove listeners
 	removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
 });
+*/
 
 // Expose platform information
 contextBridge.exposeInMainWorld('platform', {
