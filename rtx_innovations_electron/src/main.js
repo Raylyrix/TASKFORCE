@@ -189,7 +189,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      backgroundThrottling: false
     },
     icon: path.join(__dirname, '../assets/icons/icon.png'),
 		show: true,
@@ -219,6 +220,11 @@ function createWindow() {
       if (!mainWindow.isVisible()) mainWindow.show();
     } catch (_) {}
   });
+  mainWindow.webContents.on('render-process-gone', (_e, details) => {
+    logEvent('error', 'renderer-gone', details);
+    try { mainWindow.reload(); } catch (_) {}
+  });
+  mainWindow.on('unresponsive', () => { try { mainWindow.reload(); } catch (_) {} });
   mainWindow.on('closed', () => { try { clearTimeout(rescueTimer); } catch(_){} mainWindow = null; });
 	createMenu();
 }
