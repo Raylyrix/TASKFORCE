@@ -65,12 +65,7 @@ jobs:
             rtx_innovations_electron/dist-builds/latest.yml
           if-no-files-found: error
 
-      - name: Upload Windows zipped installers
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-zip
-          path: rtx_innovations_electron/dist-builds/zip/*.zip
-          if-no-files-found: error
+      # Zipped installers removed in v1.2.7 to reduce AV false positives
 
   build-macos:
     runs-on: macos-latest
