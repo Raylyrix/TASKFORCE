@@ -10,8 +10,9 @@ echo Building webpack bundle...
 call npm run build
 
 echo.
-echo Building Electron app...
+echo Building Electron app (normal mode)...
 call npm run build-win
+echo To run a diagnostic SAFE build, launch the installed app with --safe or set TF_SAFE_MODE=1.
 
 echo.
 echo Build completed successfully!

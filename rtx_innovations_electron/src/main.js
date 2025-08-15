@@ -9,6 +9,9 @@ const cron = require('node-cron');
 let nodemailer;
 let ImapFlow;
 
+// Safe mode: allow launching without preload to diagnose invisible-window issues
+const isSafeMode = process.argv.includes('--safe') || process.env.TF_SAFE_MODE === '1';
+
 // Auto-update and env helpers
 const isDev = (() => {
 	try { return require('electron-is-dev'); } catch (_) { return process.env.NODE_ENV === 'development'; }})();
@@ -189,8 +192,9 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-      backgroundThrottling: false
+      preload: isSafeMode ? undefined : path.join(__dirname, 'preload.js'),
+      backgroundThrottling: false,
+      devTools: true
     },
     icon: path.join(__dirname, '../assets/icons/icon.png'),
 		show: true,
@@ -212,6 +216,8 @@ function createWindow() {
         try { mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); } catch (_) {}
         setTimeout(() => { try { mainWindow.setVisibleOnAllWorkspaces(false); } catch (_) {} }, 300);
       }
+      // open DevTools in safe mode to help diagnose
+      if (isSafeMode) { try { mainWindow.webContents.openDevTools({ mode: 'detach' }); } catch (_) {} }
     } catch (_) {}
   };
   mainWindow.once('ready-to-show', bringToFront);
