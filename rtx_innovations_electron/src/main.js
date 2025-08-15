@@ -192,7 +192,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, '../assets/icons/icon.png'),
-		show: false,
+		show: true,
+		center: true,
 		backgroundColor: '#ffffff'
 	});
 
@@ -201,7 +202,16 @@ function createWindow() {
   mainWindow.webContents.once('dom-ready', () => { try { if (!mainWindow.isVisible()) mainWindow.show(); } catch (_) {} });
   const rescueTimer = setTimeout(() => { try { if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show(); } catch (_) {} }, 4000);
 
-	try { mainWindow.loadFile(path.join(__dirname, '../dist/index.html')); } catch (_) {}
+	try {
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    if (fs.existsSync(indexPath)) {
+      mainWindow.loadFile(indexPath);
+    } else {
+      const fallback = path.join(__dirname, '../src/index.html');
+      if (fs.existsSync(fallback)) mainWindow.loadFile(fallback);
+      else mainWindow.loadURL('about:blank');
+    }
+  } catch (_) {}
   mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
     try {
       const html = 'data:text/html;charset=utf-8,' + encodeURIComponent(`<html><body style="font-family:sans-serif;padding:24px"><h2>Failed to load UI</h2><p>${code}: ${desc}</p><p>Please restart the app or reinstall.</p></body></html>`);
