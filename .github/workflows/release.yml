@@ -78,13 +78,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --mac dmg --publish never
+        run: npx electron-builder --mac dmg --x64 --arm64 --publish never
+
+      - name: List macOS build folder
+        run: ls -la dist-builds
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: rtx_innovations_electron/dist-builds/*.{dmg}
+          path: |
+            rtx_innovations_electron/dist-builds/*.dmg
+            rtx_innovations_electron/dist-builds/mac-*/**/*.dmg
           if-no-files-found: error
 
   create-release:
