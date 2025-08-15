@@ -500,7 +500,7 @@ async function connectToSheets(arg) {
 				if (res.statusCode !== 200) { reject(new Error(`Failed to fetch CSV (status ${res.statusCode}). Share the sheet as Anyone with the link.`)); return; }
 				let data = '';
 				res.setEncoding('utf8');
-				res.on('data', (chunk) => data += chunk);
+				res.on('data', (chunk) => { try { data += chunk; } catch (_) {} });
 				res.on('end', () => resolve(data));
 			}).on('error', (e) => reject(e));
 		});
@@ -621,9 +621,9 @@ async function updateSheetStatus(sheetId, sheetTitle, headers, rowIndexZeroBased
 	}
 }
 
-// App logging
-const appLogsDir = path.join(__dirname, '../logs');
-if (!fs.existsSync(appLogsDir)) { try { fs.mkdirSync(appLogsDir, { recursive: true }); } catch (_) {} }
+// App logging (write under userData to avoid EBADF on read-only locations)
+const appLogsDir = path.join(app.getPath('userData'), 'logs');
+try { fs.mkdirSync(appLogsDir, { recursive: true }); } catch (_) {}
 const sessionLogFile = path.join(appLogsDir, `session-${new Date().toISOString().replace(/[:.]/g,'-')}.log`);
 
 function logEvent(level, message, meta) {
