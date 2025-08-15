@@ -9,7 +9,7 @@ const cron = require('node-cron');
 let nodemailer;
 let ImapFlow;
 
-// Safe mode: allow launching without preload to diagnose invisible-window issues
+// Safe mode: allow launching without preload to diagnose issues
 const isSafeMode = process.argv.includes('--safe') || process.env.TF_SAFE_MODE === '1';
 
 // Auto-update and env helpers

@@ -27,6 +27,8 @@ jobs:
         run: |
           TAG=${GITHUB_REF##*/}
           node -e "const fs=require('fs');const p=require('./package.json');p.version='${TAG#v}';fs.writeFileSync('./package.json',JSON.stringify(p,null,2));"
+          # Lock SAFE mode off for release builds
+          echo "TF_SAFE_MODE=0" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
