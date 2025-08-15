@@ -538,7 +538,9 @@ async function initializeGmailService() {
 			await ensureServices();
 			return { success: true };
 		}
-		return { success: true, mode: 'smtp' };
+		const smtpEmail = getActiveSmtpEmail();
+		if (smtpEmail) return { success: true, mode: 'smtp', email: smtpEmail };
+		return { success: false, error: 'Not authenticated. Please sign in via Google OAuth or provide SMTP App Password.' };
 	} catch (error) {
 		return { success: false, error: error.message };
 	}

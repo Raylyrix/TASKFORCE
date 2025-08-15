@@ -68,6 +68,41 @@ class RTXApp {
                     e.stopPropagation();
                 }
             });
+            // Paste image from clipboard → insert as base64
+            editorContainer.addEventListener('paste', (e) => {
+                const items = e.clipboardData?.items || [];
+                for (const it of items) {
+                    if (it.type && it.type.startsWith('image/')) {
+                        const file = it.getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                            this.quill.insertEmbed(range.index, 'image', reader.result, 'user');
+                            this.quill.setSelection(range.index + 1, 0, 'user');
+                        };
+                        reader.readAsDataURL(file);
+                        e.preventDefault();
+                        break;
+                    }
+                }
+            });
+            // Drag & drop local images into editor
+            editorContainer.addEventListener('drop', (ev) => {
+                const files = ev.dataTransfer?.files || [];
+                if (files.length) {
+                    ev.preventDefault();
+                    Array.from(files).forEach((file) => {
+                        if (!file.type.startsWith('image/')) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                            this.quill.insertEmbed(range.index, 'image', reader.result, 'user');
+                            this.quill.setSelection(range.index + 1, 0, 'user');
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+            });
         } catch (e) {
             console.warn('Rich editor init failed', e);
         }
@@ -1478,7 +1513,8 @@ class RTXApp {
                 if (!res?.success) { this.showError('Failed to load template: ' + res?.error); return; }
                 const tpl = res.data;
                 document.getElementById('campaignSubject').value = tpl.subject || '';
-                document.getElementById('emailContent').value = tpl.content || '';
+                if (this.quill) { this.quill.root.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>')); }
+                else { const ta = document.getElementById('emailContent'); if (ta) ta.value = tpl.content || ''; }
                 this.attachmentsPaths = tpl.attachmentsPaths || [];
                 this.showSuccess('Template loaded');
             });
@@ -1491,7 +1527,8 @@ class RTXApp {
                 if (!read.success) { this.showError('Failed to load template: ' + read.error); return; }
                 const tpl = read.data;
                 document.getElementById('campaignSubject').value = tpl.subject || '';
-                document.getElementById('emailContent').value = tpl.content || '';
+                if (this.quill) { this.quill.root.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>')); }
+                else { const ta = document.getElementById('emailContent'); if (ta) ta.value = tpl.content || ''; }
                 this.attachmentsPaths = tpl.attachmentsPaths || [];
                 this.templates = [{ id: res.filePaths[0], name: tpl.name || 'Template', ...tpl }, ...this.templates.filter(t => t.id !== res.filePaths[0])];
                 window.electronAPI.storeSet?.('templates', this.templates);
