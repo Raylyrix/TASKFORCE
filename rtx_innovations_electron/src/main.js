@@ -426,7 +426,12 @@ async function authenticateGoogle(credentialsData) {
 						if (!code) { res.writeHead(400); res.end('Missing code'); return; }
                         const { tokens } = await oauth2Client.getToken(code);
                         oauth2Client.setCredentials(tokens);
-                        try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-progress', { step: 'token-received' }); } } catch (_) {}
+                        try {
+                            if (mainWindow && mainWindow.webContents) {
+                                mainWindow.webContents.send('auth-progress', { step: 'token-received' });
+                                try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {}
+                            }
+                        } catch (_) {}
                         res.writeHead(200, { 'Content-Type': 'text/html' });
                         res.end('<html><body><h2>Authentication successful. You can close this window and return to the app.</h2><script>setTimeout(()=>{window.close()},500);</script></body></html>');
 						settled = true;

@@ -336,7 +336,16 @@ class RTXApp {
             if (window.electronAPI.onAuthProgress) {
                 window.electronAPI.onAuthProgress((data) => {
                     if (data?.step === 'token-received') {
+                        // Browser said completed; make app foreground and poll auth status
                         this.hideLoading();
+                        setTimeout(async () => {
+                            try {
+                                const status = await window.electronAPI.getCurrentAuth?.();
+                                if (status?.authenticated) {
+                                    this.onAuthenticationSuccess(status.email || 'authenticated');
+                                }
+                            } catch(_) {}
+                        }, 200);
                     }
                 });
             }
