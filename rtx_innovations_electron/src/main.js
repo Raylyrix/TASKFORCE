@@ -1158,12 +1158,15 @@ async function streamToString(stream) {
 ipcMain.handle('get-app-version', async () => app.getVersion());
 ipcMain.handle('get-app-name', async () => app.getName());
 
+// Improve compatibility on some GPUs (blank window)
+try { app.disableHardwareAcceleration(); } catch (_) {}
+
 app.whenReady().then(() => {
+	try { if (process.platform === 'win32') app.setAppUserModelId('com.rtxinnovations.taskforce'); } catch (_) {}
 	try { createWindow(); } catch (e) { logEvent('error', 'createWindow-failed', { error: e.message }); }
 	startTelemetry();
 	initAutoUpdater();
-	// On macOS re-create window after activation
-  if (process.platform === 'darwin') {
+	if (process.platform === 'darwin') {
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
   }
 });
