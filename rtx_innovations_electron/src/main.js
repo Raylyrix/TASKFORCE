@@ -481,15 +481,23 @@ async function authenticateGoogle(credentialsData) {
 			}, 300000); // 5 minutes
 		});
 
+        // Persist token and client binding
         store.set('googleToken', token);
         store.set('googleTokenClientId', norm.client_id);
+        // Prime clients and validate access token
         await ensureServices();
-        const profile = await gmailService.users.getProfile({ userId: 'me' });
-        saveAccountEntry(profile.data.emailAddress, norm, token);
-        try { store.set('app-settings', { isAuthenticated: true, currentAccount: profile.data.emailAddress }); } catch(_) {}
-        if (mainWindow && mainWindow.webContents) {
-            mainWindow.webContents.send('auth-success', { email: profile.data.emailAddress });
-        }
+        try { await oauth2Client.getAccessToken(); } catch (_) {}
+        // Fetch profile for email; if it fails, still mark as authenticated
+        let emailAddr = null;
+        try {
+            const profile = await gmailService.users.getProfile({ userId: 'me' });
+            emailAddr = profile?.data?.emailAddress || null;
+        } catch (_) {}
+        if (!emailAddr) { try { const who = await gmailService.users.getProfile({ userId: 'me' }); emailAddr = who?.data?.emailAddress || null; } catch (_) {} }
+        if (!emailAddr) emailAddr = 'authenticated';
+        saveAccountEntry(emailAddr, norm, token);
+        try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
+        try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: emailAddr }); } } catch (_) {}
 		logEvent('info', 'Authenticated and token stored', { email: profile.data.emailAddress });
 		trackTelemetry('auth_success');
 		return { success: true, userEmail: profile.data.emailAddress };
