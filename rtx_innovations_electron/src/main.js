@@ -636,15 +636,23 @@ async function updateSheetStatus(sheetId, sheetTitle, headers, rowIndexZeroBased
 	}
 }
 
-// App logging (write under userData to avoid EBADF on read-only locations)
-const appLogsDir = path.join(app.getPath('userData'), 'logs');
-try { fs.mkdirSync(appLogsDir, { recursive: true }); } catch (_) {}
+// App logging (prefer Documents/TaskForce/logs; fallback to userData). Use async writes to avoid EBADF
+let appLogsDir;
+try {
+    const docsDir = app.getPath('documents');
+    appLogsDir = path.join(docsDir, 'TaskForce', 'logs');
+    fs.mkdirSync(appLogsDir, { recursive: true });
+} catch (_) {
+    appLogsDir = path.join(app.getPath('userData'), 'logs');
+    try { fs.mkdirSync(appLogsDir, { recursive: true }); } catch (_) {}
+}
 const sessionLogFile = path.join(appLogsDir, `session-${new Date().toISOString().replace(/[:.]/g,'-')}.log`);
 
 function logEvent(level, message, meta) {
 	try {
 		const line = JSON.stringify({ ts: new Date().toISOString(), level, message, meta: meta || null }) + os.EOL;
-		try { fs.appendFileSync(sessionLogFile, line, { encoding: 'utf8', mode: 0o600, flag: 'a' }); } catch (_) {}
+		// Non-blocking, best-effort write. Ignore filesystem errors to prevent UI impact
+		try { fs.appendFile(sessionLogFile, line, { encoding: 'utf8', mode: 0o600, flag: 'a' }, () => {}); } catch (_) {}
 		if (mainWindow && mainWindow.webContents) {
 			mainWindow.webContents.send('app-log', { level, message, meta, ts: Date.now() });
 		}
