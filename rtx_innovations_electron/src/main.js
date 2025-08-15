@@ -834,9 +834,17 @@ function initAutoUpdater() {
 		autoUpdater.on('update-downloaded', (info) => {
 			trackTelemetry('update_downloaded', { version: info?.version });
 			if (mainWindow) mainWindow.webContents.send('update-status', { status: 'downloaded', info });
-			dialog.showMessageBox(mainWindow, {
-				type: 'info', title: 'Update Ready', message: 'The update has been downloaded. Install and restart now?', buttons: ['Install', 'Later']
-			}).then(res => { if (res.response === 0) autoUpdater.quitAndInstall(); });
+			try {
+				const notes = (info?.releaseNotes && typeof info.releaseNotes === 'string') ? info.releaseNotes : '';
+				dialog.showMessageBox(mainWindow, {
+					type: 'info', title: `What's new in ${info?.version}`,
+					message: 'Release Notes',
+					detail: notes || 'The update has been downloaded.',
+					buttons: ['Install', 'Later']
+				}).then(res => { if (res.response === 0) autoUpdater.quitAndInstall(); });
+			} catch (_) {
+				dialog.showMessageBox(mainWindow, { type: 'info', title: 'Update Ready', message: 'The update has been downloaded. Install and restart now?', buttons: ['Install', 'Later'] }).then(res => { if (res.response === 0) autoUpdater.quitAndInstall(); });
+			}
 		});
 		// Trigger initial check shortly after ready, but use channel tag version
 		setTimeout(() => {
