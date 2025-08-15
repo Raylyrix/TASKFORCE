@@ -84,15 +84,14 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"],
-          "artifactName": "RTX-Innovations-Setup-${version}.${ext}"
+          "arch": ["x64"]
         },
         {
           "target": "portable",
-          "arch": ["x64"],
-          "artifactName": "RTX-Innovations-Portable-${version}.${ext}"
+          "arch": ["x64"]
         }
       ],
+      "artifactName": "RTX-Innovations-${version}.${ext}",
       "icon": "assets/icons/icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
@@ -105,7 +104,8 @@
     },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/icons/icon.png"
+      "icon": "assets/icons/icon.png",
+      "artifactName": "RTX-Innovations-${version}.${ext}"
     },
     "nsis": {
       "oneClick": true,
