@@ -1,7 +1,7 @@
 {
-  "name": "rtx-innovations",
-  "version": "1.0.2",
-  "description": "Professional Email Marketing Platform - RTX Innovations",
+  "name": "task-force-mailer",
+  "version": "1.1.0",
+  "description": "TASK FORCE – Mass mailer with Google Sheets integration",
   "main": "src/main.js",
   "homepage": "./",
   "scripts": {
@@ -56,8 +56,8 @@
     "xlsx": "^0.18.5"
   },
   "build": {
-    "appId": "com.rtxinnovations.emailmarketing",
-    "productName": "RTX Innovations",
+    "appId": "com.rtxinnovations.taskforce",
+    "productName": "TASK FORCE",
     "directories": {
       "output": "dist-builds"
     },
@@ -82,35 +82,29 @@
 
     "win": {
       "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "portable",
-          "arch": ["x64"]
-        }
+        { "target": "nsis", "arch": ["x64"] }
       ],
-      "artifactName": "RTX-Innovations-${version}.${ext}",
+      "artifactName": "TASK-FORCE-Setup-${version}.${ext}",
       "icon": "assets/icons/icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": ["dmg"],
       "icon": "assets/icons/icon.icns",
       "category": "public.app-category.business",
       "identity": null,
-      "artifactName": "RTX-Innovations-${version}.${ext}"
+      "artifactName": "TASK-FORCE-${version}.${ext}"
     },
     "linux": {
       "target": "AppImage",
       "icon": "assets/icons/icon.png",
-      "artifactName": "RTX-Innovations-${version}.${ext}"
+      "artifactName": "TASK-FORCE-${version}.${ext}"
     },
     "nsis": {
       "oneClick": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
+      "shortcutName": "TASK FORCE",
       "runAfterFinish": true
     }
   }

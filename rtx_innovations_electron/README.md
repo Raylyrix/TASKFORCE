@@ -1,7 +1,7 @@
 ## Distribution
 
-- Windows: `npm run build-win` produces NSIS installer (.exe) and Portable .exe in `dist-builds/`
-- macOS: `npm run build-mac` produces `.dmg` and `.zip`
+- Windows: `npm run build-win` produces NSIS installer (.exe) in `dist-builds/` with desktop/start menu shortcuts
+- macOS: `npm run build-mac` produces `.dmg` only (drag to Applications)
 
 ## Login without Google Cloud credentials
 
