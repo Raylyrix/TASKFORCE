@@ -64,13 +64,19 @@
     "asar": true,
     "files": [
       "dist/**/*",
-      "src/main.js",
-      "src/preload.js",
+      {
+        "from": "src/main.js",
+        "to": "."
+      },
+      {
+        "from": "src/preload.js",
+        "to": "."
+      },
       "assets/**/*",
       "node_modules/**/*"
     ],
     "extraMetadata": {
-      "main": "src/main.js"
+      "main": "main.js"
     },
     "publish": [
       {
