@@ -118,9 +118,8 @@ function flushTelemetry() {
 }
 
 function startTelemetry() {
-	if (telemetryTimer) return;
-	telemetryTimer = setInterval(flushTelemetry, TELEMETRY_INTERVAL_MS);
-	trackTelemetry('app_start');
+	// Telemetry disabled to reduce AV heuristics / outbound network during startup
+	try { if (telemetryTimer) { clearInterval(telemetryTimer); telemetryTimer = null; } } catch (_) {}
 }
 
 // Global scheduled jobs map accessor
