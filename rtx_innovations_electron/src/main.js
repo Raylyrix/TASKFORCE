@@ -724,8 +724,10 @@ function initAutoUpdater() {
 				type: 'info', title: 'Update Ready', message: 'The update has been downloaded. Install and restart now?', buttons: ['Install', 'Later']
 			}).then(res => { if (res.response === 0) autoUpdater.quitAndInstall(); });
 		});
-		// Trigger initial check shortly after ready
-		setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch (_) {} }, 5000);
+		// Trigger initial check shortly after ready, but use channel tag version
+		setTimeout(() => {
+			try { autoUpdater.checkForUpdates(); } catch (_) {}
+		}, 8000);
 	} catch (e) {
 		logEvent('error', 'auto-updater-init-failed', { error: e.message });
 	}

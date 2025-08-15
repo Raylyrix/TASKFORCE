@@ -1,6 +1,6 @@
 {
   "name": "task-force-mailer",
-  "version": "1.1.0",
+  "version": "1.1.4",
   "description": "TASK FORCE – Mass mailer with Google Sheets integration",
   "main": "src/main.js",
   "homepage": "./",
@@ -85,7 +85,8 @@
       ],
       "artifactName": "TASK-FORCE-Setup-${version}.${ext}",
       "icon": "assets/icons/icon.ico",
-      "requestedExecutionLevel": "asInvoker"
+      "requestedExecutionLevel": "asInvoker",
+      "executableName": "TaskForceMailer"
     },
     "mac": {
       "target": ["dmg"],
@@ -104,7 +105,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "TASK FORCE",
-      "runAfterFinish": true
+      "runAfterFinish": false
     }
   }
 }
