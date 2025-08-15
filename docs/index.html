@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <meta name="description" content="TASK FORCE – Bulk email sender with Google Sheets integration by RTX Innovations" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" />
 </head>
 <body>
   <header class="site-header">
@@ -128,8 +129,53 @@
             </div>
           </div>
           <label style="margin-top:10px; display:block;">Body</label>
-          <textarea id="webBody" rows="8" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px;" placeholder="Use ((ColumnName)) placeholders"></textarea>
+          <div id="webToolbar" style="margin-bottom:6px;">
+            <span class="ql-formats">
+              <select class="ql-font"></select>
+              <select class="ql-size"></select>
+            </span>
+            <span class="ql-formats">
+              <button class="ql-bold"></button>
+              <button class="ql-italic"></button>
+              <button class="ql-underline"></button>
+              <button class="ql-strike"></button>
+            </span>
+            <span class="ql-formats">
+              <select class="ql-color"></select>
+              <select class="ql-background"></select>
+            </span>
+            <span class="ql-formats">
+              <button class="ql-header" value="1"></button>
+              <button class="ql-header" value="2"></button>
+              <select class="ql-align"></select>
+            </span>
+            <span class="ql-formats">
+              <button class="ql-list" value="ordered"></button>
+              <button class="ql-list" value="bullet"></button>
+              <button class="ql-blockquote"></button>
+              <button class="ql-link"></button>
+              <button class="ql-clean"></button>
+            </span>
+          </div>
+          <div id="webEditor" style="height:260px; background:#fff;"></div>
           <div id="webChips" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;"></div>
+          <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <label>Attachments</label>
+            <input type="file" id="webAttachments" multiple />
+            <button class="btn btn-danger" id="webClearAtt">Clear All</button>
+          </div>
+          <div id="webAttList" class="muted" style="margin-top:6px;"></div>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <select id="webTemplateSelect" style="min-width:180px;"></select>
+            <button id="webLoadTemplate" class="btn btn-secondary">Load</button>
+            <button id="webSaveTemplate" class="btn btn-secondary">Save</button>
+            <button id="webDeleteTemplate" class="btn btn-danger">Delete</button>
+          </div>
+          <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <label>Preset templates</label>
+            <select id="webPresetSelect" style="min-width:220px;"></select>
+            <button id="webInsertPreset" class="btn btn-secondary">Insert</button>
+          </div>
           <div style="margin-top:10px; display:flex; gap:8px;">
             <button id="btnPreviewFirst" class="btn btn-secondary" disabled>Preview First Row</button>
             <button id="btnSendTest" class="btn btn-secondary" disabled>Send Test…</button>
@@ -157,6 +203,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="./config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

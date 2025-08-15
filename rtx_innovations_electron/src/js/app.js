@@ -54,6 +54,13 @@ class RTXApp {
             if (!editorContainer || !window.Quill) return;
             // Register optional modules if present
             try { if (window.Quill && window.Quill.imports && window.Quill.imports['modules/table']) {} } catch(_) {}
+            const Font = window.Quill.import('formats/font');
+            Font.whitelist = ['sans-serif','serif','monospace','arial','times-new-roman','georgia','verdana'];
+            window.Quill.register(Font, true);
+            const Size = window.Quill.import('attributors/style/size');
+            Size.whitelist = ['10px','12px','14px','16px','18px','24px','32px'];
+            window.Quill.register(Size, true);
+
             this.quill = new window.Quill('#emailEditor', {
                 modules: {
                     toolbar: '#editorToolbar',
@@ -322,7 +329,7 @@ class RTXApp {
         if (pickBtn && window.electronAPI?.showOpenDialog) {
             pickBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const res = await window.electronAPI.showOpenDialog({ properties: ['openFile', 'multiSelections'] });
+                const res = await window.electronAPI.showOpenDialog({ properties: ['openFile','multiSelections'] });
                 if (!res.canceled && res.filePaths?.length) {
                     this.attachmentsPaths = res.filePaths;
                     if (attachmentsLabel) attachmentsLabel.textContent = `${this.attachmentsPaths.length} file(s) selected`;

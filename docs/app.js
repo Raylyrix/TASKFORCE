@@ -114,6 +114,7 @@
   let sheets = null;
   let gmail = null;
   let webData = { headers: [], rows: [] };
+  let quill = null;
 
   async function ensureGoogleLoaded() {
     if (gapiLoaded) return;
@@ -135,6 +136,13 @@
     const testBtn = document.getElementById('btnSendTest');
     const sendBtn = document.getElementById('btnStartSend');
     const chips = document.getElementById('webChips');
+    const editorDiv = document.getElementById('webEditor');
+    // Init Quill editor
+    try {
+      if (window.Quill && editorDiv) {
+        quill = new window.Quill('#webEditor', { modules: { toolbar: '#webToolbar' }, theme: 'snow', placeholder: 'Use ((ColumnName)) placeholders' });
+      }
+    } catch (_) {}
 
     function setAuthedUI(on) {
       if (status) status.textContent = on ? 'Signed in' : 'Not signed in';
@@ -217,7 +225,7 @@
 
     function produceBody(row) {
       const map = {}; webData.headers.forEach((h,i)=> map[String(h).trim()] = row[i] || '');
-      let body = document.getElementById('webBody').value || '';
+      let body = quill ? (document.querySelector('#webEditor .ql-editor')?.innerHTML || '') : (document.getElementById('webBody')?.value || '');
       body = body.replace(/\(\(([^)]+)\)\)/g, (_m, p1) => map[String(p1).trim()] ?? '');
       return body;
     }
@@ -278,6 +286,67 @@
     prevBtn?.addEventListener('click', previewFirst);
     testBtn?.addEventListener('click', sendTest);
     sendBtn?.addEventListener('click', startSend);
+
+    // Attachments UI (browser-only guidance)
+    const attInput = document.getElementById('webAttachments');
+    const attList = document.getElementById('webAttList');
+    const attClear = document.getElementById('webClearAtt');
+    attInput?.addEventListener('change', () => {
+      const files = Array.from(attInput.files || []);
+      attList.textContent = files.length ? files.map(f=>f.name).join(', ') : 'No files selected';
+      const flagged = files.filter(f=>/\.(exe|bat|cmd|js|vbs)$/i.test(f.name));
+      if (flagged.length) alert('Some selected files are potentially unsafe and may be blocked by email providers. Prefer PDFs, images, or documents.');
+    });
+    attClear?.addEventListener('click', ()=> { if (attInput) attInput.value = ''; if (attList) attList.textContent = 'No files selected'; });
+
+    // Templates (localStorage)
+    const tplSel = document.getElementById('webTemplateSelect');
+    const tplSave = document.getElementById('webSaveTemplate');
+    const tplLoad = document.getElementById('webLoadTemplate');
+    const tplDelete = document.getElementById('webDeleteTemplate');
+    function refreshTplList() {
+      const list = JSON.parse(localStorage.getItem('tf_templates')||'[]');
+      tplSel.innerHTML = '';
+      list.forEach((t,i)=>{ const opt=document.createElement('option'); opt.value=i; opt.textContent=t.name; tplSel.appendChild(opt); });
+    }
+    function currentHtml() { return quill ? (document.querySelector('#webEditor .ql-editor')?.innerHTML || '') : (document.getElementById('webBody')?.value || ''); }
+    tplSave?.addEventListener('click', ()=>{
+      const name = prompt('Template name:'); if (!name) return;
+      const list = JSON.parse(localStorage.getItem('tf_templates')||'[]');
+      list.unshift({ name, html: currentHtml(), subject: document.getElementById('webSubject')?.value||'' });
+      localStorage.setItem('tf_templates', JSON.stringify(list));
+      refreshTplList();
+      alert('Saved');
+    });
+    tplLoad?.addEventListener('click', ()=>{
+      const list = JSON.parse(localStorage.getItem('tf_templates')||'[]');
+      const idx = parseInt(tplSel.value); if (isNaN(idx)) { alert('Pick a template'); return; }
+      const t = list[idx];
+      document.getElementById('webSubject').value = t.subject || '';
+      if (quill) quill.root.innerHTML = t.html || '';
+      else { const ta=document.getElementById('webBody'); if (ta) ta.value = t.html || ''; }
+    });
+    tplDelete?.addEventListener('click', ()=>{
+      const list = JSON.parse(localStorage.getItem('tf_templates')||'[]');
+      const idx = parseInt(tplSel.value); if (isNaN(idx)) return;
+      list.splice(idx,1); localStorage.setItem('tf_templates', JSON.stringify(list)); refreshTplList();
+    });
+    refreshTplList();
+
+    // Presets
+    const presetSel = document.getElementById('webPresetSelect');
+    const insertPreset = document.getElementById('webInsertPreset');
+    const presets = [
+      { name:'Newsletter (simple)', url:'https://raw.githubusercontent.com/htmlemail/htmlemail/master/dist/simple.html' },
+      { name:'Announcement (basic)', url:'https://raw.githubusercontent.com/leemunroe/responsive-html-email-template/master/dist/index.html' },
+      { name:'Event (promo)', url:'https://raw.githubusercontent.com/mailgun/transactional-email-templates/master/templates/promo.html' }
+    ];
+    presetSel.innerHTML = presets.map(p=>`<option value="${p.url}">${p.name}</option>`).join('');
+    insertPreset?.addEventListener('click', async ()=>{
+      const url = presetSel.value; if (!url) return;
+      const res = await fetch(url); const html = await res.text();
+      if (quill) quill.root.innerHTML = html; else { const ta=document.getElementById('webBody'); if (ta) ta.value = html; }
+    });
   }
 })();
 
