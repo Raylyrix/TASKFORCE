@@ -193,14 +193,24 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, '../assets/icons/icon.png'),
-		show: false
+		show: false,
+		backgroundColor: '#ffffff'
 	});
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-	});
+  // Robust show strategy
+  mainWindow.once('ready-to-show', () => { try { if (!mainWindow.isVisible()) mainWindow.show(); } catch (_) {} });
+  mainWindow.webContents.once('dom-ready', () => { try { if (!mainWindow.isVisible()) mainWindow.show(); } catch (_) {} });
+  const rescueTimer = setTimeout(() => { try { if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show(); } catch (_) {} }, 4000);
 
-	mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+	try { mainWindow.loadFile(path.join(__dirname, '../dist/index.html')); } catch (_) {}
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
+    try {
+      const html = 'data:text/html;charset=utf-8,' + encodeURIComponent(`<html><body style="font-family:sans-serif;padding:24px"><h2>Failed to load UI</h2><p>${code}: ${desc}</p><p>Please restart the app or reinstall.</p></body></html>`);
+      mainWindow.loadURL(html);
+      if (!mainWindow.isVisible()) mainWindow.show();
+    } catch (_) {}
+  });
+  mainWindow.on('closed', () => { try { clearTimeout(rescueTimer); } catch(_){} mainWindow = null; });
 	createMenu();
 }
 
@@ -1153,6 +1163,10 @@ app.whenReady().then(() => {
 	try { createWindow(); } catch (e) { logEvent('error', 'createWindow-failed', { error: e.message }); }
 	startTelemetry();
 	initAutoUpdater();
+	// On macOS re-create window after activation
+  if (process.platform === 'darwin') {
+    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  }
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
