@@ -1,6 +1,6 @@
 (() => {
   const owner = window.__SITE_CONFIG__?.owner || 'Raylyrix';
-  const repo = window.__SITE_CONFIG__?.repo || 'rtxapps';
+  const repo = window.__SITE_CONFIG__?.repo || 'RTXAPPS';
   const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
 
   const route = () => (location.hash || '#home').replace(/^#+/, '#');
