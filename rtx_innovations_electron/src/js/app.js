@@ -49,24 +49,38 @@ class RTXApp {
     wireAutoUpdates() {
         try {
             if (window.electronAPI?.onUpdateStatus) {
-                window.electronAPI.onUpdateStatus((_e, data) => {});
                 window.electronAPI.onUpdateStatus((data) => {
                     if (!data) return;
-                    if (data.status === 'available') {
-                        // Renderer side message confirms availability; main shows a dialog already
-                        console.log('Update available:', data.info?.version);
+                    if (data.status === 'checking') {
+                        this.showInfo('Checking for updates...');
+                    } else if (data.status === 'available') {
+                        this.showSuccess(`Update available: ${data.info?.version}`);
+                        const banner = document.getElementById('updateBanner');
+                        const text = document.getElementById('updateBannerText');
+                        const action = document.getElementById('updateActionBtn');
+                        if (text) text.textContent = `New version ${data.info?.version} is available`;
+                        if (banner) banner.style.display = 'block';
+                        if (action) { action.textContent = 'Download'; action.disabled = false; action.onclick = () => window.electronAPI?.downloadUpdate?.(); }
                     } else if (data.status === 'downloading') {
                         const p = data.progress ? Math.round(data.progress.percent || 0) : 0;
                         this.showInfo(`Downloading update... ${p}%`);
                     } else if (data.status === 'downloaded') {
                         this.showSuccess('Update downloaded. Ready to install.');
+                        const banner = document.getElementById('updateBanner');
+                        const text = document.getElementById('updateBannerText');
+                        const action = document.getElementById('updateActionBtn');
+                        if (text) text.textContent = 'Update downloaded. Click install to restart.';
+                        if (banner) banner.style.display = 'block';
+                        if (action) { action.textContent = 'Install'; action.disabled = false; action.onclick = () => window.electronAPI?.quitAndInstall?.(); }
                     } else if (data.status === 'error') {
                         this.showError(`Update error: ${data.error}`);
                     }
                 });
             }
             // Trigger a check after UI loads
-            setTimeout(() => { try { window.electronAPI?.checkForUpdates?.(); } catch (e) {} }, 4000);
+            setTimeout(() => { try { window.electronAPI?.checkForUpdates?.(); } catch (e) {} }, 2000);
+            // repeat check every hour during session
+            setInterval(() => { try { window.electronAPI?.checkForUpdates?.(); } catch (e) {} }, 60*60*1000);
         } catch (e) {
             console.warn('Auto-update wiring failed:', e);
         }
@@ -269,6 +283,25 @@ class RTXApp {
         const deleteTemplateBtn = document.getElementById('deleteTemplateBtn');
         if (deleteTemplateBtn) {
             deleteTemplateBtn.addEventListener('click', () => this.deleteSelectedTemplate());
+        }
+
+        // Signature builder actions (enhanced)
+        const applySigBtn = document.getElementById('applySignatureBtn');
+        if (applySigBtn) {
+            applySigBtn.addEventListener('click', () => {
+                const html = document.getElementById('sigHtml')?.value || '';
+                if (html.trim().length === 0) { this.showError('Enter signature HTML first'); return; }
+                this.gmailSignature = html; // store as HTML string in renderer
+                const prev = document.getElementById('sigPreview'); if (prev) prev.innerHTML = html;
+                this.showSuccess('Signature applied to emails');
+            });
+        }
+        const sigHtmlArea = document.getElementById('sigHtml');
+        if (sigHtmlArea) {
+            sigHtmlArea.addEventListener('input', () => {
+                const prev = document.getElementById('sigPreview');
+                if (prev) prev.innerHTML = sigHtmlArea.value || '';
+            });
         }
 
         // Preview button
@@ -718,11 +751,14 @@ class RTXApp {
             if (!campaignData) return;
             const finalContent = this.processContent(campaignData.content, {}, campaignData.useSig);
             const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
+            const html = this.gmailSignature
+                ? `<div>${this.escapeHtml(finalContent).replace(/\n/g,'<br/>')}</div><div>${this.gmailSignature}</div>`
+                : undefined;
             const result = await window.electronAPI.sendTestEmail({
                 to: testEmail,
                 subject: campaignData.subject,
                 content: finalContent,
-                html: undefined,
+                html,
                 from,
                 attachmentsPaths: this.attachmentsPaths
             });
@@ -955,9 +991,13 @@ class RTXApp {
         const toHeader = this.findEmailColumn();
         const toIndex = headers.indexOf(toHeader);
         const to = row[toIndex];
-        const content = this.processContent(campaign.content, this.buildRowMap(headers, row), campaign.useSig);
+        const rowMap = this.buildRowMap(headers, row);
+        const content = this.processContent(campaign.content, rowMap, campaign.useSig);
+        const html = this.gmailSignature && campaign.useSig
+            ? `<div>${this.escapeHtml(content).replace(/\n/g,'<br/>')}</div><div>${this.gmailSignature}</div>`
+            : undefined;
         const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
-        const result = await window.electronAPI.sendEmail({ to, subject: campaign.subject, content, html: undefined, from, attachmentsPaths: this.attachmentsPaths });
+        const result = await window.electronAPI.sendEmail({ to, subject: campaign.subject, content, html, from, attachmentsPaths: this.attachmentsPaths });
         if (!result.success) {
             this.setLocalRowStatus(rowIndexZeroBased, 'FAILED');
             throw new Error(result.error || 'Failed to send email');

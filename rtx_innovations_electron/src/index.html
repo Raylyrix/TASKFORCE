@@ -598,7 +598,7 @@
                 </div>
 
 	<div class="modal" id="signatureModal" style="display:none;">
-		<div class="modal-content" style="max-width: 700px; width: 90%;">
+		<div class="modal-content" style="max-width: 900px; width: 90%;">
             <div class="modal-header">
 				<h3>Signature Builder</h3>
 				<button class="modal-close" onclick="document.getElementById('signatureModal').style.display='none'">&times;</button>
@@ -610,16 +610,18 @@
 				</div>
 				<div class="form-group">
 					<label>Signature HTML</label>
-					<textarea id="sigHtml" rows="8" placeholder="You can paste HTML here"></textarea>
+					<textarea id="sigHtml" rows="10" placeholder="Paste or edit HTML (images with absolute URLs)"></textarea>
                     </div>
-				<div style="display:flex; gap:8px;">
+				<div style="display:flex; gap:8px; flex-wrap:wrap;">
 					<button class="btn btn-primary" id="saveSignatureBtn"><i class="fas fa-save"></i>Save</button>
 					<button class="btn btn-secondary" id="loadSignatureBtn"><i class="fas fa-download"></i>Load</button>
 					<button class="btn btn-danger" id="deleteSignatureBtn"><i class="fas fa-trash"></i>Delete</button>
+					<button class="btn btn-secondary" id="applySignatureBtn"><i class="fas fa-check"></i>Use in emails</button>
                     </div>
 				<div style="margin-top:12px; border:1px solid #e5e5e7; border-radius:8px; padding:10px;">
-					<div id="sigPreview" style="min-height:60px;">Signature Preview</div>
+					<div id="sigPreview" style="min-height:80px;">Signature Preview</div>
                 </div>
+				<small class="muted">Tip: Host images (logo/icons) and use full URLs (https://…). Inline base64 images also work.</small>
             </div>
         </div>
     </div>
