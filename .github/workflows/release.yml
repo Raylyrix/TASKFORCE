@@ -143,10 +143,19 @@ jobs:
           name: ${{ steps.tag.outputs.tag }} — TASK FORCE
           files: |
             release/*.exe
+            release/*.zip
             release/*.dmg
             release/latest.yml
             release/*latest-mac.yml
             release/*.blockmap
+          body: |
+            Installers:
+            - Windows: TASK-FORCE-Setup-${{ steps.tag.outputs.tag }}.exe (or the .exe.zip if your browser blocks raw .exe)
+            - macOS: TASK-FORCE-${{ steps.tag.outputs.tag }}-x64.dmg / TASK-FORCE-${{ steps.tag.outputs.tag }}-arm64.dmg
+
+            Notes:
+            - "Source code (zip/tar.gz)" are GitHub auto-generated archives of the repository (not installers).
+            - If your browser flags the .exe, download the .exe.zip, extract, then run the installer.
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

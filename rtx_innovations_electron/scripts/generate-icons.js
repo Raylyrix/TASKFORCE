@@ -41,6 +41,11 @@ function resolveSourcePng() {
 			favicon: { pngSizes: [256], name: 'icon' }
 		});
 		console.log('Icons generated at', iconsDir, 'sharpUsed=', usedSharp);
+		// quick validation to avoid empty files
+		['icon.ico','icon.icns','icon.png'].forEach((n)=>{
+			const p = path.join(iconsDir, n);
+			if (fs.existsSync(p)) { const s = fs.statSync(p); if (!s.size) throw new Error('Empty icon ' + n); }
+		});
 	} catch (e) {
 		console.error('Icon generation failed:', e.message);
 		process.exit(0);
