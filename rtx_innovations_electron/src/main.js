@@ -470,9 +470,9 @@ async function connectToSheets(arg) {
 			let sheetId = arg;
 			let sheetTitle = null;
 			if (arg && typeof arg === 'object') {
-\t\t\t\tsheetId = arg.sheetId;
-\t\t\t\tsheetTitle = arg.sheetTitle || null;
-\t\t\t}
+				sheetId = arg.sheetId;
+				sheetTitle = arg.sheetTitle || null;
+			}
 			const range = sheetTitle ? `${sheetTitle}!A:Z` : 'A:Z';
 			const response = await sheetsService.spreadsheets.values.get({ spreadsheetId: sheetId, range });
 			const values = response.data.values || [];
