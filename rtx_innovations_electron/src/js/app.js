@@ -19,6 +19,7 @@ class RTXApp {
         this.gmailSignature = '';
         this.useSignature = false;
         this.attachmentsPaths = [];
+        this.quill = null;
         this.selectedSheetId = null;
         this.selectedSheetTitle = null;
         this.templates = [];
@@ -33,6 +34,7 @@ class RTXApp {
         console.log('✅ DOM access confirmed - title updated');
         
         this.setupEventListeners();
+        this.setupRichEditor();
         this.setupMenuHandlers();
         this.loadSettings();
         this.populateAccountsDropdown();
@@ -44,6 +46,26 @@ class RTXApp {
 
         // Update and version wiring
         this.wireAutoUpdates();
+    }
+
+    setupRichEditor() {
+        try {
+            const editorContainer = document.getElementById('emailEditor');
+            if (!editorContainer || !window.Quill) return;
+            this.quill = new window.Quill('#emailEditor', {
+                modules: { toolbar: '#editorToolbar' },
+                theme: 'snow',
+                placeholder: 'Enter your email content... Use ((Name)), ((Email)), ((Company))'
+            });
+            // Ensure Ctrl+A works inside editor
+            editorContainer.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+                    e.stopPropagation();
+                }
+            });
+        } catch (e) {
+            console.warn('Rich editor init failed', e);
+        }
     }
 
     wireAutoUpdates() {
@@ -758,11 +780,11 @@ class RTXApp {
             this.showLoading('Sending test email...');
             const campaignData = this.getCampaignData();
             if (!campaignData) return;
-            const finalContent = this.processContent(campaignData.content, {}, campaignData.useSig);
+            const finalContent = this.processContent(this.getEditorPlainText(), {}, campaignData.useSig);
             const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
             const html = this.gmailSignature
-                ? `<div>${this.escapeHtml(finalContent).replace(/\n/g,'<br/>')}</div><div>${this.gmailSignature}</div>`
-                : undefined;
+                ? `<div>${this.getEditorHtml({})}</div><div>${this.gmailSignature}</div>`
+                : (this.getEditorHtml({}) || undefined);
             const result = await window.electronAPI.sendTestEmail({
                 to: testEmail,
                 subject: campaignData.subject,
@@ -781,7 +803,7 @@ class RTXApp {
     getCampaignData() {
         const name = document.getElementById('campaignName')?.value;
         const subject = document.getElementById('campaignSubject')?.value;
-        const content = document.getElementById('emailContent')?.value;
+        const content = this.getEditorPlainText();
         const fromName = document.getElementById('fromName')?.value;
         const useSig = document.getElementById('useSignature')?.checked;
 
@@ -1001,10 +1023,10 @@ class RTXApp {
         const toIndex = headers.indexOf(toHeader);
         const to = row[toIndex];
         const rowMap = this.buildRowMap(headers, row);
-        const content = this.processContent(campaign.content, rowMap, campaign.useSig);
+        const content = this.processContent(this.getEditorPlainText(), rowMap, campaign.useSig);
         const html = this.gmailSignature && campaign.useSig
-            ? `<div>${this.escapeHtml(content).replace(/\n/g,'<br/>')}</div><div>${this.gmailSignature}</div>`
-            : undefined;
+            ? `<div>${this.getEditorHtml(rowMap)}</div><div>${this.gmailSignature}</div>`
+            : (this.getEditorHtml(rowMap) || undefined);
         const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
         const result = await window.electronAPI.sendEmail({ to, subject: campaign.subject, content, html, from, attachmentsPaths: this.attachmentsPaths });
         if (!result.success) {

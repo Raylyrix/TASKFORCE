@@ -487,6 +487,7 @@ async function authenticateGoogle(credentialsData) {
 		});
 
         // Persist token and client binding
+        try { store.delete('smtp.activeEmail'); } catch (_) {}
         store.set('googleToken', token);
         store.set('googleTokenClientId', norm.client_id);
         // Prime clients and validate access token
