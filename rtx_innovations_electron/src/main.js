@@ -1194,8 +1194,25 @@ ipcMain.handle('get-app-name', async () => app.getName());
 // Improve compatibility on some GPUs (blank/invisible window)
 try {
     app.commandLine.appendSwitch('force_low_power_gpu');
+    app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
     app.disableHardwareAcceleration();
 } catch (_) {}
+
+// Ensure single instance; focus existing window on second launch
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  try { app.quit(); } catch(_) {}
+}
+app.on('second-instance', () => {
+  try {
+    if (mainWindow) {
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createWindow();
+    }
+  } catch (_) {}
+});
 
 app.whenReady().then(() => {
 	try { if (process.platform === 'win32') app.setAppUserModelId('com.rtxinnovations.taskforce'); } catch (_) {}
