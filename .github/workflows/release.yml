@@ -22,6 +22,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Sync package.json version with tag
+        shell: bash
+        run: |
+          TAG=${GITHUB_REF##*/}
+          node -e "const fs=require('fs');const p=require('./package.json');p.version='${TAG#v}';fs.writeFileSync('./package.json',JSON.stringify(p,null,2));"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -41,12 +47,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win nsis --publish never
 
+      - name: Zip Windows installer (to avoid AV false positives)
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-builds\zip | Out-Null
+          Get-ChildItem dist-builds -Filter *.exe | ForEach-Object { Compress-Archive -Path $_.FullName -DestinationPath ("dist-builds/zip/" + $_.BaseName + ".zip") -Force }
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows
           path: |
             rtx_innovations_electron/dist-builds/*.exe
+            rtx_innovations_electron/dist-builds/zip/*.zip
             rtx_innovations_electron/dist-builds/*.blockmap
             rtx_innovations_electron/dist-builds/latest.yml
           if-no-files-found: error
@@ -62,6 +75,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Sync package.json version with tag
+        run: |
+          TAG=${GITHUB_REF##*/}
+          node -e "const fs=require('fs');const p=require('./package.json');p.version='${TAG#v}';fs.writeFileSync('./package.json',JSON.stringify(p,null,2));"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
