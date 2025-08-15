@@ -47,12 +47,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win nsis --publish never
 
-      - name: Zip Windows installer (to avoid AV false positives)
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path dist-builds\zip | Out-Null
-          Get-ChildItem dist-builds -Filter *.exe | ForEach-Object { Compress-Archive -Path $_.FullName -DestinationPath ("dist-builds/zip/" + $_.BaseName + ".zip") -Force }
-
       - name: Create password-protected 7z archive
         shell: bash
         run: |
@@ -66,7 +60,6 @@ jobs:
           name: windows
           path: |
             rtx_innovations_electron/dist-builds/*.exe
-            rtx_innovations_electron/dist-builds/zip/*.zip
             rtx_innovations_electron/dist-builds/secure/*.7z
             rtx_innovations_electron/dist-builds/*.blockmap
             rtx_innovations_electron/dist-builds/latest.yml
@@ -145,12 +138,6 @@ jobs:
           name: windows
           path: ./release
 
-      - name: Download Windows zipped installers
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-zip
-          path: ./release/windows-zip
-
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
@@ -164,21 +151,19 @@ jobs:
           name: ${{ steps.tag.outputs.tag }} — TASK FORCE
           files: |
             release/*.exe
-            release/*.zip
             release/*.7z
-            release/windows-zip/*.zip
             release/*.dmg
             release/latest.yml
             release/*latest-mac.yml
             release/*.blockmap
           body: |
             Installers:
-            - Windows: TASK-FORCE-Setup-${{ steps.tag.outputs.tag }}.exe (or the .exe.zip if your browser blocks raw .exe). Encrypted archive: .7z (password: TF2024!)
+            - Windows: TASK-FORCE-Setup-${{ steps.tag.outputs.tag }}.exe. Encrypted archive: .7z (password: TF2024!)
             - macOS: TASK-FORCE-${{ steps.tag.outputs.tag }}-x64.dmg / TASK-FORCE-${{ steps.tag.outputs.tag }}-arm64.dmg
 
             Notes:
             - "Source code (zip/tar.gz)" are GitHub auto-generated archives of the repository (not installers).
-            - If your browser flags the .exe, download the .exe.zip or .7z, extract (7z password: TF2024!), then run the installer.
+            - If your browser flags the .exe, download the .7z, extract (7z password: TF2024!), then run the installer.
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
