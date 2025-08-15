@@ -33,10 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAppVersion: () => wrapInvoke('get-app-version'),
     getAppName: () => wrapInvoke('get-app-name'),
 
-    // Telemetry/logs
+    // Logs (telemetry disabled)
     appendLog: (payload) => wrapInvoke('app-log-append', payload),
     readSessionLog: () => wrapInvoke('app-log-read'),
-    track: (args) => wrapInvoke('telemetry-track', args),
 
     // Store
     storeGet: (key) => wrapInvoke('storeGet', key),
