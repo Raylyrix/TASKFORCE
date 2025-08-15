@@ -23,6 +23,7 @@
         <a href="#home" class="nav-link" data-route>Home</a>
         <a href="#download" class="nav-link" data-route>Download</a>
         <a href="#releases" class="nav-link" data-route>Release Notes</a>
+        <a href="#app" class="nav-link" data-route>App</a>
         <a href="https://github.com/Raylyrix/rtxapps" class="nav-link" target="_blank" rel="noopener">GitHub</a>
       </nav>
     </div>
@@ -85,6 +86,59 @@
         <p>Loading release notes…</p>
       </div>
     </section>
+    <section id="app" data-view hidden>
+      <h2>Task Force Web</h2>
+      <p class="muted">Sign in with Google to connect Sheets and send mail from your account. This runs entirely in your browser.</p>
+
+      <div class="live-card">
+        <div class="live-head"><h3>Authentication</h3></div>
+        <div class="live-body">
+          <div id="authStatusWeb" class="muted">Not signed in</div>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btnSignIn" class="btn btn-primary">Sign in with Google</button>
+            <button id="btnSignOut" class="btn btn-secondary" disabled>Sign out</button>
+          </div>
+          <div class="muted" style="margin-top:8px;">Scopes requested: Gmail send, Sheets read. Configure your Google Web Client ID in <code>docs/config.js</code>.</div>
+        </div>
+      </div>
+
+      <div class="live-card" style="margin-top:16px;">
+        <div class="live-head"><h3>Connect Google Sheet</h3></div>
+        <div class="live-body">
+          <label>Google Sheets URL or ID</label>
+          <input id="webSheetInput" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px;" placeholder="https://docs.google.com/spreadsheets/d/… or ID" />
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button id="btnWebLoadSheet" class="btn btn-secondary" disabled>Load</button>
+          </div>
+          <div id="webSheetMeta" class="muted" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div class="live-card" style="margin-top:16px;">
+        <div class="live-head"><h3>Compose</h3></div>
+        <div class="live-body">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div>
+              <label>Subject</label>
+              <input id="webSubject" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px;" placeholder="Subject" />
+            </div>
+            <div>
+              <label>From (optional)</label>
+              <input id="webFrom" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px;" placeholder="you@gmail.com" />
+            </div>
+          </div>
+          <label style="margin-top:10px; display:block;">Body</label>
+          <textarea id="webBody" rows="8" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px;" placeholder="Use ((ColumnName)) placeholders"></textarea>
+          <div id="webChips" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;"></div>
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button id="btnPreviewFirst" class="btn btn-secondary" disabled>Preview First Row</button>
+            <button id="btnSendTest" class="btn btn-secondary" disabled>Send Test…</button>
+            <button id="btnStartSend" class="btn btn-primary" disabled>Start Send</button>
+          </div>
+          <div id="webProgress" class="muted" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
@@ -100,6 +154,9 @@
       repo: 'RTXAPPS'
     };
   </script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script src="./config.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

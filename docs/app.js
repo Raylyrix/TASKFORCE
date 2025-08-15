@@ -94,6 +94,8 @@
       fetchLatest();
     } else if (current === '#releases') {
       fetchReleases();
+    } else if (current === '#app') {
+      ensureGoogleLoaded().then(initWebApp).catch(() => {});
     }
   }
 
@@ -106,6 +108,177 @@
   window.addEventListener('hashchange', onHashChange);
   onHashChange();
   startLiveRefresh();
+  // --- Task Force Web (client-side Gmail/Sheets) ---
+  let gapiLoaded = false;
+  let gToken = null;
+  let sheets = null;
+  let gmail = null;
+  let webData = { headers: [], rows: [] };
+
+  async function ensureGoogleLoaded() {
+    if (gapiLoaded) return;
+    await new Promise(resolve => {
+      if (window.gapi) return resolve();
+      const i = setInterval(() => { if (window.gapi) { clearInterval(i); resolve(); } }, 200);
+    });
+    await new Promise(resolve => { gapi.load('client', resolve); });
+    await gapi.client.init({});
+    gapiLoaded = true;
+  }
+
+  async function initWebApp() {
+    const status = document.getElementById('authStatusWeb');
+    const signInBtn = document.getElementById('btnSignIn');
+    const signOutBtn = document.getElementById('btnSignOut');
+    const sheetBtn = document.getElementById('btnWebLoadSheet');
+    const prevBtn = document.getElementById('btnPreviewFirst');
+    const testBtn = document.getElementById('btnSendTest');
+    const sendBtn = document.getElementById('btnStartSend');
+    const chips = document.getElementById('webChips');
+
+    function setAuthedUI(on) {
+      if (status) status.textContent = on ? 'Signed in' : 'Not signed in';
+      if (signInBtn) signInBtn.disabled = !!on;
+      if (signOutBtn) signOutBtn.disabled = !on;
+      if (sheetBtn) sheetBtn.disabled = !on;
+      if (prevBtn) prevBtn.disabled = !on || webData.rows.length === 0;
+      if (testBtn) testBtn.disabled = !on || webData.rows.length === 0;
+      if (sendBtn) sendBtn.disabled = !on || webData.rows.length === 0;
+    }
+
+    async function signIn() {
+      const clientId = window.TaskForceWebConfig?.googleClientId;
+      const scope = 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/spreadsheets.readonly';
+      const tokenClient = google.accounts.oauth2.initTokenClient({ client_id: clientId, scope, callback: (t) => { gToken = t; } });
+      tokenClient.requestAccessToken();
+      await waitForToken();
+      await loadApis();
+      setAuthedUI(true);
+    }
+
+    async function signOut() {
+      try { if (gToken?.access_token) google.accounts.oauth2.revoke(gToken.access_token); } catch (_) {}
+      gToken = null; sheets = null; gmail = null; webData = { headers: [], rows: [] };
+      if (chips) chips.innerHTML = '';
+      setAuthedUI(false);
+    }
+
+    function waitForToken() {
+      return new Promise((resolve) => { const i = setInterval(() => { if (gToken) { clearInterval(i); resolve(); } }, 200); });
+    }
+
+    async function loadApis() {
+      gapi.client.setToken(gToken);
+      await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
+      await gapi.client.load('https://gmail.googleapis.com/$discovery/rest?version=v1');
+      sheets = gapi.client.sheets; gmail = gapi.client.gmail;
+    }
+
+    function sheetIdFrom(input) {
+      const s = String(input || '');
+      const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/); if (m) return m[1];
+      if (/^[a-zA-Z0-9-_]+$/.test(s)) return s;
+      return null;
+    }
+
+    async function loadSheet() {
+      const el = document.getElementById('webSheetInput');
+      const meta = document.getElementById('webSheetMeta');
+      const id = sheetIdFrom(el.value.trim());
+      if (!id) { meta.textContent = 'Invalid sheet URL/ID'; return; }
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId: id, range: 'A:Z' });
+      const values = res.result.values || [];
+      if (!values.length) { meta.textContent = 'No data found'; return; }
+      webData.headers = values[0];
+      webData.rows = values.slice(1);
+      meta.textContent = `${webData.rows.length} rows • ${webData.headers.length} columns`;
+      renderChips();
+      setAuthedUI(true);
+    }
+
+    function renderChips() {
+      const c = document.getElementById('webChips'); if (!c) return;
+      c.innerHTML = '';
+      webData.headers.forEach(h => {
+        const span = document.createElement('span');
+        span.className = 'btn btn-secondary';
+        span.textContent = String(h);
+        span.style.padding = '6px 10px';
+        span.addEventListener('click', () => {
+          const ta = document.getElementById('webBody');
+          if (ta) {
+            const ins = `((`+String(h)+`))`;
+            ta.value = ta.value + (ta.value ? '\n' : '') + ins;
+          }
+        });
+        c.appendChild(span);
+      });
+    }
+
+    function produceBody(row) {
+      const map = {}; webData.headers.forEach((h,i)=> map[String(h).trim()] = row[i] || '');
+      let body = document.getElementById('webBody').value || '';
+      body = body.replace(/\(\(([^)]+)\)\)/g, (_m, p1) => map[String(p1).trim()] ?? '');
+      return body;
+    }
+
+    async function previewFirst() {
+      if (!webData.rows.length) return;
+      const subj = document.getElementById('webSubject').value || '';
+      const body = produceBody(webData.rows[0]);
+      alert(`Subject: ${subj}\n\n${body}`);
+    }
+
+    function makeRawEmail({ from, to, subject, text }) {
+      const headers = [];
+      if (from) headers.push(`From: ${from}`);
+      headers.push(`To: ${to}`);
+      headers.push(`Subject: ${subject}`);
+      headers.push('Content-Type: text/plain; charset="UTF-8"');
+      headers.push('MIME-Version: 1.0');
+      const msg = headers.join('\r\n') + '\r\n\r\n' + text;
+      return btoa(unescape(encodeURIComponent(msg))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    async function sendOne(to) {
+      const subject = document.getElementById('webSubject').value || '';
+      const from = document.getElementById('webFrom').value || undefined;
+      const text = produceBody(webData.rows.find(r => (r.join('')||'').includes(to)) || webData.rows[0]);
+      const raw = makeRawEmail({ from, to, subject, text });
+      await gmail.users.messages.send({ userId: 'me', resource: { raw } });
+    }
+
+    async function sendTest() {
+      const to = prompt('Enter test email:'); if (!to) return;
+      await sendOne(to);
+      alert('Test sent');
+    }
+
+    async function startSend() {
+      const progress = document.getElementById('webProgress');
+      const emailCol = webData.headers.findIndex(h => String(h).toLowerCase().includes('email'));
+      if (emailCol === -1) { alert('No Email column'); return; }
+      let sent = 0, failed = 0;
+      for (const row of webData.rows) {
+        const to = row[emailCol]; if (!to) continue;
+        try { const text = produceBody(row); const subject = document.getElementById('webSubject').value || '';
+          const from = document.getElementById('webFrom').value || undefined;
+          const raw = makeRawEmail({ from, to, subject, text });
+          await gmail.users.messages.send({ userId: 'me', resource: { raw } }); sent++; }
+        catch (_) { failed++; }
+        if (progress) progress.textContent = `Sent ${sent} • Failed ${failed}`;
+        await new Promise(r => setTimeout(r, 600));
+      }
+      alert(`Done. Sent ${sent}, Failed ${failed}`);
+    }
+
+    signInBtn?.addEventListener('click', signIn);
+    signOutBtn?.addEventListener('click', signOut);
+    sheetBtn?.addEventListener('click', loadSheet);
+    prevBtn?.addEventListener('click', previewFirst);
+    testBtn?.addEventListener('click', sendTest);
+    sendBtn?.addEventListener('click', startSend);
+  }
 })();
 
 
