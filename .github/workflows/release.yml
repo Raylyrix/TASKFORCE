@@ -64,6 +64,13 @@ jobs:
             rtx_innovations_electron/dist-builds/latest.yml
           if-no-files-found: error
 
+      - name: Upload Windows zipped installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: rtx_innovations_electron/dist-builds/zip/*.zip
+          if-no-files-found: error
+
   build-macos:
     runs-on: macos-latest
     timeout-minutes: 60
@@ -130,6 +137,12 @@ jobs:
           name: windows
           path: ./release
 
+      - name: Download Windows zipped installers
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-zip
+          path: ./release/windows-zip
+
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
@@ -144,6 +157,7 @@ jobs:
           files: |
             release/*.exe
             release/*.zip
+            release/windows-zip/*.zip
             release/*.dmg
             release/latest.yml
             release/*latest-mac.yml

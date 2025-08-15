@@ -12,7 +12,7 @@
     "electron": "wait-on dist/bundle.js && electron .",
     "build": "webpack --config webpack.config.js",
     "gen-icons": "node ./scripts/generate-icons.js",
-    "build-win": "npm run build && npm run gen-icons && electron-builder --win nsis portable",
+    "build-win": "npm run build && npm run gen-icons && electron-builder --win nsis && powershell -NoProfile -Command \"New-Item -ItemType Directory -Force -Path dist-builds/zip | Out-Null; Get-ChildItem dist-builds -Filter *.exe | ForEach-Object { Compress-Archive -Path $_.FullName -DestinationPath ('dist-builds/zip/' + $_.BaseName + '.zip') -Force }\"",
     "build-mac": "npm run build && npm run gen-icons && electron-builder --mac dmg zip",
     "build-linux": "npm run build && npm run gen-icons && electron-builder --linux",
     "build-all": "npm run build && npm run gen-icons && electron-builder -mwl",
