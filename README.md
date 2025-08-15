@@ -8,7 +8,7 @@ A comprehensive automatic email sender with Google Sheets integration, schedulin
 
 Use the packaged Electron desktop app for the easiest setup on Windows and macOS.
 
-- Go to Releases: https://github.com/Raylyrix/RTK/releases
+- Go to Releases: https://github.com/Raylyrix/RTXAPPS/releases
 - Download the single installer for your OS:
   - Windows (single file): `RTX Innovations Web Setup <version>.exe` (web installer)
   - macOS (single file): `RTX Innovations-<version>.pkg`
@@ -29,8 +29,13 @@ Use the packaged Electron desktop app for the easiest setup on Windows and macOS
 - On success, the app saves your token and returns to the app.
 
 #### Auto‑updates
-- The app checks for updates on launch and will prompt when a new version is available.
-- Click “Download” then “Install” when prompted; the app restarts into the new version (e.g., v3).
+- The app checks for updates on launch and hourly. When an update is available, you will see a banner and a dialog.
+- After download completes, release notes will be shown; click “Install” to restart into the new version.
+
+#### Release artifacts
+- Windows: NSIS `.exe` installer
+- macOS: `.dmg` and `.zip` (ZIP is required for in-app auto‑updates)
+- Linux: `.AppImage` and `.deb`
 
 #### Troubleshooting (quick)
 - Windows: SmartScreen → “More info” → “Run anyway”.
