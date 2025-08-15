@@ -1,0 +1,117 @@
+{
+  "name": "rtx-innovations",
+  "version": "1.0.2",
+  "description": "Professional Email Marketing Platform - RTX Innovations",
+  "main": "src/main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "electron .",
+    "dev": "npm run build && concurrently \"npm run watch\" \"npm run electron\"",
+    "dev-simple": "npm run build && electron .",
+    "watch": "webpack --config webpack.config.js --watch",
+    "electron": "wait-on dist/bundle.js && electron .",
+    "build": "webpack --config webpack.config.js",
+    "gen-icons": "node ./scripts/generate-icons.js",
+    "build-win": "npm run build && npm run gen-icons && electron-builder --win nsis portable",
+    "build-mac": "npm run build && npm run gen-icons && electron-builder --mac dmg zip",
+    "build-linux": "npm run build && npm run gen-icons && electron-builder --linux",
+    "build-all": "npm run build && npm run gen-icons && electron-builder -mwl",
+    "dist": "npm run build && npm run gen-icons && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "email",
+    "marketing",
+    "automation",
+    "google-sheets",
+    "gmail",
+    "desktop-app"
+  ],
+  "author": "RTX Innovations",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "css-loader": "^6.8.1",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.6.4",
+    "html-webpack-plugin": "^5.5.3",
+    "icon-gen": "^3.0.1",
+    "sharp": "^0.33.2",
+    "style-loader": "^3.3.3",
+    "wait-on": "^7.2.0",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "electron-is-dev": "^2.0.0",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7",
+    "imapflow": "^1.0.164",
+    "googleapis": "^128.0.0",
+    "mime-types": "^3.0.1",
+    "nodemailer": "^6.9.14",
+    "moment": "^2.29.4",
+    "node-cron": "^3.0.3",
+    "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "com.rtxinnovations.emailmarketing",
+    "productName": "RTX Innovations",
+    "directories": {
+      "output": "dist-builds"
+    },
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "src/main.js",
+      "src/preload.js",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "extraMetadata": {
+      "main": "src/main.js"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Raylyrix",
+        "repo": "rtxapps"
+      }
+    ],
+
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"],
+          "artifactName": "RTX-Innovations-Setup-${version}.${ext}"
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"],
+          "artifactName": "RTX-Innovations-Portable-${version}.${ext}"
+        }
+      ],
+      "icon": "assets/icons/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "assets/icons/icon.icns",
+      "category": "public.app-category.business",
+      "identity": null,
+      "artifactName": "RTX-Innovations-${version}.${ext}"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icons/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
+  }
+}
