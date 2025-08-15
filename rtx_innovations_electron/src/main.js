@@ -702,6 +702,7 @@ function initAutoUpdater() {
 		if (isDev) { logEvent('info', 'AutoUpdater disabled in development'); return; }
 		autoUpdater = require('electron-updater').autoUpdater;
 		autoUpdater.autoDownload = false;
+		autoUpdater.setFeedURL({ provider: 'github', owner: 'Raylyrix', repo: 'rtxapps' });
 		// Forward events to renderer
 		autoUpdater.on('checking-for-update', () => { if (mainWindow) mainWindow.webContents.send('update-status', { status: 'checking' }); });
 		autoUpdater.on('update-available', (info) => {

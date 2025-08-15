@@ -45,7 +45,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: rtx_innovations_electron/dist-builds/*.exe
+          path: |
+            rtx_innovations_electron/dist-builds/*.exe
+            rtx_innovations_electron/dist-builds/*.blockmap
+            rtx_innovations_electron/dist-builds/latest.yml
           if-no-files-found: error
 
   build-macos:
@@ -90,6 +93,8 @@ jobs:
           path: |
             rtx_innovations_electron/dist-builds/*.dmg
             rtx_innovations_electron/dist-builds/mac-*/**/*.dmg
+            rtx_innovations_electron/dist-builds/*latest-mac.yml
+            rtx_innovations_electron/dist-builds/*.blockmap
           if-no-files-found: error
 
   create-release:
@@ -120,6 +125,9 @@ jobs:
           files: |
             release/*.exe
             release/*.dmg
+            release/latest.yml
+            release/*latest-mac.yml
+            release/*.blockmap
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
