@@ -307,7 +307,7 @@ class RTXApp {
                     }
                 });
             }
-            window.electronAPI.onMenuAction((event, action) => {
+            window.electronAPI.onMenuAction((action) => {
                 this.handleMenuAction(action);
             });
 
@@ -1056,9 +1056,59 @@ class RTXApp {
             case 'import-data':
                 this.connectToSheets();
                 break;
+            case 'help-check-updates':
+                try { window.electronAPI?.checkForUpdates?.(); this.showInfo('Checking for updates...'); } catch (_) {}
+                break;
+            case 'help-about':
+                this.openAboutModal();
+                break;
+            case 'help-welcome':
+                this.openWelcomeModal();
+                break;
+            case 'help-release-notes':
+                this.openReleaseNotesModal();
+                break;
             default:
                 this.showSuccess(`Menu action: ${action}`);
         }
+    }
+
+    openAboutModal() {
+        const el = document.getElementById('aboutModal');
+        if (!el) return;
+        const verSpan = document.getElementById('aboutVersion');
+        if (verSpan && window.electronAPI?.getAppVersion) {
+            window.electronAPI.getAppVersion().then(v => { verSpan.textContent = v; });
+        }
+        el.style.display = 'block';
+    }
+
+    openWelcomeModal() {
+        const el = document.getElementById('welcomeModal');
+        if (!el) return;
+        el.style.display = 'block';
+    }
+
+    openReleaseNotesModal() {
+        const el = document.getElementById('releaseNotesModal');
+        if (!el) return;
+        const body = document.getElementById('releaseNotesBody');
+        if (body) {
+            body.innerHTML = this.getStaticReleaseNotesHtml();
+        }
+        el.style.display = 'block';
+    }
+
+    getStaticReleaseNotesHtml() {
+        // Keep this quick; could be loaded from a local file later
+        return `
+            <h4>v1.4.1</h4>
+            <ul>
+                <li>New Help menu: Check for Updates, Welcome, About, and Release Notes</li>
+                <li>In-app update notifications and controls</li>
+                <li>Usability and stability improvements</li>
+            </ul>
+        `;
     }
 
     logout() {
@@ -1120,6 +1170,10 @@ class RTXApp {
 
     showError(message) {
         this.showNotification(message, 'error');
+    }
+
+    showInfo(message) {
+        this.showNotification(message, 'info');
     }
 
     showNotification(message, type = 'info') {

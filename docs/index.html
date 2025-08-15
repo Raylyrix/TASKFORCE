@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TASK FORCE – Bulk Mailer</title>
+  <link rel="preconnect" href="https://api.github.com" />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <meta name="description" content="TASK FORCE – Bulk email sender with Google Sheets integration by RTX Innovations" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="../rtx_innovations_electron/assets/icons/logo.png" alt="TASK FORCE" class="brand-logo" />
+        <div class="brand-text">
+          <h1>TASK FORCE</h1>
+          <p>Bulk email with Google Sheets</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#home" class="nav-link" data-route>Home</a>
+        <a href="#download" class="nav-link" data-route>Download</a>
+        <a href="#releases" class="nav-link" data-route>Release Notes</a>
+        <a href="https://github.com/Raylyrix/rtxapps" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="home" data-view>
+      <div class="hero">
+        <h2>Send personalized emails at scale</h2>
+        <p>Connect a Google Sheet, compose once, and reach everyone with dynamic placeholders. Email smarter – not harder.</p>
+        <div class="cta-row">
+          <a id="ctaDownload" class="btn btn-primary" href="#download"><i class="fa-solid fa-download"></i> Get the app</a>
+          <a class="btn btn-secondary" href="#releases"><i class="fa-solid fa-file-lines"></i> Release notes</a>
+        </div>
+      </div>
+
+      <div class="live-card" id="liveStatus">
+        <div class="live-head">
+          <h3><i class="fa-solid fa-bolt"></i> Live release status</h3>
+          <span class="pill" id="versionPill">Loading…</span>
+        </div>
+        <div class="live-body">
+          <p id="releaseSummary">Fetching latest release…</p>
+          <div id="assetButtons" class="asset-buttons"></div>
+        </div>
+        <div class="live-foot">
+          <small>Auto-refreshes every 60 seconds • Source: GitHub Releases</small>
+        </div>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature">
+          <i class="fa-solid fa-table"></i>
+          <h4>Google Sheets integration</h4>
+          <p>Target recipients directly from your sheet. Use columns as placeholders in your emails.</p>
+        </div>
+        <div class="feature">
+          <i class="fa-solid fa-envelope"></i>
+          <h4>Gmail-friendly</h4>
+          <p>Supports Gmail App Password mode and legacy OAuth. Keep deliverability strong.</p>
+        </div>
+        <div class="feature">
+          <i class="fa-solid fa-gauge-high"></i>
+          <h4>Fast and focused</h4>
+          <p>Purpose-built desktop app with a clean, robust workflow for campaigns.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="download" data-view hidden>
+      <h2>Download</h2>
+      <p>Grab the latest installer for your platform.</p>
+      <div id="downloads" class="downloads"></div>
+      <p class="muted">Don’t see your platform? Visit the <a href="https://github.com/Raylyrix/rtxapps/releases" target="_blank" rel="noopener">releases page</a>.</p>
+    </section>
+
+    <section id="releases" data-view hidden>
+      <h2>Release notes</h2>
+      <div id="releaseList" class="release-list">
+        <p>Loading release notes…</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div>© <span id="year"></span> RTX Innovations • <a href="https://github.com/Raylyrix/rtxapps" target="_blank" rel="noopener">GitHub</a></div>
+      <div class="muted">This site is served by GitHub Pages.</div>
+    </div>
+  </footer>
+
+  <script>
+    window.__SITE_CONFIG__ = {
+      owner: 'Raylyrix',
+      repo: 'rtxapps'
+    };
+  </script>
+  <script src="./app.js"></script>
+</body>
+</html>
+
+

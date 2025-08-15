@@ -312,6 +312,35 @@ function createMenu() {
 			label: 'Window',
 			submenu: [ { role: 'minimize' }, { role: 'close' } ]
     }
+    ,
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Check for Updates',
+          click: () => {
+            try {
+              if (mainWindow && mainWindow.webContents) {
+                mainWindow.webContents.send('menu-action', 'help-check-updates');
+              }
+            } catch (_) {}
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Welcome',
+          click: () => { try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('menu-action', 'help-welcome'); } catch (_) {} }
+        },
+        {
+          label: 'Release Notes',
+          click: () => { try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('menu-action', 'help-release-notes'); } catch (_) {} }
+        },
+        {
+          label: 'About',
+          click: () => { try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('menu-action', 'help-about'); } catch (_) {} }
+        }
+      ]
+    }
   ];
 
   const menu = Menu.buildFromTemplate(template);

@@ -329,7 +329,7 @@
 				<h1 style="font-size:18px; margin:0;">TASK FORCE</h1>
 				<p style="color:#8E8E93; margin:0; font-size:12px;">Send bulk emails with Google Sheets integration</p>
 			</div>
-			<div style="display:flex; gap:8px; align-items:center;">
+			<div style="display:flex; gap:8px; align-items:center; position:relative;">
                 <select id="accountsSelect" style="min-width:220px; padding:8px 10px; border:1px solid #e5e5e7; border-radius:6px;">
                     <option value="">Select account</option>
                 </select>
@@ -338,6 +338,13 @@
 				<button class="btn btn-secondary" id="togglePreviewBtn"><i class="fas fa-table"></i>Preview</button>
 				<button class="btn btn-secondary" id="logsBtn"><i class="fas fa-list"></i>Logs</button>
 				<button class="btn btn-secondary" id="themeToggle"><i class="fas fa-moon"></i>Theme</button>
+				<button class="btn btn-secondary" id="helpToolbarBtn"><i class="fas fa-circle-question"></i>Help</button>
+				<div id="helpDropdown" style="display:none; position:absolute; right:0; top:100%; margin-top:8px; background:#ffffff; border:1px solid #e5e5e7; border-radius:8px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); overflow:hidden; min-width:220px;">
+					<button class="btn btn-secondary" id="helpCheckBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Check for Updates</button>
+					<button class="btn btn-secondary" id="helpWelcomeBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Welcome</button>
+					<button class="btn btn-secondary" id="helpReleaseNotesBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Release Notes</button>
+					<button class="btn btn-secondary" id="helpAboutBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">About</button>
+				</div>
                 </div>
             </div>
             
@@ -627,6 +634,50 @@
         </div>
     </div>
 
+	<!-- About Modal -->
+	<div class="modal" id="aboutModal" style="display:none;">
+		<div class="modal-content" style="max-width: 600px; width: 90%;">
+			<div class="modal-header">
+				<h3>About TASK FORCE</h3>
+				<button class="modal-close" onclick="document.getElementById('aboutModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body">
+				<p><strong>Version:</strong> <span id="aboutVersion">-</span></p>
+				<p>Mass mailer with Google Sheets integration by RTX Innovations.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Welcome Modal -->
+	<div class="modal" id="welcomeModal" style="display:none;">
+		<div class="modal-content" style="max-width: 700px; width: 90%;">
+			<div class="modal-header">
+				<h3>Welcome to TASK FORCE</h3>
+				<button class="modal-close" onclick="document.getElementById('welcomeModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body">
+				<p>Thanks for installing TASK FORCE. Use the steps to connect Google Sheets and send personalized emails in bulk.</p>
+				<ol>
+					<li>Login using Gmail App Password or OAuth</li>
+					<li>Paste your Google Sheets URL</li>
+					<li>Compose your email using placeholders like ((Name))</li>
+					<li>Send a test, then start the campaign</li>
+				</ol>
+			</div>
+		</div>
+	</div>
+
+	<!-- Release Notes Modal -->
+	<div class="modal" id="releaseNotesModal" style="display:none;">
+		<div class="modal-content" style="max-width: 700px; width: 90%;">
+			<div class="modal-header">
+				<h3>Release Notes</h3>
+				<button class="modal-close" onclick="document.getElementById('releaseNotesModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body" id="releaseNotesBody"></div>
+		</div>
+	</div>
+
 	<script>
 		// Theme toggle behavior
 		document.getElementById('themeToggle')?.addEventListener('click', () => {
@@ -707,6 +758,27 @@
 			document.querySelectorAll('#assistantChips [data-placeholder-key]')?.forEach(c => { c.style.display = c.dataset.placeholderKey.toLowerCase().includes(q) ? 'inline-flex' : 'none'; });
 		});
 
+		// Help dropdown listeners
+		(function(){
+			const helpBtn = document.getElementById('helpToolbarBtn');
+			const helpMenu = document.getElementById('helpDropdown');
+			const closeAll = (ev) => {
+				if (!helpMenu) return;
+				if (ev && (helpMenu.contains(ev.target) || helpBtn.contains(ev.target))) return;
+				helpMenu.style.display = 'none';
+			};
+			helpBtn?.addEventListener('click', (e) => {
+				e.stopPropagation();
+				if (!helpMenu) return;
+				helpMenu.style.display = helpMenu.style.display === 'none' ? 'block' : 'none';
+			});
+			document.addEventListener('click', closeAll);
+			document.getElementById('helpCheckBtn')?.addEventListener('click', () => { try { window.electronAPI?.checkForUpdates?.(); } catch(_){} closeAll({}); });
+			document.getElementById('helpAboutBtn')?.addEventListener('click', () => { try { window.rtxApp?.openAboutModal?.(); } catch(_){} closeAll({}); });
+			document.getElementById('helpWelcomeBtn')?.addEventListener('click', () => { try { window.rtxApp?.openWelcomeModal?.(); } catch(_){} closeAll({}); });
+			document.getElementById('helpReleaseNotesBtn')?.addEventListener('click', () => { try { window.rtxApp?.openReleaseNotesModal?.(); } catch(_){} closeAll({}); });
+		})();
+
 		// Signature Builder actions
 		document.getElementById('saveSignatureBtn')?.addEventListener('click', async () => {
 			const name = document.getElementById('sigName').value?.trim();
@@ -734,6 +806,46 @@
 			await window.electronAPI.storeSet('signatures', filtered);
 			window.rtxApp.showSuccess('Signature deleted');
 		});
+
+		// Update banner wiring
+		(function(){
+			try {
+				const banner = document.getElementById('updateBanner');
+				const text = document.getElementById('updateBannerText');
+				const action = document.getElementById('updateActionBtn');
+				let lastInfo = null;
+				if (window.electronAPI?.onUpdateStatus) {
+					window.electronAPI.onUpdateStatus((data) => {
+						if (!data) return;
+						if (data.status === 'available') {
+							lastInfo = data.info || null;
+							if (text) text.textContent = `New version ${data.info?.version} is available`;
+							if (banner) banner.style.display = 'block';
+							if (action) {
+								action.textContent = 'Download';
+								action.onclick = () => window.electronAPI?.downloadUpdate?.();
+							}
+						} else if (data.status === 'downloading') {
+							if (text) text.textContent = `Downloading update... ${Math.round(data.progress?.percent || 0)}%`;
+							if (banner) banner.style.display = 'block';
+							if (action) { action.textContent = 'Please wait'; action.disabled = true; }
+						} else if (data.status === 'downloaded') {
+							if (text) text.textContent = 'Update downloaded. Click install to restart.';
+							if (banner) banner.style.display = 'block';
+							if (action) { action.disabled = false; action.textContent = 'Install'; action.onclick = () => window.electronAPI?.quitAndInstall?.(); }
+						} else if (data.status === 'none') {
+							if (banner) banner.style.display = 'none';
+						} else if (data.status === 'error') {
+							if (text) text.textContent = 'Update check failed';
+							if (banner) banner.style.display = 'block';
+							if (action) { action.textContent = 'Retry'; action.disabled = false; action.onclick = () => window.electronAPI?.checkForUpdates?.(); }
+						}
+					});
+				}
+				// On first load, perform a check; older v1.4.0 will show available → static banner
+				setTimeout(() => { try { window.electronAPI?.checkForUpdates?.(); } catch (_) {} }, 3000);
+			} catch (_) {}
+		})();
 	</script>
 
 	<style>
