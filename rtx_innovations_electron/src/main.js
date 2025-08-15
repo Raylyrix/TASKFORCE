@@ -867,28 +867,46 @@ ipcMain.handle('load-local-spreadsheet', async (e, filePath) => {
 });
 
 function buildRawEmail({ from, to, subject, text, html, attachments }) {
-	const boundary = 'mixed_' + Math.random().toString(36).slice(2);
 	const wrap76 = (b64) => b64.replace(/.{1,76}/g, (m) => m + '\r\n');
+	const boundaryMixed = 'mixed_' + Math.random().toString(36).slice(2);
+	const boundaryAlt = 'alt_' + Math.random().toString(36).slice(2);
 	let headers = [];
 	if (from) headers.push(`From: ${from}`);
 	headers.push(`To: ${to}`);
 	headers.push(`Subject: ${subject}`);
 	headers.push('MIME-Version: 1.0');
-	if (attachments && attachments.length) {
-		headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+
+	const hasAttachments = attachments && attachments.length;
+	const hasHtml = !!html && String(html).trim().length > 0;
+
+	const buildAlternative = () => {
+		let alt = '';
+		alt += `--${boundaryAlt}\r\n`;
+		alt += `Content-Type: text/plain; charset="UTF-8"\r\n`;
+		alt += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
+		alt += (text || '') + `\r\n`;
+		if (hasHtml) {
+			alt += `--${boundaryAlt}\r\n`;
+			alt += `Content-Type: text/html; charset="UTF-8"\r\n`;
+			alt += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
+			alt += (html || '') + `\r\n`;
+		}
+		alt += `--${boundaryAlt}--\r\n`;
+		return alt;
+	};
+
+	if (hasAttachments) {
+		headers.push(`Content-Type: multipart/mixed; boundary="${boundaryMixed}"`);
 		let body = '';
-		// text part
-		body += `--${boundary}\r\n`;
-		body += `Content-Type: text/plain; charset="UTF-8"\r\n`;
-		body += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
-		body += (text || '') + `\r\n`;
-		// attachments
+		body += `--${boundaryMixed}\r\n`;
+		body += `Content-Type: multipart/alternative; boundary="${boundaryAlt}"\r\n\r\n`;
+		body += buildAlternative();
 		for (const p of attachments) {
 			try {
 				const data = fs.readFileSync(p);
 				const filename = path.basename(p);
 				const ctype = mime.lookup(filename) || 'application/octet-stream';
-				body += `--${boundary}\r\n`;
+				body += `--${boundaryMixed}\r\n`;
 				body += `Content-Type: ${ctype}; name="${filename}"\r\n`;
 				body += `Content-Transfer-Encoding: base64\r\n`;
 				body += `Content-Disposition: attachment; filename="${filename}"\r\n\r\n`;
@@ -897,10 +915,16 @@ function buildRawEmail({ from, to, subject, text, html, attachments }) {
 				logEvent('error', 'Attachment read failed', { path: p, error: e.message });
 			}
 		}
-		body += `--${boundary}--\r\n`;
+		body += `--${boundaryMixed}--\r\n`;
 		return headers.join('\r\n') + '\r\n\r\n' + body;
 	}
-	// no attachments
+
+	if (hasHtml) {
+		headers.push(`Content-Type: multipart/alternative; boundary="${boundaryAlt}"`);
+		const body = buildAlternative();
+		return headers.join('\r\n') + '\r\n\r\n' + body;
+	}
+
 	headers.push('Content-Type: text/plain; charset="UTF-8"');
 	headers.push('Content-Transfer-Encoding: 7bit');
 	return headers.join('\r\n') + '\r\n\r\n' + (text || '');

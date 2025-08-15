@@ -495,6 +495,7 @@ class RTXApp {
             }
             if (window.electronAPI.getGmailSignature) {
                 this.gmailSignature = await window.electronAPI.getGmailSignature();
+                // Prefer HTML signature if present (we store text fallback). In OAuth mode we fetch from sendAs list; here we keep text fallback only.
             }
         } catch (e) {
             console.warn('Failed to fetch Gmail context:', e);
@@ -721,6 +722,7 @@ class RTXApp {
                 to: testEmail,
                 subject: campaignData.subject,
                 content: finalContent,
+                html: undefined,
                 from,
                 attachmentsPaths: this.attachmentsPaths
             });
@@ -955,7 +957,7 @@ class RTXApp {
         const to = row[toIndex];
         const content = this.processContent(campaign.content, this.buildRowMap(headers, row), campaign.useSig);
         const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
-        const result = await window.electronAPI.sendEmail({ to, subject: campaign.subject, content, from, attachmentsPaths: this.attachmentsPaths });
+        const result = await window.electronAPI.sendEmail({ to, subject: campaign.subject, content, html: undefined, from, attachmentsPaths: this.attachmentsPaths });
         if (!result.success) {
             this.setLocalRowStatus(rowIndexZeroBased, 'FAILED');
             throw new Error(result.error || 'Failed to send email');
