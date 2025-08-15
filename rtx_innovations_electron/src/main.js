@@ -495,15 +495,30 @@ async function connectToSheets(arg) {
 		}
 		if (!sheetId) throw new Error('Missing Google Sheet ID');
 		const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
-		const csv = await new Promise((resolve, reject) => {
-			https.get(exportUrl, (res) => {
-				if (res.statusCode !== 200) { reject(new Error(`Failed to fetch CSV (status ${res.statusCode}). Share the sheet as Anyone with the link.`)); return; }
-				let data = '';
-				res.setEncoding('utf8');
-				res.on('data', (chunk) => { try { data += chunk; } catch (_) {} });
-				res.on('end', () => resolve(data));
-			}).on('error', (e) => reject(e));
-		});
+
+		async function fetchCsvWithRedirects(urlToGet, hops = 0) {
+			if (hops > 5) throw new Error('Too many redirects fetching CSV');
+			return await new Promise((resolve, reject) => {
+				const req = https.get(urlToGet, {
+					headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/114 Safari/537.36' }
+				}, (res) => {
+					const loc = res.headers && res.headers.location;
+					if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && loc) {
+						const next = /^https?:/i.test(loc) ? loc : new URL(loc, urlToGet).toString();
+						resolve(fetchCsvWithRedirects(next, hops + 1));
+						return;
+					}
+					if (res.statusCode !== 200) { reject(new Error(`Failed to fetch CSV (status ${res.statusCode}). Share the sheet as Anyone with the link.`)); return; }
+					let data = '';
+					res.setEncoding('utf8');
+					res.on('data', (chunk) => { try { data += chunk; } catch (_) {} });
+					res.on('end', () => resolve(data));
+				});
+				req.on('error', (e) => reject(e));
+			});
+		}
+
+		const csv = await fetchCsvWithRedirects(exportUrl);
 		const XLSX = require('xlsx');
 		const wb = XLSX.read(csv, { type: 'string' });
 		const first = wb.SheetNames[0];
@@ -629,7 +644,7 @@ const sessionLogFile = path.join(appLogsDir, `session-${new Date().toISOString()
 function logEvent(level, message, meta) {
 	try {
 		const line = JSON.stringify({ ts: new Date().toISOString(), level, message, meta: meta || null }) + os.EOL;
-		fs.appendFileSync(sessionLogFile, line);
+		try { fs.appendFileSync(sessionLogFile, line, { encoding: 'utf8', mode: 0o600, flag: 'a' }); } catch (_) {}
 		if (mainWindow && mainWindow.webContents) {
 			mainWindow.webContents.send('app-log', { level, message, meta, ts: Date.now() });
 		}
