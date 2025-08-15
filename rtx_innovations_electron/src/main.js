@@ -199,8 +199,18 @@ function createWindow() {
 	});
 
   // Robust show strategy
-  mainWindow.once('ready-to-show', () => { try { if (!mainWindow.isVisible()) mainWindow.show(); } catch (_) {} });
-  mainWindow.webContents.once('dom-ready', () => { try { if (!mainWindow.isVisible()) mainWindow.show(); } catch (_) {} });
+  const bringToFront = () => {
+    try {
+      if (!mainWindow) return;
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.focus();
+      // Pulse always-on-top to defeat z-order issues
+      mainWindow.setAlwaysOnTop(true);
+      setTimeout(() => { try { mainWindow.setAlwaysOnTop(false); } catch (_) {} }, 200);
+    } catch (_) {}
+  };
+  mainWindow.once('ready-to-show', bringToFront);
+  mainWindow.webContents.once('dom-ready', bringToFront);
   const rescueTimer = setTimeout(() => { try { if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show(); } catch (_) {} }, 4000);
 
 	try {
@@ -1174,8 +1184,11 @@ async function streamToString(stream) {
 ipcMain.handle('get-app-version', async () => app.getVersion());
 ipcMain.handle('get-app-name', async () => app.getName());
 
-// Improve compatibility on some GPUs (blank window)
-try { app.disableHardwareAcceleration(); } catch (_) {}
+// Improve compatibility on some GPUs (blank/invisible window)
+try {
+    app.commandLine.appendSwitch('force_low_power_gpu');
+    app.disableHardwareAcceleration();
+} catch (_) {}
 
 app.whenReady().then(() => {
 	try { if (process.platform === 'win32') app.setAppUserModelId('com.rtxinnovations.taskforce'); } catch (_) {}
