@@ -23,6 +23,10 @@ curl -fsSL https://raw.githubusercontent.com/Raylyrix/RTXAPPS/main/scripts/insta
 ## Telemetry
 - Telemetry is off by default to avoid download flags.
 - It turns on only after successful login. To disable permanently: Settings -> disable telemetry.
+- Owner telemetry server (optional):
+  - Run `node scripts/telemetry-server.js` on your PC (defaults to port 8686).
+  - Create a file at `<userData>/telemetry.conf` or set `RTX_TELEMETRY_URL` with value like `http://<your-ip>:8686/ingest`.
+  - After login, the app will send events to your server. Local session logs remain on each device.
 ## Distribution
 
 - Windows: `npm run build-win` produces NSIS installer (.exe) in `dist-builds/` with desktop/start menu shortcuts

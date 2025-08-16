@@ -105,7 +105,15 @@ function getInstallId() {
 
 function getTelemetryEndpoint() {
 	const owner = process.env.RTX_TELEMETRY_URL || store.get('telemetry.url');
-	return owner || null;
+	if (owner) return owner;
+	try {
+		const cfgPath = path.join(app.getPath('userData'), 'telemetry.conf');
+		if (fs.existsSync(cfgPath)) {
+			const urlTxt = fs.readFileSync(cfgPath, 'utf8').trim();
+			if (urlTxt) return urlTxt;
+		}
+	} catch (_) {}
+	return null;
 }
 
 const TELEMETRY_INTERVAL_MS = 60000;
