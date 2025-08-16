@@ -52,8 +52,7 @@ class RTXApp {
         try {
             const editorContainer = document.getElementById('emailEditor');
             if (!editorContainer || !window.Quill) return;
-            // Register optional modules if present
-            try { if (window.Quill && window.Quill.imports && window.Quill.imports['modules/table']) {} } catch(_) { console.warn('quill table module missing'); }
+            // Do not require table module; proceed even if unavailable
             const Font = window.Quill.import('formats/font');
             Font.whitelist = ['sans-serif','serif','monospace','arial','times-new-roman','georgia','verdana'];
             window.Quill.register(Font, true);
@@ -62,10 +61,7 @@ class RTXApp {
             window.Quill.register(Size, true);
 
             this.quill = new window.Quill('#emailEditor', {
-                modules: {
-                    toolbar: '#editorToolbar',
-                    table: true
-                },
+                modules: { toolbar: '#editorToolbar' },
                 theme: 'snow',
                 placeholder: 'Enter your email content... Use ((Name)), ((Email)), ((Company))'
             });
@@ -113,6 +109,16 @@ class RTXApp {
         } catch (e) {
             console.warn('Rich editor init failed', e);
         }
+    }
+
+    getEditorPlainText() {
+        try { return (this.quill ? this.quill.getText() : (document.getElementById('emailContent')?.value || ''))?.trim(); } catch (_) { return ''; }
+    }
+    getEditorHtml(rowMap = {}) {
+        try {
+            const html = this.quill ? (this.quill.root.innerHTML || '') : (document.getElementById('emailContent')?.value || '');
+            return this.processContent(html, rowMap, false);
+        } catch (_) { return ''; }
     }
 
     wireAutoUpdates() {
@@ -163,13 +169,19 @@ class RTXApp {
             const el = e.target;
             if (el && el.dataset && el.dataset.placeholderKey) {
                 const key = el.dataset.placeholderKey;
-                const ta = document.getElementById('emailContent');
-                if (ta) {
-                    const ins = `((${key}))`;
-                    const start = ta.selectionStart || ta.value.length;
-                    ta.value = ta.value.slice(0, start) + ins + ta.value.slice(start);
-                    this.showSuccess(`Inserted placeholder: ((${key}))`);
+                const ins = `((${key}))`;
+                if (this.quill) {
+                    const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                    this.quill.insertText(range.index, ins, 'user');
+                    this.quill.setSelection(range.index + ins.length, 0, 'user');
+                } else {
+                    const ta = document.getElementById('emailContent');
+                    if (ta) {
+                        const start = ta.selectionStart || ta.value.length;
+                        ta.value = ta.value.slice(0, start) + ins + ta.value.slice(start);
+                    }
                 }
+                this.showSuccess(`Inserted placeholder: ((${key}))`);
                 e.stopPropagation();
             }
         }, false);
