@@ -14,7 +14,7 @@ function write(line) {
 }
 
 function summarize() {
-  const summary = { users: {}, totals: { emailsSent: 0, emailsFailed: 0 } };
+  const summary = { users: {}, totals: { emailsSent: 0, emailsFailed: 0 }, lastActive: {} };
   try {
     const lines = fs.readFileSync(dbFile, 'utf8').trim().split('\n').filter(Boolean);
     for (const l of lines) {
@@ -23,6 +23,7 @@ function summarize() {
       if (!summary.users[email]) summary.users[email] = { emailsSent: 0, emailsFailed: 0 };
       if (e.event === 'email_sent' || e.event === 'email_sent_smtp') { summary.users[email].emailsSent++; summary.totals.emailsSent++; }
       if (e.event === 'email_send_error') { summary.users[email].emailsFailed++; summary.totals.emailsFailed++; }
+      summary.lastActive[email] = e.ts;
     }
   } catch {}
   return summary;
@@ -75,8 +76,8 @@ const server = http.createServer((req, res) => {
       const s = await fetch('/summary').then(function(r){return r.json()});
       document.getElementById('totals').innerHTML = '<b>Totals</b><br/>Sent: '+s.totals.emailsSent+' &nbsp; Failed: '+s.totals.emailsFailed;
       var rows = '';
-      Object.keys(s.users).forEach(function(email){ var v=s.users[email]; rows += '<tr><td>'+email+'</td><td>'+v.emailsSent+'</td><td>'+v.emailsFailed+'</td></tr>'; });
-      document.getElementById('users').innerHTML = '<b>Users</b><table><thead><tr><th>User</th><th>Sent</th><th>Failed</th></tr></thead><tbody>'+rows+'</tbody></table>';
+      Object.keys(s.users).forEach(function(email){ var v=s.users[email]; var last=s.lastActive[email]||''; rows += '<tr><td>'+email+'</td><td>'+v.emailsSent+'</td><td>'+v.emailsFailed+'</td><td>'+last+'</td></tr>'; });
+      document.getElementById('users').innerHTML = '<b>Users</b><table><thead><tr><th>User</th><th>Sent</th><th>Failed</th><th>Last Active</th></tr></thead><tbody>'+rows+'</tbody></table>';
     }
     load();
     setInterval(load, 5000);

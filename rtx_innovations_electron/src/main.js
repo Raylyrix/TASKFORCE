@@ -130,7 +130,8 @@ function trackTelemetry(eventName, meta) {
 			meta: meta || null,
 			appVersion: app.getVersion ? app.getVersion() : null,
 			platform: process.platform,
-			installId: getInstallId()
+			installId: getInstallId(),
+			user: (function(){ try { const s = store.get('app-settings') || {}; return s.currentAccount || null; } catch(_) { return null; } })()
 		});
 		logEvent('info', 'telemetry-event', { event: eventName });
 	} catch (e) {
