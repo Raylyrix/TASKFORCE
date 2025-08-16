@@ -277,13 +277,8 @@ function createWindow() {
 
 	try {
     const indexPath = path.join(__dirname, '../dist/index.html');
-    if (fs.existsSync(indexPath)) {
-      mainWindow.loadFile(indexPath);
-    } else {
-      const fallback = path.join(__dirname, '../src/index.html');
-      if (fs.existsSync(fallback)) mainWindow.loadFile(fallback);
-      else mainWindow.loadURL('about:blank');
-    }
+    if (fs.existsSync(indexPath)) mainWindow.loadFile(indexPath);
+    else mainWindow.loadFile(path.join(__dirname, '../src/index.html'));
   } catch (_) {}
   mainWindow.webContents.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
     try {
