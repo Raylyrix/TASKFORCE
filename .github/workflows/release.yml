@@ -3,6 +3,120 @@ name: Release
 on:
   push:
     tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          cd rtx_innovations_electron
+          npm ci
+      - name: Build Windows
+        env:
+          TF_SAFE_MODE: '0'
+        run: |
+          cd rtx_innovations_electron
+          npm run build
+          npm run gen-icons
+          npx electron-builder --win nsis --publish never
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: rtx_innovations_electron/dist-builds/**/*
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          cd rtx_innovations_electron
+          npm ci
+      - name: Build macOS ${{ matrix.arch }}
+        env:
+          TF_SAFE_MODE: '0'
+        run: |
+          cd rtx_innovations_electron
+          npm run build
+          npm run gen-icons
+          npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+      - name: Upload macOS ${{ matrix.arch }} artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: rtx_innovations_electron/dist-builds/**/*
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot rpm
+          cd rtx_innovations_electron
+          npm ci
+      - name: Build Linux
+        env:
+          TF_SAFE_MODE: '0'
+        run: |
+          cd rtx_innovations_electron
+          npm run build
+          npm run gen-icons
+          npx electron-builder --linux AppImage deb --publish never
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: rtx_innovations_electron/dist-builds/**/*
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-macos, build-linux]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: collected
+      - name: Display collected
+        run: ls -R collected
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            collected/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+name: Release
+
+on:
+  push:
+    tags:
       - 'v*'
   workflow_dispatch: {}
 
