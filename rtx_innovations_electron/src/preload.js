@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),
     getCurrentAuth: () => wrapInvoke('auth-current-user'),
+    logout: () => wrapInvoke('auth-logout'),
 
     // SMTP/App Password mode
     smtpSaveCreds: ({ email, appPassword }) => wrapInvoke('smtp-save-creds', { email, appPassword }),

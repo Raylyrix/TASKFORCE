@@ -1153,6 +1153,18 @@ ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authentic
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
+ipcMain.handle('auth-logout', async () => {
+    try {
+        try { store.delete('googleToken'); } catch (_) {}
+        try { store.set('app-settings', { isAuthenticated: false, currentAccount: null }); } catch (_) {}
+        try { store.set('telemetry.enabled', false); } catch (_) {}
+        oauth2Client = null; gmailService = null; sheetsService = null;
+        if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-logout');
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
 ipcMain.handle('sendTestEmail', async (event, emailData) => sendTestEmail(emailData));
 ipcMain.handle('sendEmail', async (event, emailData) => sendEmail(emailData));
 ipcMain.handle('gmail-list-send-as', async () => listSendAs());

@@ -185,6 +185,7 @@ class RTXApp {
 
         // Top-bar Google Sign-In
         const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
+        const googleLogoutBtn = document.getElementById('googleLogoutBtn');
         if (googleSignInTopBtn && window.electronAPI?.authenticateGoogle) {
             googleSignInTopBtn.addEventListener('click', async () => {
                 try {
@@ -196,6 +197,8 @@ class RTXApp {
                         googleSignInTopBtn.style.background = '#34c759';
                         googleSignInTopBtn.style.color = '#fff';
                         googleSignInTopBtn.textContent = result.userEmail || 'Signed in';
+                        const logoutBtn = document.getElementById('googleLogoutBtn');
+                        if (logoutBtn) logoutBtn.style.display = 'inline-block';
                     } else {
                         googleSignInTopBtn.style.background = '#ff3b30';
                         googleSignInTopBtn.style.color = '#fff';
@@ -209,6 +212,27 @@ class RTXApp {
                     this.showError(e?.message || 'Sign-in failed');
                 } finally {
                     setTimeout(() => { googleSignInTopBtn.disabled = false; }, 800);
+                }
+            });
+        }
+
+        if (googleLogoutBtn && window.electronAPI?.logout) {
+            googleLogoutBtn.addEventListener('click', async () => {
+                try {
+                    await window.electronAPI.logout();
+                    this.isAuthenticated = false;
+                    this.currentAccount = null;
+                    this.updateUI();
+                    try { window.electronAPI?.storeSet?.('telemetry.enabled', false); } catch(_) {}
+                    if (googleSignInTopBtn) {
+                        googleSignInTopBtn.style.background = '#fff';
+                        googleSignInTopBtn.style.color = '#2c2c2e';
+                        googleSignInTopBtn.textContent = 'Sign in with Google';
+                    }
+                    googleLogoutBtn.style.display = 'none';
+                    this.showInfo('Logged out');
+                } catch (e) {
+                    this.showError(e?.message || 'Logout failed');
                 }
             });
         }
