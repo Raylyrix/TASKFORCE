@@ -27,7 +27,7 @@
     "gmail",
     "desktop-app"
   ],
-  "author": { "name": "RTX Innovations", "email": "noreply@rtxapps.build" },
+  "author": { "name": "RTX Innovations", "email": "rayvicalraylyrix@gmail.com" },
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2",
@@ -99,7 +99,7 @@
       "target": ["AppImage", "deb"],
       "icon": "assets/icons/icon256.png",
       "category": "Utility",
-      "maintainer": "RTX Innovations <noreply@rtxapps.build>",
+      "maintainer": "RTX Innovations <rayvicalraylyrix@gmail.com>",
       "artifactName": "TASK-FORCE-${version}.${ext}"
     },
     "nsis": {
