@@ -53,7 +53,7 @@ class RTXApp {
             const editorContainer = document.getElementById('emailEditor');
             if (!editorContainer || !window.Quill) return;
             // Register optional modules if present
-            try { if (window.Quill && window.Quill.imports && window.Quill.imports['modules/table']) {} } catch(_) {}
+            try { if (window.Quill && window.Quill.imports && window.Quill.imports['modules/table']) {} } catch(_) { console.warn('quill table module missing'); }
             const Font = window.Quill.import('formats/font');
             Font.whitelist = ['sans-serif','serif','monospace','arial','times-new-roman','georgia','verdana'];
             window.Quill.register(Font, true);
@@ -512,6 +512,17 @@ class RTXApp {
                     this.onAuthenticationSuccess(data?.email || 'authenticated');
                 });
             }
+
+            // Also poll current auth for 5s after returning from browser in case event missed
+            window.addEventListener('focus', async () => {
+                try {
+                    for (let i = 0; i < 10; i++) {
+                        const status = await window.electronAPI.getCurrentAuth?.();
+                        if (status?.authenticated) { this.onAuthenticationSuccess(status.email || 'authenticated'); break; }
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                } catch (_) {}
+            }, { once: true });
         }
     }
 
@@ -633,6 +644,7 @@ class RTXApp {
         this.isAuthenticated = true;
         this.currentAccount = email;
         this.updateUI();
+        try { window.electronAPI?.storeSet?.('telemetry.enabled', true); } catch(_) {}
         this.hideLoading();
         this.showSuccess(`Welcome back, ${email}!`);
         

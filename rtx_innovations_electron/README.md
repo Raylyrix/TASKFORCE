@@ -1,3 +1,28 @@
+## Install
+
+### Windows
+- Download the latest `TASK-FORCE-Setup-<version>.exe` from Releases and run it.
+
+### macOS
+- Download the latest `TASK-FORCE-<version>-<arch>.dmg`, open and drag to Applications.
+
+### Linux
+- Download `.AppImage` or `.deb` from Releases:
+  - AppImage: `chmod +x TASK-FORCE-<version>.AppImage && ./TASK-FORCE-<version>.AppImage`
+  - Debian/Ubuntu: `sudo apt install ./TASK-FORCE-<version>.deb`
+
+Alternatively, run the helper script:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Raylyrix/RTXAPPS/main/scripts/install-linux.sh | bash
+```
+
+## Sign in
+- Click "Sign in with Google" in the top bar. Test users configured in Google Cloud can sign in immediately.
+- Other options remain available: Gmail App Password and Upload Credentials.
+
+## Telemetry
+- Telemetry is off by default to avoid download flags.
+- It turns on only after successful login. To disable permanently: Settings -> disable telemetry.
 ## Distribution
 
 - Windows: `npm run build-win` produces NSIS installer (.exe) in `dist-builds/` with desktop/start menu shortcuts

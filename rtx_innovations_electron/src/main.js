@@ -157,8 +157,14 @@ function flushTelemetry() {
 }
 
 function startTelemetry() {
-	// Telemetry disabled to reduce AV heuristics / outbound network during startup
-	try { if (telemetryTimer) { clearInterval(telemetryTimer); telemetryTimer = null; } } catch (_) {}
+	// Start only after user login AND if enabled flag is set
+	try {
+		if (store.get('telemetry.enabled') !== true) return;
+		if (telemetryTimer) { clearInterval(telemetryTimer); telemetryTimer = null; }
+		const endpoint = getTelemetryEndpoint();
+		if (!endpoint) return;
+		telemetryTimer = setInterval(() => { try { flushTelemetry(); } catch (_) {} }, TELEMETRY_INTERVAL_MS);
+	} catch (_) {}
 }
 
 // Global scheduled jobs map accessor
@@ -555,9 +561,9 @@ async function authenticateGoogle(credentialsData) {
         saveAccountEntry(emailAddr, norm, token);
         try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
         try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: emailAddr }); } } catch (_) {}
-		logEvent('info', 'Authenticated and token stored', { email: profile.data.emailAddress });
+		logEvent('info', 'Authenticated and token stored', { email: emailAddr });
 		trackTelemetry('auth_success');
-		return { success: true, userEmail: profile.data.emailAddress };
+		return { success: true, userEmail: emailAddr };
 	} catch (error) {
 		console.error('Authentication error:', error);
 		logEvent('error', 'Authentication error', { error: error.message });
