@@ -104,15 +104,17 @@ function getInstallId() {
 }
 
 function getTelemetryEndpoint() {
-	const owner = process.env.RTX_TELEMETRY_URL || store.get('telemetry.url');
-	if (owner) return owner;
+	const fromEnv = process.env.RTX_TELEMETRY_URL || store.get('telemetry.url');
+	if (fromEnv) return fromEnv;
+	const candidates = [];
+	try { candidates.push(path.join(app.getPath('userData'), 'telemetry.conf')); } catch (_) {}
 	try {
-		const cfgPath = path.join(app.getPath('userData'), 'telemetry.conf');
-		if (fs.existsSync(cfgPath)) {
-			const urlTxt = fs.readFileSync(cfgPath, 'utf8').trim();
-			if (urlTxt) return urlTxt;
-		}
+		const base = app.isPackaged ? path.dirname(app.getPath('exe')) : process.cwd();
+		candidates.push(path.join(base, 'telemetry.conf'));
 	} catch (_) {}
+	for (const p of candidates) {
+		try { if (p && fs.existsSync(p)) { const urlTxt = fs.readFileSync(p, 'utf8').trim(); if (urlTxt) return urlTxt; } } catch (_) {}
+	}
 	return null;
 }
 
