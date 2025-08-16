@@ -183,6 +183,36 @@ class RTXApp {
             console.error('Login button not found!');
         }
 
+        // Top-bar Google Sign-In
+        const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
+        if (googleSignInTopBtn && window.electronAPI?.authenticateGoogle) {
+            googleSignInTopBtn.addEventListener('click', async () => {
+                try {
+                    googleSignInTopBtn.disabled = true;
+                    googleSignInTopBtn.textContent = 'Signing in...';
+                    const result = await window.electronAPI.authenticateGoogle();
+                    if (result?.success) {
+                        this.onAuthenticationSuccess(result.userEmail || 'authenticated');
+                        googleSignInTopBtn.style.background = '#34c759';
+                        googleSignInTopBtn.style.color = '#fff';
+                        googleSignInTopBtn.textContent = result.userEmail || 'Signed in';
+                    } else {
+                        googleSignInTopBtn.style.background = '#ff3b30';
+                        googleSignInTopBtn.style.color = '#fff';
+                        googleSignInTopBtn.textContent = 'Not allowed';
+                        this.showError(result?.error || 'Sign-in failed. Email may not be registered.');
+                    }
+                } catch (e) {
+                    googleSignInTopBtn.style.background = '#ff3b30';
+                    googleSignInTopBtn.style.color = '#fff';
+                    googleSignInTopBtn.textContent = 'Failed';
+                    this.showError(e?.message || 'Sign-in failed');
+                } finally {
+                    setTimeout(() => { googleSignInTopBtn.disabled = false; }, 800);
+                }
+            });
+        }
+
         // SMTP (App Password) login
         const smtpLoginBtn = document.getElementById('smtpLoginBtn');
         if (smtpLoginBtn && window.electronAPI?.smtpSaveCreds) {

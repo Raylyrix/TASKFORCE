@@ -404,7 +404,14 @@ async function ensureServices() {
 // Google API Integration
 async function authenticateGoogle(credentialsData) {
 	try {
-		const norm = normalizeCredentials(credentialsData);
+		let norm;
+		if (credentialsData && Object.keys(credentialsData || {}).length) {
+			norm = normalizeCredentials(credentialsData);
+		} else {
+			const def = (typeof loadDefaultOAuthCredentials === 'function') ? loadDefaultOAuthCredentials() : null;
+			if (!def) throw new Error('Default OAuth credentials not configured');
+			norm = normalizeCredentials(def);
+		}
 		store.set('googleCreds', norm);
 
 		const existing = store.get('googleToken');
