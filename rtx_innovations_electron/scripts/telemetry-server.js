@@ -72,10 +72,11 @@ const server = http.createServer((req, res) => {
   <div id="users" class="card"></div>
   <script>
     async function load(){
-      const s = await fetch('/summary').then(r=>r.json());
+      const s = await fetch('/summary').then(function(r){return r.json()});
       document.getElementById('totals').innerHTML = '<b>Totals</b><br/>Sent: '+s.totals.emailsSent+' &nbsp; Failed: '+s.totals.emailsFailed;
-      const u = Object.entries(s.users).map(([email,v])=>`<tr><td>${email}</td><td>${v.emailsSent}</td><td>${v.emailsFailed}</td></tr>`).join('');
-      document.getElementById('users').innerHTML = '<b>Users</b><table><thead><tr><th>User</th><th>Sent</th><th>Failed</th></tr></thead><tbody>'+u+'</tbody></table>';
+      var rows = '';
+      Object.keys(s.users).forEach(function(email){ var v=s.users[email]; rows += '<tr><td>'+email+'</td><td>'+v.emailsSent+'</td><td>'+v.emailsFailed+'</td></tr>'; });
+      document.getElementById('users').innerHTML = '<b>Users</b><table><thead><tr><th>User</th><th>Sent</th><th>Failed</th></tr></thead><tbody>'+rows+'</tbody></table>';
     }
     load();
     setInterval(load, 5000);
