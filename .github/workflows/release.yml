@@ -16,6 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+      - name: Sync package.json version with tag
+        shell: bash
+        run: |
+          cd rtx_innovations_electron
+          TAG=${GITHUB_REF##*/}
+          node -e "const fs=require('fs');const p=require('./package.json');p.version='${TAG#v}';fs.writeFileSync('./package.json',JSON.stringify(p,null,2));"
       - name: Install dependencies
         run: |
           cd rtx_innovations_electron
@@ -44,6 +50,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+      - name: Sync package.json version with tag
+        shell: bash
+        run: |
+          cd rtx_innovations_electron
+          TAG=${GITHUB_REF##*/}
+          node -e "const fs=require('fs');const p=require('./package.json');p.version='${TAG#v}';fs.writeFileSync('./package.json',JSON.stringify(p,null,2));"
       - name: Install dependencies
         run: |
           cd rtx_innovations_electron
@@ -69,6 +81,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+      - name: Sync package.json version with tag
+        shell: bash
+        run: |
+          cd rtx_innovations_electron
+          TAG=${GITHUB_REF##*/}
+          node -e "const fs=require('fs');const p=require('./package.json');p.version='${TAG#v}';fs.writeFileSync('./package.json',JSON.stringify(p,null,2));"
       - name: Install dependencies
         run: |
           sudo apt-get update

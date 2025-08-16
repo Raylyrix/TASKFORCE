@@ -544,7 +544,7 @@ async function authenticateGoogle(credentialsData) {
 					try { server && server.close(); } catch (_) {}
 					reject(new Error('Authentication timed out. Please try again.'));
 				}
-			}, 300000); // 5 minutes
+			}, 180000); // 3 minutes
 		});
 
         // Persist token and client binding
@@ -564,7 +564,7 @@ async function authenticateGoogle(credentialsData) {
         if (!emailAddr) emailAddr = 'authenticated';
         saveAccountEntry(emailAddr, norm, token);
         try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
-        try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: emailAddr }); } } catch (_) {}
+        try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: emailAddr }); try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {} } } catch (_) {}
 		logEvent('info', 'Authenticated and token stored', { email: emailAddr });
 		trackTelemetry('auth_success');
 		return { success: true, userEmail: emailAddr };
