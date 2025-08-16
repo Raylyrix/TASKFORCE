@@ -104,7 +104,8 @@ function getInstallId() {
 }
 
 function getTelemetryEndpoint() {
-	return process.env.RTX_TELEMETRY_URL || store.get('telemetry.url') || null;
+	const owner = process.env.RTX_TELEMETRY_URL || store.get('telemetry.url');
+	return owner || null;
 }
 
 const TELEMETRY_INTERVAL_MS = 60000;
@@ -804,7 +805,7 @@ function logEvent(level, message, meta) {
 		// Non-blocking, best-effort write. Ignore filesystem errors to prevent UI impact
 		try { fs.appendFile(sessionLogFile, line, { encoding: 'utf8', mode: 0o600, flag: 'a' }, () => {}); } catch (_) {}
 		if (mainWindow && mainWindow.webContents) {
-			mainWindow.webContents.send('app-log', { level, message, meta, ts: Date.now() });
+			mainWindow.webContents.send('app-log', { level, message, ts: Date.now() });
 		}
 	} catch (e) {
 		// swallow
@@ -858,7 +859,7 @@ function showPlatformGuidance(title, err) {
 	} catch (_) {}
 }
 
-ipcMain.handle('app-log-append', async (e, payload) => { logEvent(payload?.level || 'info', payload?.message || '', payload?.meta || null); return true; });
+ipcMain.handle('app-log-append', async (e, payload) => logEvent(payload?.level || 'info', payload?.message || '', payload?.meta || null));
 ipcMain.handle('app-log-read', async () => {
 	try {
 		const content = fs.existsSync(sessionLogFile) ? fs.readFileSync(sessionLogFile, 'utf8') : '';

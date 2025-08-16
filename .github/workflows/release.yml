@@ -108,7 +108,13 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            collected/**
+            collected/**/*.exe
+            collected/**/*.dmg
+            collected/**/*.zip
+            collected/**/*.AppImage
+            collected/**/*.deb
+            collected/**/*.blockmap
+            collected/**/*latest*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
