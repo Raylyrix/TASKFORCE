@@ -116,6 +116,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: collected
+      - name: Normalize update files (dedupe latest-mac.yml)
+        shell: bash
+        run: |
+          shopt -s globstar
+          for f in collected/**/latest-mac.yml; do
+            if [[ "$f" == *"macos-arm64"* || "$f" == *"arm64"* ]]; then
+              mv "$f" "${f%latest-mac.yml}latest-mac-arm64.yml" || true
+            elif [[ "$f" == *"macos-x64"* || "$f" == *"x64"* ]]; then
+              mv "$f" "${f%latest-mac.yml}latest-mac-x64.yml" || true
+            fi
+          done
       - name: Display collected
         run: ls -R collected
       - name: Create GitHub Release
@@ -132,7 +143,10 @@ jobs:
             collected/**/*.AppImage
             collected/**/*.deb
             collected/**/*.blockmap
-            collected/**/*latest*.yml
+            collected/**/latest.yml
+            collected/**/latest-linux.yml
+            collected/**/latest-mac.yml
+            collected/**/latest-mac-*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
