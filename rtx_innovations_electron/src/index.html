@@ -618,7 +618,8 @@
 						<button class="btn btn-secondary" id="uploadCredentialsBtn">
 							<i class="fas fa-upload"></i>Upload & Connect
 						</button>
-					</div>
+						<div class="muted" style="margin-top:8px;">Or use <strong>Sign in with Google</strong> from the main screen (recommended). Upload is optional for advanced users.</div>
+                    </div>
 
 					<div style="display:flex; gap: 10px; margin-top: 10px;">
 						<button class="btn btn-secondary" onclick="document.getElementById('loginModal').style.display='none'">Close</button>
@@ -728,6 +729,27 @@
 				<button class="modal-close" onclick="document.getElementById('releaseNotesModal').style.display='none'">&times;</button>
 			</div>
 			<div class="modal-body" id="releaseNotesBody"></div>
+		</div>
+	</div>
+
+	<!-- Privacy Modal -->
+	<div class="modal" id="privacyModal" style="display:none;">
+		<div class="modal-content" style="max-width: 800px; width: 90%;">
+			<div class="modal-header"><h3>Privacy Policy</h3><button class="modal-close" onclick="document.getElementById('privacyModal').style.display='none'">&times;</button></div>
+			<div class="modal-body" style="max-height:70vh; overflow:auto;">
+				<p>We do not collect or transmit your personal data. OAuth tokens and SMTP App Passwords are stored locally on your device using secure storage. Emails are sent directly from your account to recipients. Logs remain on your device unless you share them.</p>
+				<p>When using the web app, content is processed in your browser. If you opt into a relay for SMTP, credentials are used only for that request and not stored.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Terms Modal -->
+	<div class="modal" id="termsModal" style="display:none;">
+		<div class="modal-content" style="max-width: 800px; width: 90%;">
+			<div class="modal-header"><h3>Terms of Service</h3><button class="modal-close" onclick="document.getElementById('termsModal').style.display='none'">&times;</button></div>
+			<div class="modal-body" style="max-height:70vh; overflow:auto;">
+				<p>By using TASK FORCE, you agree to send emails only to recipients who have consented to receive them and to comply with Gmail and local anti-spam laws. You are responsible for your account and content. This software is provided “as-is” without warranties.</p>
+			</div>
 		</div>
 	</div>
 

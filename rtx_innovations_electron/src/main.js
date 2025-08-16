@@ -336,6 +336,14 @@ function createMenu() {
           click: () => { try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('menu-action', 'help-release-notes'); } catch (_) {} }
         },
         {
+          label: 'Privacy Policy',
+          click: () => { try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('menu-action', 'help-privacy'); } catch (_) {} }
+        },
+        {
+          label: 'Terms of Service',
+          click: () => { try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('menu-action', 'help-terms'); } catch (_) {} }
+        },
+        {
           label: 'About',
           click: () => { try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('menu-action', 'help-about'); } catch (_) {} }
         }

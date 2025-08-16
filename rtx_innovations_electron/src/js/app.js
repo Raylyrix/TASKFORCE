@@ -1234,6 +1234,12 @@ class RTXApp {
             case 'help-release-notes':
                 this.openReleaseNotesModal();
                 break;
+            case 'help-privacy':
+                { const m=document.getElementById('privacyModal'); if (m) m.style.display='block'; }
+                break;
+            case 'help-terms':
+                { const m=document.getElementById('termsModal'); if (m) m.style.display='block'; }
+                break;
             default:
                 this.showSuccess(`Menu action: ${action}`);
         }
