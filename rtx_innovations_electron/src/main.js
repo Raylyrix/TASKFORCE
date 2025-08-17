@@ -122,62 +122,11 @@ const TELEMETRY_INTERVAL_MS = 60000;
 let telemetryQueue = [];
 let telemetryTimer = null;
 
-function trackTelemetry(eventName, meta) {
-	try {
-		telemetryQueue.push({
-			ts: new Date().toISOString(),
-			event: eventName,
-			meta: meta || null,
-			appVersion: app.getVersion ? app.getVersion() : null,
-			platform: process.platform,
-			installId: getInstallId(),
-			user: (function(){ try { const s = store.get('app-settings') || {}; return s.currentAccount || null; } catch(_) { return null; } })()
-		});
-		logEvent('info', 'telemetry-event', { event: eventName });
-	} catch (e) {
-		// swallow
-	}
-}
+function trackTelemetry(eventName, meta) { return; }
 
-function flushTelemetry() {
-	const endpoint = getTelemetryEndpoint();
-	if (!endpoint || telemetryQueue.length === 0) return;
-	const events = telemetryQueue.splice(0, telemetryQueue.length);
-	try {
-		const target = new URL(endpoint);
-		const payload = JSON.stringify({
-			installId: getInstallId(),
-			appVersion: app.getVersion ? app.getVersion() : null,
-			platform: process.platform,
-			events
-		});
-		const opts = {
-			method: 'POST',
-			hostname: target.hostname,
-			port: target.port || (target.protocol === 'https:' ? 443 : 80),
-			path: target.pathname + (target.search || ''),
-			headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
-		};
-		const lib = target.protocol === 'https:' ? require('https') : require('http');
-		const req = lib.request(opts, (res) => { res.on('data', () => {}); res.on('end', () => {}); });
-		req.on('error', (err) => { logEvent('error', 'telemetry-send-failed', { error: err.message }); });
-		req.write(payload);
-		req.end();
-	} catch (e) {
-		logEvent('error', 'telemetry-exception', { error: e.message });
-	}
-}
+function flushTelemetry() { return; }
 
-function startTelemetry() {
-	// Start only after user login AND if enabled flag is set
-	try {
-		if (store.get('telemetry.enabled') !== true) return;
-		if (telemetryTimer) { clearInterval(telemetryTimer); telemetryTimer = null; }
-		const endpoint = getTelemetryEndpoint();
-		if (!endpoint) return;
-		telemetryTimer = setInterval(() => { try { flushTelemetry(); } catch (_) {} }, TELEMETRY_INTERVAL_MS);
-	} catch (_) {}
-}
+function startTelemetry() { return; }
 
 // Global scheduled jobs map accessor
 function getJobsMap() {
@@ -1020,6 +969,7 @@ async function sendTestEmail(emailData) {
 				to: emailData.to,
 				subject: emailData.subject,
 				text: emailData.content,
+				html: emailData.html,
 				attachments: emailData.attachmentsPaths || []
 			});
 			const res = await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
@@ -1032,8 +982,8 @@ async function sendTestEmail(emailData) {
 		const creds = email && getSmtpCreds(email);
 		if (!creds) throw new Error('Not authenticated (SMTP). Please login with Gmail App Password.');
 		const transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: creds.email, pass: creds.appPassword } });
-		const attachments = (emailData.attachmentsPaths || []).map(p => ({ path: p }));
-		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, attachments });
+		const attachments = await Promise.all((emailData.attachmentsPaths || []).map(async (p) => ({ filename: require('path').basename(p), content: await require('fs').promises.readFile(p) })));
+		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, html: emailData.html, attachments });
 		logEvent('info', 'Test email sent (SMTP)', { to: emailData.to, id: info.messageId });
 		trackTelemetry('test_email_sent_smtp', { hasAttachments: attachments.length > 0 });
 		return { success: true, messageId: info.messageId };
@@ -1055,6 +1005,7 @@ async function sendEmail(emailData) {
 				to: emailData.to,
 				subject: emailData.subject,
 				text: emailData.content,
+				html: emailData.html,
 				attachments: emailData.attachmentsPaths || []
 			});
 			const res = await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
@@ -1067,8 +1018,8 @@ async function sendEmail(emailData) {
 		const creds = email && getSmtpCreds(email);
 		if (!creds) throw new Error('Not authenticated (SMTP). Please login with Gmail App Password.');
 		const transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: creds.email, pass: creds.appPassword } });
-		const attachments = (emailData.attachmentsPaths || []).map(p => ({ path: p }));
-		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, attachments });
+		const attachments = await Promise.all((emailData.attachmentsPaths || []).map(async (p) => ({ filename: require('path').basename(p), content: await require('fs').promises.readFile(p) })));
+		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, html: emailData.html, attachments });
 		logEvent('info', 'Email sent (SMTP)', { to: emailData.to, id: info.messageId });
 		trackTelemetry('email_sent_smtp', { hasAttachments: attachments.length > 0 });
 		return { success: true, messageId: info.messageId };
