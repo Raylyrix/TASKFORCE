@@ -64,23 +64,90 @@ class RTXApp {
             Size.whitelist = ['10px','12px','14px','16px','18px','24px','32px'];
             window.Quill.register(Size, true);
 
+            // Create a custom clipboard module for better paste handling
+            const Clipboard = window.Quill.import('modules/clipboard');
+            class CustomClipboard extends Clipboard {
+                convert(html) {
+                    // Preserve formatting from various sources
+                    if (html) {
+                        // Clean up common formatting issues while preserving structure
+                        html = html
+                            .replace(/<o:p[^>]*>/g, '') // Remove Office-specific tags
+                            .replace(/<\/o:p>/g, '')
+                            .replace(/<w:[^>]*>/g, '') // Remove Word-specific tags
+                            .replace(/<\/w:[^>]*>/g, '')
+                            .replace(/<m:[^>]*>/g, '') // Remove MathML tags
+                            .replace(/<\/m:[^>]*>/g, '')
+                            .replace(/<v:[^>]*>/g, '') // Remove VML tags
+                            .replace(/<\/v:[^>]*>/g, '')
+                            .replace(/<st1:[^>]*>/g, '') // Remove SharePoint tags
+                            .replace(/<\/st1:[^>]*>/g, '')
+                            .replace(/<meta[^>]*>/g, '') // Remove meta tags
+                            .replace(/<link[^>]*>/g, '') // Remove link tags
+                            .replace(/<style[^>]*>[\s\S]*?<\/style>/g, '') // Remove style tags
+                            .replace(/<script[^>]*>[\s\S]*?<\/script>/g, '') // Remove script tags
+                            .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+                            .replace(/\s+/g, ' ') // Normalize whitespace
+                            .trim();
+                    }
+                    return super.convert(html);
+                }
+            }
+
             this.quill = new window.Quill('#emailEditor', {
-                modules: { toolbar: '#editorToolbar' },
+                modules: { 
+                    toolbar: '#editorToolbar',
+                    clipboard: {
+                        matchVisual: false, // Don't match visual appearance
+                        matchers: [
+                            // Custom matchers for better formatting preservation
+                            ['p', (node, delta) => {
+                                const text = node.textContent || '';
+                                if (text.trim()) {
+                                    return delta.compose(new window.Quill.import('delta')().insert(text + '\n'));
+                                }
+                                return delta;
+                            }],
+                            ['div', (node, delta) => {
+                                const text = node.textContent || '';
+                                if (text.trim()) {
+                                    return delta.compose(new window.Quill.import('delta')().insert(text + '\n'));
+                                }
+                                return delta;
+                            }]
+                        ]
+                    }
+                },
                 theme: 'snow',
-                placeholder: 'Enter your email content... Use ((Name)), ((Email)), ((Company))'
+                placeholder: 'Enter your email content... Use ((Name)), ((Email)), ((Company))',
+                formats: [
+                    'bold', 'italic', 'underline', 'strike',
+                    'color', 'background',
+                    'font', 'size',
+                    'header', 'list', 'bullet',
+                    'link', 'image',
+                    'align', 'indent',
+                    'code', 'code-block',
+                    'blockquote'
+                ]
             });
+
             // Ensure Ctrl+A works inside editor
             editorContainer.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
                     e.stopPropagation();
                 }
             });
-            // Paste image from clipboard → insert as base64
+
+            // Enhanced paste handler for better formatting preservation
             editorContainer.addEventListener('paste', (e) => {
                 const items = e.clipboardData?.items || [];
-                for (const it of items) {
-                    if (it.type && it.type.startsWith('image/')) {
-                        const file = it.getAsFile();
+                let hasHandled = false;
+
+                // Handle images first
+                for (const item of items) {
+                    if (item.type && item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
                         const reader = new FileReader();
                         reader.onload = () => {
                             const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
@@ -89,10 +156,66 @@ class RTXApp {
                         };
                         reader.readAsDataURL(file);
                         e.preventDefault();
+                        hasHandled = true;
                         break;
                     }
                 }
+
+                // Handle rich text with better formatting preservation
+                if (!hasHandled) {
+                    const html = e.clipboardData.getData('text/html');
+                    const text = e.clipboardData.getData('text/plain');
+                    const rtf = e.clipboardData.getData('text/rtf');
+                    
+                    if (html && html.trim()) {
+                        // Use Quill's built-in HTML paste with our custom clipboard handling
+                        e.preventDefault();
+                        const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                        
+                        // Clean up the HTML before pasting
+                        let cleanHtml = this.cleanHtmlForPaste(html);
+                        
+                        // Show debug information
+                        this.showCopyPasteDebug('Paste HTML', 'HTML', cleanHtml.length);
+                        
+                        // Insert HTML content
+                        this.quill.clipboard.dangerouslyPasteHTML(range.index, cleanHtml, 'user');
+                        
+                        // Set selection after the pasted content
+                        const newLength = this.quill.getLength();
+                        this.quill.setSelection(range.index + (newLength - range.index), 0, 'user');
+                    } else if (rtf && rtf.trim()) {
+                        // Handle RTF content (from Word, etc.)
+                        e.preventDefault();
+                        this.showCopyPasteDebug('Paste RTF', 'RTF', rtf.length);
+                        this.handleRtfPaste(rtf, e);
+                    } else if (text && text.trim()) {
+                        // Handle plain text with basic formatting
+                        e.preventDefault();
+                        this.showCopyPasteDebug('Paste Text', 'Plain Text', text.length);
+                        
+                        const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                        
+                        // Split text by lines and preserve basic structure
+                        const lines = text.split('\n');
+                        let currentIndex = range.index;
+                        
+                        lines.forEach((line, index) => {
+                            if (line.trim()) {
+                                this.quill.insertText(currentIndex, line, 'user');
+                                currentIndex += line.length;
+                            }
+                            if (index < lines.length - 1) {
+                                this.quill.insertText(currentIndex, '\n', 'user');
+                                currentIndex += 1;
+                            }
+                        });
+                        
+                        this.quill.setSelection(currentIndex, 0, 'user');
+                    }
+                }
             });
+
             // Drag & drop local images into editor
             editorContainer.addEventListener('drop', (ev) => {
                 const files = ev.dataTransfer?.files || [];
@@ -110,6 +233,295 @@ class RTXApp {
                     });
                 }
             });
+
+            // Add copy event handler to ensure proper copying
+            editorContainer.addEventListener('copy', (e) => {
+                const selection = this.quill.getSelection();
+                if (selection && selection.length > 0) {
+                    // Let Quill handle the copy operation naturally
+                    // This ensures proper HTML formatting is copied
+                    
+                    // Show debug information
+                    this.showCopyPasteDebug('Copy', 'Selection', selection.length);
+                    
+                    // We can also enhance the clipboard data if needed
+                    setTimeout(() => {
+                        // Check if we need to enhance the clipboard data
+                        // This is a fallback to ensure proper formatting
+                    }, 0);
+                }
+            });
+
+            // Add cut event handler for consistency
+            editorContainer.addEventListener('cut', (e) => {
+                const selection = this.quill.getSelection();
+                if (selection && selection.length > 0) {
+                    // Let Quill handle the cut operation naturally
+                }
+            });
+
+            // Show debug panel for copy-paste operations
+            this.showCopyPasteDebug = (operation, contentType, contentLength) => {
+                const debugPanel = document.getElementById('copyPasteDebug');
+                const enableCheckbox = document.getElementById('enableDebugPanel');
+                
+                // Only show debug info if the panel is enabled
+                if (!enableCheckbox || !enableCheckbox.checked) return;
+                
+                const status = document.getElementById('copyPasteStatus');
+                const lastOp = document.getElementById('lastOperation');
+                const type = document.getElementById('contentType');
+                const length = document.getElementById('contentLength');
+                
+                if (debugPanel && status && lastOp && type && length) {
+                    debugPanel.style.display = 'block';
+                    status.textContent = 'Active';
+                    lastOp.textContent = operation;
+                    type.textContent = contentType;
+                    length.textContent = contentLength;
+                    
+                    // Hide after 5 seconds
+                    setTimeout(() => {
+                        status.textContent = 'Ready';
+                    }, 5000);
+                }
+            };
+
+            // Toggle debug details
+            this.toggleDebugDetails = () => {
+                const details = document.getElementById('debugDetails');
+                const toggleBtn = document.getElementById('toggleDebugBtn');
+                
+                if (details && toggleBtn) {
+                    if (details.style.display === 'none') {
+                        details.style.display = 'block';
+                        toggleBtn.textContent = 'Hide Details';
+                    } else {
+                        details.style.display = 'none';
+                        toggleBtn.textContent = 'Show Details';
+                    }
+                }
+            };
+
+            // Show current editor content in different formats
+            this.showCurrentContent = () => {
+                const content = this.getEditorPlainText();
+                const html = this.getEditorHtml();
+                const debug = this.getEditorContentDebug();
+                
+                // Create a modal to show the content
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.5); z-index: 10000; display: flex;
+                    align-items: center; justify-content: center;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 80%; max-height: 80%; overflow-y: auto;">
+                        <h3>Current Editor Content</h3>
+                        <p><strong>Plain Text:</strong></p>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${content}</pre>
+                        <p><strong>HTML:</strong></p>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${html}</pre>
+                        <p><strong>Debug Info:</strong></p>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(debug, null, 2)}</pre>
+                        <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 15px; padding: 8px 16px; background: #007aff; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Close modal when clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            };
+
+            // Toggle debug panel visibility
+            this.toggleDebugPanel = (checked) => {
+                const debugPanel = document.getElementById('copyPasteDebug');
+                if (debugPanel) {
+                    debugPanel.style.display = checked ? 'block' : 'none';
+                }
+            };
+
+            // Add a method to test copy-paste functionality
+            this.testCopyPaste = () => {
+                console.log('Testing copy-paste functionality...');
+                
+                // Test different types of content
+                const testCases = [
+                    {
+                        name: 'Basic formatting',
+                        html: '<p><strong>Bold text</strong> and <em>italic text</em> with <u>underline</u>.</p>'
+                    },
+                    {
+                        name: 'Multiple paragraphs',
+                        html: '<p>First paragraph with <strong>bold text</strong>.</p><p>Second paragraph with <em>italic text</em>.</p>'
+                    },
+                    {
+                        name: 'Lists and formatting',
+                        html: '<ul><li><strong>Bold list item</strong></li><li><em>Italic list item</em></li></ul><p>Paragraph after list.</p>'
+                    },
+                    {
+                        name: 'Mixed content',
+                        html: '<h1>Heading 1</h1><p>Paragraph with <span style="color: red;">colored text</span> and <code>inline code</code>.</p><blockquote>Blockquote text</blockquote>'
+                    }
+                ];
+                
+                let currentIndex = 0;
+                const insertTestContent = () => {
+                    if (currentIndex >= testCases.length) {
+                        console.log('All test content inserted successfully');
+                        return;
+                    }
+                    
+                    const testCase = testCases[currentIndex];
+                    console.log(`Inserting test case: ${testCase.name}`);
+                    
+                    const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                    
+                    // Add a separator
+                    this.quill.insertText(range.index, `\n--- ${testCase.name} ---\n`, 'user');
+                    
+                    // Insert test HTML content
+                    this.quill.clipboard.dangerouslyPasteHTML(range.index + 3, testCase.html, 'user');
+                    
+                    // Add another separator
+                    this.quill.insertText(this.quill.getLength(), '\n\n', 'user');
+                    
+                    currentIndex++;
+                    
+                    // Insert next test case after a short delay
+                    setTimeout(insertTestContent, 500);
+                };
+                
+                insertTestContent();
+            };
+
+            // Method to help users understand copy-paste functionality
+            this.showCopyPasteHelp = () => {
+                const helpModal = document.createElement('div');
+                helpModal.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.5); z-index: 10000; display: flex;
+                    align-items: center; justify-content: center;
+                `;
+                
+                helpModal.innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 80%; max-height: 80%; overflow-y: auto;">
+                        <h3>Copy-Paste Help & Tips</h3>
+                        <div style="margin-bottom: 15px;">
+                            <h4>Enhanced Copy-Paste Features:</h4>
+                            <ul style="margin-left: 20px;">
+                                <li><strong>HTML Content:</strong> Preserves formatting from web pages, Google Docs, etc.</li>
+                                <li><strong>RTF Content:</strong> Handles content from Microsoft Word and other Office applications</li>
+                                <li><strong>Plain Text:</strong> Maintains line breaks and basic structure</li>
+                                <li><strong>Images:</strong> Supports pasting images from clipboard</li>
+                            </ul>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <h4>How to Use:</h4>
+                            <ol style="margin-left: 20px;">
+                                <li>Copy content from any source (web, Word, etc.)</li>
+                                <li>Paste directly into the editor using Ctrl+V (or Cmd+V on Mac)</li>
+                                <li>The editor will automatically detect the content type and preserve formatting</li>
+                                <li>Use the "Test Copy-Paste" button to see examples</li>
+                                <li>Enable debug panel to see what's happening during operations</li>
+                            </ol>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <h4>Troubleshooting:</h4>
+                            <ul style="margin-left: 20px;">
+                                <li>If formatting is lost, try copying again from the source</li>
+                                <li>Some complex formatting may be simplified for email compatibility</li>
+                                <li>Use the "Show Content" button to see how your content is stored</li>
+                            </ul>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="padding: 8px 16px; background: #007aff; color: white; border: none; border-radius: 4px; cursor: pointer;">Got it!</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(helpModal);
+                
+                // Close modal when clicking outside
+                helpModal.addEventListener('click', (e) => {
+                    if (e.target === helpModal) {
+                        helpModal.remove();
+                    }
+                });
+            };
+
+            // Helper method to clean HTML before pasting
+            this.cleanHtmlForPaste = (html) => {
+                if (!html) return '';
+                
+                // Create a temporary div to parse and clean HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Remove unwanted tags and attributes
+                const unwantedTags = ['script', 'style', 'meta', 'link', 'title', 'head', 'html', 'body'];
+                unwantedTags.forEach(tag => {
+                    const elements = tempDiv.getElementsByTagName(tag);
+                    Array.from(elements).forEach(el => el.remove());
+                });
+                
+                // Clean up common formatting issues
+                const cleanHtml = tempDiv.innerHTML
+                    .replace(/<o:p[^>]*>/g, '') // Remove Office-specific tags
+                    .replace(/<\/o:p>/g, '')
+                    .replace(/<w:[^>]*>/g, '') // Remove Word-specific tags
+                    .replace(/<\/w:[^>]*>/g, '')
+                    .replace(/<m:[^>]*>/g, '') // Remove MathML tags
+                    .replace(/<\/m:[^>]*>/g, '')
+                    .replace(/<v:[^>]*>/g, '') // Remove VML tags
+                    .replace(/<\/v:[^>]*>/g, '')
+                    .replace(/<st1:[^>]*>/g, '') // Remove SharePoint tags
+                    .replace(/<\/st1:[^>]*>/g, '')
+                    .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+                    .replace(/\s+/g, ' ') // Normalize whitespace
+                    .trim();
+                
+                return cleanHtml;
+            };
+
+            // Helper method to handle RTF content
+            this.handleRtfPaste = (rtf, event) => {
+                try {
+                    // For now, convert RTF to plain text and paste
+                    // In a full implementation, you might want to use an RTF parser
+                    const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                    
+                    // Extract plain text from RTF (basic implementation)
+                    const plainText = rtf.replace(/\\[a-z]+\d*[ -]?/g, '') // Remove RTF commands
+                                        .replace(/\{|\}/g, '') // Remove braces
+                                        .replace(/\\'/g, "'") // Convert escaped quotes
+                                        .replace(/\\"/g, '"') // Convert escaped quotes
+                                        .replace(/\\\n/g, '\n') // Convert line breaks
+                                        .replace(/\\\r/g, '\r') // Convert carriage returns
+                                        .replace(/\\\t/g, '\t') // Convert tabs
+                                        .trim();
+                    
+                    // Insert the cleaned text
+                    this.quill.insertText(range.index, plainText, 'user');
+                    this.quill.setSelection(range.index + plainText.length, 0, 'user');
+                    
+                } catch (error) {
+                    console.warn('RTF paste failed, falling back to plain text:', error);
+                    // Fallback to plain text
+                    const text = event.clipboardData.getData('text/plain');
+                    if (text) {
+                        const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                        this.quill.insertText(range.index, text, 'user');
+                        this.quill.setSelection(range.index + text.length, 0, 'user');
+                    }
+                }
+            };
+
         } catch (e) {
             console.warn('Rich editor init failed', e);
         }
@@ -123,6 +535,30 @@ class RTXApp {
             const html = this.quill ? (this.quill.root.innerHTML || '') : (document.getElementById('emailContent')?.value || '');
             return this.processContent(html, rowMap, false);
         } catch (_) { return ''; }
+    }
+
+    // Get editor content in different formats for debugging
+    getEditorContentDebug() {
+        if (!this.quill) return { error: 'Quill editor not initialized' };
+        
+        try {
+            return {
+                text: this.quill.getText(),
+                html: this.quill.root.innerHTML,
+                delta: this.quill.getContents(),
+                selection: this.quill.getSelection(),
+                length: this.quill.getLength()
+            };
+        } catch (e) {
+            return { error: e.message };
+        }
+    }
+
+    // Method to clear editor content
+    clearEditor() {
+        if (this.quill) {
+            this.quill.setText('');
+        }
     }
 
     wireAutoUpdates() {
@@ -466,6 +902,38 @@ class RTXApp {
         const themeToggle = document.getElementById('themeToggle');
         if (themeToggle) {
             themeToggle.addEventListener('click', () => this.toggleTheme());
+        }
+
+        // Test copy-paste functionality
+        const testCopyPasteBtn = document.getElementById('testCopyPasteBtn');
+        if (testCopyPasteBtn) {
+            testCopyPasteBtn.addEventListener('click', () => this.testCopyPaste());
+        }
+
+        // Toggle debug panel
+        const toggleDebugBtn = document.getElementById('toggleDebugBtn');
+        if (toggleDebugBtn) {
+            toggleDebugBtn.addEventListener('click', () => this.toggleDebugDetails());
+        }
+
+        // Show current editor content
+        const showContentBtn = document.getElementById('showContentBtn');
+        if (showContentBtn) {
+            showContentBtn.addEventListener('click', () => this.showCurrentContent());
+        }
+
+        // Enable/disable debug panel
+        const enableDebugPanel = document.getElementById('enableDebugPanel');
+        if (enableDebugPanel) {
+            enableDebugPanel.addEventListener('change', (e) => {
+                this.toggleDebugPanel(e.target.checked);
+            });
+        }
+
+        // Copy-paste help
+        const copyPasteHelpBtn = document.getElementById('copyPasteHelpBtn');
+        if (copyPasteHelpBtn) {
+            copyPasteHelpBtn.addEventListener('click', () => this.showCopyPasteHelp());
         }
 
         console.log('Event listeners setup complete');
@@ -1741,6 +2209,9 @@ class RTXApp {
         
         this.showSuccess('Successfully signed out');
     }
+
+
+
 }
 
 // Initialize app when DOM is loaded
