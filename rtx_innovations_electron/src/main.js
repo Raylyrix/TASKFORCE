@@ -1127,6 +1127,7 @@ function cancelScheduledJob(id) {
 // IPC Handlers
 ipcMain.handle('updateClientCredentials', async (event, credentialsData) => updateClientCredentials(credentialsData));
 ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
+ipcMain.handle('submitManualAuthCode', async (event, authCode) => submitManualAuthCode(authCode));
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
@@ -1420,6 +1421,75 @@ ipcMain.handle('signatures-get-default', async () => {
 		return { success: false, error: error.message };
 	}
 });
+
+// Manual authorization code submission for instant login
+async function submitManualAuthCode(authCode) {
+	try {
+		// Get current credentials
+		const norm = store.get('googleCreds');
+		if (!norm) {
+			// Use default credentials if none set
+			const def = (typeof loadDefaultOAuthCredentials === 'function') ? loadDefaultOAuthCredentials() : null;
+			if (!def) throw new Error('No OAuth credentials available');
+			norm = normalizeCredentials(def);
+			store.set('googleCreds', norm);
+		}
+		
+		// Build OAuth client
+		oauth2Client = buildOAuthClient(norm);
+		
+		// Exchange code for tokens
+		const { tokens } = await oauth2Client.getToken(authCode);
+		oauth2Client.setCredentials(tokens);
+		
+		// Store tokens
+		store.set('googleToken', tokens);
+		store.set('googleTokenClientId', norm.client_id);
+		
+		// Clear SMTP active email
+		try { store.delete('smtp.activeEmail'); } catch (_) {}
+		
+		// Ensure services are available
+		await ensureServices();
+		
+		// Get user profile
+		let emailAddr = 'authenticated';
+		try {
+			const profile = await gmailService.users.getProfile({ userId: 'me' });
+			emailAddr = profile?.data?.emailAddress || 'authenticated';
+		} catch (_) {}
+		
+		// Save account entry
+		saveAccountEntry(emailAddr, norm, tokens);
+		
+		// Update app settings
+		try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
+		
+		// Emit success
+		if (mainWindow && mainWindow.webContents) {
+			mainWindow.webContents.send('auth-success', { email: emailAddr });
+		}
+		
+		logEvent('info', 'Manual authentication successful', { email: emailAddr });
+		return { success: true, userEmail: emailAddr };
+		
+	} catch (error) {
+		console.error('Manual auth code error:', error);
+		logEvent('error', 'Manual auth code failed', { error: error.message });
+		
+		// Provide helpful error messages
+		let errorMessage = error.message;
+		if (error.message.includes('invalid_grant')) {
+			errorMessage = 'Invalid or expired authorization code. Please get a fresh code from Google.';
+		} else if (error.message.includes('unauthorized_client')) {
+			errorMessage = 'Unauthorized client. Please check your OAuth credentials.';
+		} else if (error.message.includes('invalid_client')) {
+			errorMessage = 'Invalid client credentials. Please check your OAuth configuration.';
+		}
+		
+		return { success: false, error: errorMessage };
+	}
+}
 
 // App info handlers for preload
 ipcMain.handle('get-app-version', async () => app.getVersion());

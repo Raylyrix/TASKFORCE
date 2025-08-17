@@ -23,7 +23,11 @@ class RTXApp {
         this.selectedSheetId = null;
         this.selectedSheetTitle = null;
         this.templates = [];
+        // Initialize the app
         this.init();
+        
+        // Initialize authentication listeners
+        this.initAuthListeners();
     }
 
     init() {
@@ -195,59 +199,41 @@ class RTXApp {
             console.error('Login button not found!');
         }
 
-        // Top-bar Google Sign-In
+        // Google Sign-in button
         const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
-        const googleLogoutBtn = document.getElementById('googleLogoutBtn');
-        if (googleSignInTopBtn && window.electronAPI?.authenticateGoogle) {
-            googleSignInTopBtn.addEventListener('click', async () => {
-                try {
-                    googleSignInTopBtn.disabled = true;
-                    googleSignInTopBtn.textContent = 'Signing in...';
-                    const result = await window.electronAPI.authenticateGoogle();
-                    if (result?.success) {
-                        this.onAuthenticationSuccess(result.userEmail || 'authenticated');
-                        googleSignInTopBtn.style.background = '#34c759';
-                        googleSignInTopBtn.style.color = '#fff';
-                        googleSignInTopBtn.textContent = result.userEmail || 'Signed in';
-                        const logoutBtn = document.getElementById('googleLogoutBtn');
-                        if (logoutBtn) logoutBtn.style.display = 'inline-block';
-                    } else {
-                        googleSignInTopBtn.style.background = '#ff3b30';
-                        googleSignInTopBtn.style.color = '#fff';
-                        googleSignInTopBtn.textContent = 'Not allowed';
-                        this.showError(result?.error || 'Sign-in failed. Email may not be registered.');
-                    }
-                } catch (e) {
-                    googleSignInTopBtn.style.background = '#ff3b30';
-                    googleSignInTopBtn.style.color = '#fff';
-                    googleSignInTopBtn.textContent = 'Failed';
-                    this.showError(e?.message || 'Sign-in failed');
-                } finally {
-                    setTimeout(() => { googleSignInTopBtn.disabled = false; }, 800);
-                }
+        
+        if (googleSignInTopBtn) {
+            googleSignInTopBtn.addEventListener('click', () => {
+                // Open the Google sign-in modal instead of direct authentication
+                this.showGoogleSignInModal();
             });
         }
 
-        if (googleLogoutBtn && window.electronAPI?.logout) {
-            googleLogoutBtn.addEventListener('click', async () => {
-                try {
-                    await window.electronAPI.logout();
-                    this.isAuthenticated = false;
-                    this.currentAccount = null;
-                    this.updateUI();
-                    try { window.electronAPI?.storeSet?.('telemetry.enabled', false); } catch(_) {}
-                    if (googleSignInTopBtn) {
-                        googleSignInTopBtn.style.background = '#fff';
-                        googleSignInTopBtn.style.color = '#2c2c2e';
-                        googleSignInTopBtn.textContent = 'Sign in with Google';
-                    }
-                    googleLogoutBtn.style.display = 'none';
-                    this.showInfo('Logged out');
-                } catch (e) {
-                    this.showError(e?.message || 'Logout failed');
-                }
-            });
-        }
+		// Google Logout button
+		const googleLogoutBtn = document.getElementById('googleLogoutBtn');
+		if (googleLogoutBtn) {
+			googleLogoutBtn.addEventListener('click', async () => {
+				try {
+					googleLogoutBtn.disabled = true;
+					googleLogoutBtn.textContent = 'Logging out...';
+					
+					// Call logout API
+					if (window.electronAPI?.logout) {
+						await window.electronAPI.logout();
+					}
+					
+					// Handle logout locally
+					this.onLogout();
+					
+				} catch (error) {
+					console.error('Logout error:', error);
+					this.showError('Logout failed: ' + error.message);
+				} finally {
+					googleLogoutBtn.disabled = false;
+					googleLogoutBtn.textContent = 'Logout';
+				}
+			});
+		}
 
         // SMTP (App Password) login
         const smtpLoginBtn = document.getElementById('smtpLoginBtn');
@@ -1692,6 +1678,68 @@ class RTXApp {
             console.warn('Failed to load default signature:', error);
         }
         return false;
+    }
+
+    showGoogleSignInModal() {
+        document.getElementById('googleSignInModal').style.display = 'block';
+    }
+
+    // Handle authentication success
+    onAuthenticationSuccess(email) {
+        console.log('Authentication successful:', email);
+        this.isAuthenticated = true;
+        this.currentAccount = email;
+        
+        // Update UI
+        const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
+        if (googleSignInTopBtn) {
+            googleSignInTopBtn.style.background = '#34c759';
+            googleSignInTopBtn.style.color = '#fff';
+            googleSignInTopBtn.textContent = email || 'Signed in';
+        }
+        
+        // Show logout button
+        const logoutBtn = document.getElementById('googleLogoutBtn');
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        
+        // Close modal
+        document.getElementById('googleSignInModal').style.display = 'none';
+        
+        // Show success message
+        this.showSuccess('Successfully signed in with Google!');
+    }
+    
+    // Listen for authentication events from main process
+    initAuthListeners() {
+        if (window.electronAPI) {
+            window.electronAPI.on('auth-success', (data) => {
+                this.onAuthenticationSuccess(data.email);
+            });
+            
+            window.electronAPI.on('auth-logout', () => {
+                this.onLogout();
+            });
+        }
+    }
+    
+    // Handle logout
+    onLogout() {
+        this.isAuthenticated = false;
+        this.currentAccount = null;
+        
+        // Update UI
+        const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
+        if (googleSignInTopBtn) {
+            googleSignInTopBtn.style.background = '#fff';
+            googleSignInTopBtn.style.color = '#2c2c2e';
+            googleSignInTopBtn.textContent = 'Sign in with Google';
+        }
+        
+        // Hide logout button
+        const logoutBtn = document.getElementById('googleLogoutBtn');
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        
+        this.showSuccess('Successfully signed out');
     }
 }
 

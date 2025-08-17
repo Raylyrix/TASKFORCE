@@ -822,6 +822,56 @@
 		</div>
 	</div>
 
+	<!-- Google Sign-in Modal -->
+	<div class="modal" id="googleSignInModal" style="display:none;">
+		<div class="modal-content" style="max-width: 600px;">
+			<div class="modal-header">
+				<h3>Google Sign-in</h3>
+				<button class="modal-close" onclick="document.getElementById('googleSignInModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body">
+				<div class="form-group">
+					<label>OAuth Credentials (Optional)</label>
+					<input type="file" id="oauthFile" accept=".json" placeholder="Upload OAuth credentials file">
+					<small>Leave empty to use default credentials</small>
+				</div>
+				
+				<div class="form-group">
+					<label>Manual Authorization Code</label>
+					<div style="display: flex; gap: 8px; align-items: center;">
+						<input type="text" id="manualAuthCode" placeholder="Paste authorization code here" style="flex: 1;">
+						<button class="btn btn-primary" onclick="submitManualAuthCode()">Submit Code</button>
+					</div>
+					<small style="color: #666; margin-top: 8px; display: block;">
+						<strong>Quick Login:</strong> Copy the authorization code from your browser and paste it here for instant login.
+					</small>
+				</div>
+				
+				<div class="form-group">
+					<label>Or use automatic redirect:</label>
+					<button class="btn btn-primary" onclick="startGoogleAuth()" id="startAuthBtn">
+						<i class="fas fa-sign-in-alt"></i> Start Google Sign-in
+					</button>
+				</div>
+				
+				<div id="authProgress" style="display:none; margin-top: 16px;">
+					<div style="background: #f0f0f0; padding: 12px; border-radius: 4px;">
+						<div style="display: flex; align-items: center; gap: 8px;">
+							<div class="spinner" style="width: 16px; height: 16px;"></div>
+							<span id="authStatus">Initializing authentication...</span>
+						</div>
+					</div>
+				</div>
+				
+				<div id="authError" style="display:none; margin-top: 16px;">
+					<div style="background: #fee; color: #c33; padding: 12px; border-radius: 4px; border: 1px solid #fcc;">
+						<strong>Authentication Error:</strong> <span id="errorMessage"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<script>
 		// Theme toggle behavior
 		document.getElementById('themeToggle')?.addEventListener('click', () => {
@@ -990,6 +1040,104 @@
 				setTimeout(() => { try { window.electronAPI?.checkForUpdates?.(); } catch (_) {} }, 3000);
 			} catch (_) {}
 		})();
+
+		// Google Sign-in functions
+		async function startGoogleAuth() {
+			const oauthFile = document.getElementById('oauthFile').files[0];
+			let credentials = null;
+			
+			if (oauthFile) {
+				try {
+					const text = await oauthFile.text();
+					credentials = JSON.parse(text);
+				} catch (error) {
+					showError('Invalid OAuth credentials file: ' + error.message);
+					return;
+				}
+			}
+			
+			showAuthProgress('Starting Google authentication...');
+			hideAuthError();
+			
+			try {
+				const result = await window.electronAPI.authenticateGoogle(credentials || {});
+				if (result.success) {
+					showAuthProgress('Authentication successful! Redirecting...');
+					setTimeout(() => {
+						document.getElementById('googleSignInModal').style.display = 'none';
+						window.location.reload();
+					}, 1500);
+				} else {
+					showAuthError(result.error || 'Authentication failed');
+				}
+			} catch (error) {
+				showAuthError('Authentication error: ' + error.message);
+			}
+		}
+		
+		async function submitManualAuthCode() {
+			const code = document.getElementById('manualAuthCode').value.trim();
+			if (!code) {
+				showError('Please enter an authorization code');
+				return;
+			}
+			
+			showAuthProgress('Processing authorization code...');
+			hideAuthError();
+			
+			try {
+				const result = await window.electronAPI.submitManualAuthCode(code);
+				if (result.success) {
+					showAuthProgress('Authorization successful! Redirecting...');
+					setTimeout(() => {
+						document.getElementById('googleSignInModal').style.display = 'none';
+						window.location.reload();
+					}, 1500);
+				} else {
+					showAuthError(result.error || 'Authorization failed');
+				}
+			} catch (error) {
+				showAuthError('Authorization error: ' + error.message);
+			}
+		}
+		
+		function showAuthProgress(message) {
+			document.getElementById('authProgress').style.display = 'block';
+			document.getElementById('authStatus').textContent = message;
+			document.getElementById('startAuthBtn').disabled = true;
+		}
+		
+		function hideAuthProgress() {
+			document.getElementById('authProgress').style.display = 'none';
+			document.getElementById('startAuthBtn').disabled = false;
+		}
+		
+		function showAuthError(message) {
+			document.getElementById('authError').style.display = 'block';
+			document.getElementById('errorMessage').textContent = message;
+			hideAuthProgress();
+		}
+		
+		function hideAuthError() {
+			document.getElementById('authError').style.display = 'none';
+		}
+		
+		// Handle OAuth file selection
+		document.getElementById('oauthFile').addEventListener('change', function(e) {
+			const file = e.target.files[0];
+			if (file) {
+				console.log('OAuth file selected:', file.name);
+			}
+		});
+		
+		// Handle Enter key in manual auth code input
+		document.getElementById('manualAuthCode').addEventListener('keypress', function(e) {
+			if (e.key === 'Enter') {
+				submitManualAuthCode();
+			}
+		});
+
+		// Signature builder functions
 	</script>
 
 	<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
@@ -1037,6 +1185,87 @@
 		@media (max-width: 600px) {
 			.header button { padding:8px 12px; }
 			.form-group input, .form-group select, .form-group textarea { font-size:13px; }
+		}
+		/* Spinner for loading states */
+		.spinner {
+			border: 2px solid #f3f3f3;
+			border-top: 2px solid #3498db;
+			border-radius: 50%;
+			width: 20px;
+			height: 20px;
+			animation: spin 1s linear infinite;
+		}
+		
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+		
+		/* Modal improvements */
+		.modal-content {
+			max-height: 90vh;
+			overflow-y: auto;
+		}
+		
+		.form-group {
+			margin-bottom: 16px;
+		}
+		
+		.form-group label {
+			display: block;
+			margin-bottom: 6px;
+			font-weight: 500;
+			color: #333;
+		}
+		
+		.form-group input,
+		.form-group select {
+			width: 100%;
+			padding: 8px 12px;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			font-size: 14px;
+		}
+		
+		.form-group small {
+			display: block;
+			margin-top: 4px;
+			color: #666;
+			font-size: 12px;
+		}
+		
+		/* Button improvements */
+		.btn {
+			padding: 8px 16px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 14px;
+			transition: all 0.2s ease;
+		}
+		
+		.btn:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+		
+		.btn-primary {
+			background: #007aff;
+			color: white;
+		}
+		
+		.btn-primary:hover:not(:disabled) {
+			background: #0056cc;
+		}
+		
+		.btn-secondary {
+			background: #f0f0f0;
+			color: #333;
+			border: 1px solid #ddd;
+		}
+		
+		.btn-secondary:hover:not(:disabled) {
+			background: #e0e0e0;
 		}
 	</style>
 </body>
