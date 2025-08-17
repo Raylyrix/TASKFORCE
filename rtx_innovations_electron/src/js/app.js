@@ -953,14 +953,22 @@ class RTXApp {
             if (!campaignData) return;
             const finalContent = this.processContent(this.getEditorPlainText(), {}, campaignData.useSig);
             const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
-            const html = this.gmailSignature
-                ? `<div>${this.getEditorHtml({})}</div><div>${this.gmailSignature}</div>`
-                : (this.getEditorHtml({}) || undefined);
+            
+            // Preserve HTML content exactly as entered
+            const htmlContent = this.getEditorHtml({});
+            const signatureHtml = this.gmailSignature || '';
+            
+            // Combine content and signature with proper HTML structure
+            let finalHtml = htmlContent;
+            if (signatureHtml && campaignData.useSig) {
+                finalHtml = `<div>${htmlContent}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
+            }
+            
             const result = await window.electronAPI.sendTestEmail({
                 to: testEmail,
                 subject: campaignData.subject,
                 content: finalContent,
-                html,
+                html: finalHtml,
                 from,
                 attachmentsPaths: this.attachmentsPaths
             });
@@ -1195,11 +1203,26 @@ class RTXApp {
         const to = row[toIndex];
         const rowMap = this.buildRowMap(headers, row);
         const content = this.processContent(this.getEditorPlainText(), rowMap, campaign.useSig);
-        const html = this.gmailSignature && campaign.useSig
-            ? `<div>${this.getEditorHtml(rowMap)}</div><div>${this.gmailSignature}</div>`
-            : (this.getEditorHtml(rowMap) || undefined);
+        
+        // Preserve HTML content exactly as entered with placeholders resolved
+        const htmlContent = this.getEditorHtml(rowMap);
+        const signatureHtml = this.gmailSignature || '';
+        
+        // Combine content and signature with proper HTML structure
+        let finalHtml = htmlContent;
+        if (signatureHtml && campaign.useSig) {
+            finalHtml = `<div>${htmlContent}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
+        }
+        
         const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
-        const result = await window.electronAPI.sendEmail({ to, subject: campaign.subject, content, html, from, attachmentsPaths: this.attachmentsPaths });
+        const result = await window.electronAPI.sendEmail({ 
+            to, 
+            subject: campaign.subject, 
+            content, 
+            html: finalHtml, 
+            from, 
+            attachmentsPaths: this.attachmentsPaths 
+        });
         if (!result.success) {
             this.setLocalRowStatus(rowIndexZeroBased, 'FAILED');
             throw new Error(result.error || 'Failed to send email');
@@ -1655,6 +1678,20 @@ class RTXApp {
         const body = document.body;
         const dark = body.getAttribute('data-theme') === 'dark';
         body.setAttribute('data-theme', dark ? 'light' : 'dark');
+    }
+
+    async loadDefaultSignature() {
+        try {
+            const result = await window.electronAPI.getDefaultSignature();
+            if (result.success && result.data) {
+                this.gmailSignature = result.data.html || result.data.text || '';
+                this.showSuccess('Default signature loaded');
+                return true;
+            }
+        } catch (error) {
+            console.warn('Failed to load default signature:', error);
+        }
+        return false;
     }
 }
 

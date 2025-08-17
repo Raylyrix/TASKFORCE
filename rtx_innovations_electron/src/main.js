@@ -17,7 +17,7 @@ const isDev = (() => {
 	try { return require('electron-is-dev'); } catch (_) { return process.env.NODE_ENV === 'development'; }})();
 let autoUpdater; // lazy require to avoid issues if module not present
 
-// Telemetry setup
+// Core dependencies
 const fs = require('fs');
 const mime = require('mime-types');
 const os = require('os');
@@ -416,11 +416,32 @@ async function authenticateGoogle(credentialsData) {
 		if (existing) {
 			oauth2Client = buildOAuthClient(norm);
 			oauth2Client.setCredentials(existing);
-			await ensureServices();
-			const profile = await gmailService.users.getProfile({ userId: 'me' });
-			logEvent('info', 'Authenticated with existing token', { email: profile.data.emailAddress });
-			trackTelemetry('auth_success');
-			return { success: true, userEmail: profile.data.emailAddress };
+			// Instant attach without waiting for profile
+			try {
+				if (mainWindow && mainWindow.webContents) {
+					mainWindow.webContents.send('auth-success', { email: 'authenticated' });
+					try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {}
+				}
+			} catch (_) {}
+			// Background: ensure services and resolve profile with timeout
+			;(async () => {
+				try {
+					await ensureServices();
+					let emailAddr = 'authenticated';
+					try {
+						const p = await Promise.race([
+							gmailService.users.getProfile({ userId: 'me' }),
+							new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+						]);
+						if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
+						saveAccountEntry(emailAddr, norm, existing);
+						try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
+						try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr }); } catch (_) {}
+						logEvent('info', 'Authenticated and token stored', { email: emailAddr });
+					} catch (_) {}
+				} catch (_) {}
+			})();
+			return { success: true, userEmail: 'authenticated' };
 		}
 
 		const { shell } = require('electron');
@@ -518,12 +539,12 @@ async function authenticateGoogle(credentialsData) {
         try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
         try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: emailAddr }); try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {} } } catch (_) {}
 		logEvent('info', 'Authenticated and token stored', { email: emailAddr });
-		trackTelemetry('auth_success');
+		// Authentication successful
 		return { success: true, userEmail: emailAddr };
 	} catch (error) {
 		console.error('Authentication error:', error);
 		logEvent('error', 'Authentication error', { error: error.message });
-		trackTelemetry('auth_error', { error: error.message });
+		// Authentication error logged
 		// If token invalid for this client (401/unauthorized_client), purge and ask user to try again
 		if (/unauthorized_client|invalid_grant|invalid_client/i.test(error.message)) {
 			try { store.delete('googleToken'); } catch (_) {}
@@ -822,9 +843,6 @@ ipcMain.handle('app-log-read', async () => {
 	} catch (e) { return { success: false, error: e.message }; }
 });
 
-// Telemetry IPC (renderer optional)
-ipcMain.handle('telemetry-track', async (e, args) => { try { trackTelemetry(args?.event || 'event', args?.meta || null); return { success: true }; } catch (error) { return { success: false, error: error.message }; } });
-
 // Auto-update wiring
 function initAutoUpdater() {
 	try {
@@ -835,7 +853,7 @@ function initAutoUpdater() {
 		// Forward events to renderer
 		autoUpdater.on('checking-for-update', () => { if (mainWindow) mainWindow.webContents.send('update-status', { status: 'checking' }); });
 		autoUpdater.on('update-available', (info) => {
-			trackTelemetry('update_available', { version: info?.version });
+			// Update available
 			if (mainWindow) mainWindow.webContents.send('update-status', { status: 'available', info });
 			dialog.showMessageBox(mainWindow, {
 				type: 'info',
@@ -848,7 +866,7 @@ function initAutoUpdater() {
 		autoUpdater.on('error', (err) => { logEvent('error', 'auto-updater-error', { error: err?.message }); if (mainWindow) mainWindow.webContents.send('update-status', { status: 'error', error: err?.message }); });
 		autoUpdater.on('download-progress', (progress) => { if (mainWindow) mainWindow.webContents.send('update-status', { status: 'downloading', progress }); });
 		autoUpdater.on('update-downloaded', (info) => {
-			trackTelemetry('update_downloaded', { version: info?.version });
+			// Update downloaded
 			if (mainWindow) mainWindow.webContents.send('update-status', { status: 'downloaded', info });
 			try {
 				const notes = (info?.releaseNotes && typeof info.releaseNotes === 'string') ? info.releaseNotes : '';
@@ -974,7 +992,7 @@ async function sendTestEmail(emailData) {
 			});
 			const res = await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
 			logEvent('info', 'Test email sent', { to: emailData.to, id: res.data.id });
-			trackTelemetry('test_email_sent', { hasAttachments: (emailData.attachmentsPaths || []).length > 0 });
+			// Test email sent
 			return { success: true, messageId: res.data.id };
 		}
 		await ensureMailer();
@@ -985,12 +1003,12 @@ async function sendTestEmail(emailData) {
 		const attachments = await Promise.all((emailData.attachmentsPaths || []).map(async (p) => ({ filename: require('path').basename(p), content: await require('fs').promises.readFile(p) })));
 		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, html: emailData.html, attachments });
 		logEvent('info', 'Test email sent (SMTP)', { to: emailData.to, id: info.messageId });
-		trackTelemetry('test_email_sent_smtp', { hasAttachments: attachments.length > 0 });
+		// Test email sent via SMTP
 		return { success: true, messageId: info.messageId };
 	} catch (error) {
 		console.error('Email sending error:', error);
 		logEvent('error', 'Email sending error', { error: error.message, to: emailData?.to });
-		trackTelemetry('email_send_error', { error: error.message });
+		// Email send error
 		return { success: false, error: error.message };
 	}
 }
@@ -1010,7 +1028,7 @@ async function sendEmail(emailData) {
 			});
 			const res = await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
 			logEvent('info', 'Email sent', { to: emailData.to, id: res.data.id });
-			trackTelemetry('email_sent', { hasAttachments: (emailData.attachmentsPaths || []).length > 0 });
+			// Email sent
 			return { success: true, messageId: res.data.id };
 		}
 		await ensureMailer();
@@ -1021,12 +1039,12 @@ async function sendEmail(emailData) {
 		const attachments = await Promise.all((emailData.attachmentsPaths || []).map(async (p) => ({ filename: require('path').basename(p), content: await require('fs').promises.readFile(p) })));
 		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, html: emailData.html, attachments });
 		logEvent('info', 'Email sent (SMTP)', { to: emailData.to, id: info.messageId });
-		trackTelemetry('email_sent_smtp', { hasAttachments: attachments.length > 0 });
+		// Email sent via SMTP
 		return { success: true, messageId: info.messageId };
 	} catch (error) {
 		console.error('Email sending error:', error);
 		logEvent('error', 'Email sending error', { error: error.message, to: emailData?.to });
-		trackTelemetry('email_send_error', { error: error.message });
+		// Email send error
 		return { success: false, error: error.message };
 	}
 }
@@ -1074,7 +1092,8 @@ async function executeCampaignRun(params) {
 		const jitter = Math.floor(Math.random() * 2000);
 		await new Promise(r => setTimeout(r, (delaySeconds || 5) * 1000 + jitter));
 	}
-	trackTelemetry('campaign_run', { recipients: rows.length });
+	// Campaign run
+	logEvent('info', 'Campaign completed', { recipients: rows.length });
 }
 
 function scheduleOneTimeCampaign(params) {
@@ -1087,7 +1106,7 @@ function scheduleOneTimeCampaign(params) {
 		finally { getJobsMap().delete(id); }
 	}, ms);
 	getJobsMap().set(id, { id, type: 'one-time', startAt, params, timer });
-	trackTelemetry('campaign_scheduled', { startAt });
+	// Campaign scheduled
 	return { id, startAt };
 }
 
@@ -1308,9 +1327,114 @@ async function streamToString(stream) {
     });
 }
 
+// Signature management
+function getSignaturesDir() {
+	const dir = path.join(app.getPath('userData'), 'signatures');
+	try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
+	return dir;
+}
+
+function sanitizeSignatureName(name) {
+	return String(name || 'signature').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 80);
+}
+
+ipcMain.handle('signatures-list', async () => {
+	try {
+		const dir = getSignaturesDir();
+		const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.json'));
+		return files.map(f => ({ 
+			id: path.join(dir, f), 
+			name: path.basename(f, '.json'), 
+			path: path.join(dir, f) 
+		}));
+	} catch (error) {
+		logEvent('error', 'Failed to list signatures', { error: error.message });
+		return [];
+	}
+});
+
+ipcMain.handle('signatures-save', async (e, args) => {
+	try {
+		const dir = getSignaturesDir();
+		const fname = sanitizeSignatureName(args.name) + '.json';
+		const fpath = path.join(dir, fname);
+		const signatureData = {
+			name: args.name,
+			html: args.html || '',
+			text: args.text || '',
+			ts: Date.now()
+		};
+		await fs.promises.writeFile(fpath, JSON.stringify(signatureData, null, 2), 'utf8');
+		return { success: true, path: fpath };
+	} catch (error) {
+		logEvent('error', 'Signature save failed', { error: error.message });
+		return { success: false, error: error.message };
+	}
+});
+
+ipcMain.handle('signatures-load', async (e, fpath) => {
+	try {
+		const txt = await fs.promises.readFile(fpath, 'utf8');
+		return { success: true, data: JSON.parse(txt) };
+	} catch (error) {
+		logEvent('error', 'Signature load failed', { error: error.message, path: fpath });
+		return { success: false, error: error.message };
+	}
+});
+
+ipcMain.handle('signatures-delete', async (e, fpath) => {
+	try {
+		await fs.promises.unlink(fpath);
+		return { success: true };
+	} catch (error) {
+		return { success: false, error: error.message };
+	}
+});
+
+ipcMain.handle('signatures-get-default', async () => {
+	try {
+		const dir = getSignaturesDir();
+		const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.json'));
+		if (files.length === 0) return { success: false, error: 'No signatures found' };
+		
+		// Get the most recently modified signature
+		let latestFile = null;
+		let latestTime = 0;
+		for (const file of files) {
+			const filePath = path.join(dir, file);
+			try {
+				const stats = fs.statSync(filePath);
+				if (stats.mtime.getTime() > latestTime) {
+					latestTime = stats.mtime.getTime();
+					latestFile = filePath;
+				}
+			} catch (_) {}
+		}
+		
+		if (latestFile) {
+			const txt = await fs.promises.readFile(latestFile, 'utf8');
+			return { success: true, data: JSON.parse(txt) };
+		}
+		return { success: false, error: 'No signatures found' };
+	} catch (error) {
+		return { success: false, error: error.message };
+	}
+});
+
 // App info handlers for preload
 ipcMain.handle('get-app-version', async () => app.getVersion());
 ipcMain.handle('get-app-name', async () => app.getName());
+
+// Generate unique app identifier for macOS signature
+function getAppIdentifier() {
+	const id = store.get('appIdentifier');
+	if (!id) {
+		const newId = 'com.rtxinnovations.taskforce.' + Date.now().toString(36);
+		store.set('appIdentifier', newId);
+		return newId;
+	}
+	return id;
+}
 
 // Improve compatibility on some GPUs (blank/invisible window)
 try {
@@ -1337,8 +1461,9 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
 	try { if (process.platform === 'win32') app.setAppUserModelId('com.rtxinnovations.taskforce'); } catch (_) {}
+	try { if (process.platform === 'darwin') app.setAppUserModelId(getAppIdentifier()); } catch (_) {}
 	try { createWindow(); } catch (e) { logEvent('error', 'createWindow-failed', { error: e.message }); }
-	startTelemetry();
+	// startTelemetry(); // Telemetry disabled
 	initAutoUpdater();
 	if (process.platform === 'darwin') {
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

@@ -81,6 +81,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteTemplateJson: (path) => wrapInvoke('templates-delete', path),
     readJsonFile: (path) => wrapInvoke('read-json-file', path),
 
+    // Signature Builder
+    listSignatures: () => wrapInvoke('signatures-list'),
+    saveSignature: (name, html, text) => wrapInvoke('signatures-save', { name, html, text }),
+    loadSignature: (path) => wrapInvoke('signatures-load', path),
+    deleteSignature: (path) => wrapInvoke('signatures-delete', path),
+    getDefaultSignature: () => wrapInvoke('signatures-get-default'),
+
     // Scheduler
     scheduleOneTime: (params) => wrapInvoke('schedule-campaign-one-time', params),
     listSchedules: () => wrapInvoke('schedule-list'),

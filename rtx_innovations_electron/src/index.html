@@ -651,6 +651,73 @@
                     </div>
                 </div>
 
+	<!-- Signature Builder Modal -->
+	<div class="modal" id="signatureBuilderModal" style="display:none;">
+		<div class="modal-content" style="max-width: 900px; width: 90%;">
+			<div class="modal-header">
+				<h3>Signature Builder</h3>
+				<button class="modal-close" onclick="document.getElementById('signatureBuilderModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body">
+				<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+					<!-- Editor Panel -->
+					<div>
+						<h4>Signature Editor</h4>
+						<div class="form-group">
+							<label>Signature Name</label>
+							<input type="text" id="sigName" placeholder="e.g. Default, Business, Personal">
+						</div>
+						<div class="form-group">
+							<label>HTML Content</label>
+							<div id="signatureEditorToolbar" style="border:1px solid #ddd; border-bottom:none; padding:8px; background:#f8f9fa;">
+								<button type="button" onclick="execCommand('bold')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;"><strong>B</strong></button>
+								<button type="button" onclick="execCommand('italic')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;"><em>I</em></button>
+								<button type="button" onclick="execCommand('underline')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;"><u>U</u></button>
+								<button type="button" onclick="execCommand('insertUnorderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">•</button>
+								<button type="button" onclick="execCommand('insertOrderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">1.</button>
+								<button type="button" onclick="execCommand('createLink')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🔗</button>
+								<button type="button" onclick="insertImage()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🖼️</button>
+								<button type="button" onclick="clearFormatting()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🧹</button>
+							</div>
+							<div id="signatureEditor" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff;" placeholder="Enter your signature content..."></div>
+						</div>
+						<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+							<button class="btn btn-primary" onclick="saveSignature()"><i class="fas fa-save"></i>Save Signature</button>
+							<button class="btn btn-secondary" onclick="loadSignature()"><i class="fas fa-download"></i>Load</button>
+							<button class="btn btn-danger" onclick="deleteSignature()"><i class="fas fa-trash"></i>Delete</button>
+							<button class="btn btn-secondary" onclick="applySignature()"><i class="fas fa-check"></i>Use in Emails</button>
+						</div>
+					</div>
+					
+					<!-- Preview Panel -->
+					<div>
+						<h4>Preview & Management</h4>
+						<div class="form-group">
+							<label>Signature Preview</label>
+							<div id="signaturePreview" style="min-height:200px; border:1px solid #ddd; padding:12px; background:#fff; overflow-y:auto;"></div>
+						</div>
+						<div class="form-group">
+							<label>Saved Signatures</label>
+							<select id="signatureSelect" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+								<option value="">Select a signature to load...</option>
+							</select>
+						</div>
+						<div style="background:#f8f9fa; padding:12px; border-radius:4px; font-size:12px;">
+							<strong>Tips:</strong>
+							<ul style="margin:8px 0; padding-left:20px;">
+								<li>Use HTML for rich formatting (bold, italic, links)</li>
+								<li>Images should use absolute URLs (https://...)</li>
+								<li>Keep signatures concise for better email delivery</li>
+								<li>Test your signature before using in campaigns</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Signature Modal -->
 	<div class="modal" id="signatureModal" style="display:none;">
 		<div class="modal-content" style="max-width: 900px; width: 90%;">
             <div class="modal-header">

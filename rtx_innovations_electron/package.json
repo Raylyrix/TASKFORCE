@@ -1,6 +1,6 @@
 {
   "name": "task-force-mailer",
-  "version": "1.5.20",
+  "version": "1.6.0",
   "description": "TASK FORCE – Mass mailer with Google Sheets integration",
   "main": "src/main.js",
   "homepage": "./",
@@ -56,7 +56,7 @@
     "xlsx": "^0.18.5"
   },
   "build": {
-    "appId": "com.rtxinnovations.taskforce",
+    "appId": "com.rtxinnovations.taskforce.v2",
     "productName": "TASK FORCE",
     "directories": {
       "output": "dist-builds"
@@ -75,7 +75,7 @@
       {
         "provider": "github",
         "owner": "Raylyrix",
-        "repo": "RTXAPPS"
+        "repo": "TASKFORCE"
       }
     ],
 
