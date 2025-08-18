@@ -1347,6 +1347,9 @@
 						<button class="btn btn-secondary" onclick="clearAuthData()" style="padding: 8px 16px; font-size: 14px;">
 							<i class="fas fa-trash"></i> Clear Auth Data
 						</button>
+						<button class="btn btn-primary" onclick="getFreshAuthCode()" style="padding: 8px 16px; font-size: 14px;">
+							<i class="fas fa-refresh"></i> Get Fresh Code
+						</button>
 						<button class="btn btn-info" onclick="showAuthHelp()" style="padding: 8px 16px; font-size: 14px;">
 							<i class="fas fa-question-circle"></i> Help
 						</button>
@@ -1593,6 +1596,25 @@
 				}
 			} catch (error) {
 				showAuthError('Authorization error: ' + error.message);
+			}
+		}
+		
+		async function getFreshAuthCode() {
+			if (confirm('This will clear your current authentication state and start a fresh Google sign-in process. Continue?')) {
+				showAuthProgress('Getting fresh authorization code...');
+				hideAuthError();
+				
+				try {
+					const result = await window.electronAPI.getFreshAuthorizationCode();
+					if (result.success) {
+						showAuthProgress('Fresh authentication started! Check your browser...');
+						// The authenticateGoogle function will open the browser
+					} else {
+						showAuthError(result.error || 'Failed to start fresh authentication');
+					}
+				} catch (error) {
+					showAuthError('Failed to get fresh code: ' + error.message);
+				}
 			}
 		}
 		

@@ -460,14 +460,20 @@ async function authenticateGoogle(credentialsData) {
 						// Accept any path as long as code exists
 						const code = reqUrl.searchParams.get('code');
 						if (!code) { res.writeHead(400); res.end('Missing code'); return; }
-                        const { tokens } = await oauth2Client.getToken(code);
-                        oauth2Client.setCredentials(tokens);
+						
+						// Create OAuth client for this specific request
+						const oauthClient = buildOAuthClient(norm, `http://${host}:${server.address().port}${pathName}`);
+						
+                        const { tokens } = await oauthClient.getToken(code);
+                        oauthClient.setCredentials(tokens);
+                        
                         try {
                             if (mainWindow && mainWindow.webContents) {
                                 mainWindow.webContents.send('auth-progress', { step: 'token-received' });
                                 try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {}
                             }
                         } catch (_) {}
+                        
                         res.writeHead(200, { 'Content-Type': 'text/html' });
                         res.end(`<html>
 <head>
@@ -476,11 +482,13 @@ async function authenticateGoogle(credentialsData) {
         body { font-family: Arial, sans-serif; padding: 40px; text-align: center; background: #f8f9fa; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         h1 { color: #28a745; margin-bottom: 20px; }
-        .code-box { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; font-family: monospace; font-size: 16px; word-break: break-all; }
+        .code-box { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; font-family: monospace; font-size: 16px; word-break: break-all; user-select: all; cursor: text; }
         .copy-btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 10px; }
         .copy-btn:hover { background: #0056b3; }
         .instructions { color: #6c757d; margin: 20px 0; line-height: 1.6; }
         .success-icon { font-size: 48px; margin-bottom: 20px; }
+        .fallback-copy { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 12px; margin: 16px 0; color: #856404; }
+        .manual-copy { background: #e8f5e8; border: 1px solid #c3e6c3; border-radius: 6px; padding: 12px; margin: 16px 0; color: #155724; }
     </style>
 </head>
 <body>
@@ -492,16 +500,25 @@ async function authenticateGoogle(credentialsData) {
             <strong>Copy the authorization code below and paste it into the app:</strong>
         </p>
         
-        <div class="code-box" id="authCode">
+        <div class="code-box" id="authCode" onclick="selectAll()" title="Click to select all text">
             ${code}
         </div>
         
         <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+        <button class="copy-btn" onclick="selectAndCopy()">✂️ Select & Copy</button>
         <button class="copy-btn" onclick="window.close()">Close Window</button>
+        
+        <div class="fallback-copy">
+            <strong>💡 Tip:</strong> If the copy button doesn't work, click on the code box above to select all text, then press Ctrl+C (or Cmd+C on Mac).
+        </div>
+        
+        <div class="manual-copy">
+            <strong>✅ Success!</strong> The authorization code is ready. Copy it and return to the TASK FORCE app.
+        </div>
         
         <p class="instructions">
             <strong>Next steps:</strong><br>
-            1. Copy the authorization code above<br>
+            1. Copy the authorization code above (use any method)<br>
             2. Return to the TASK FORCE app<br>
             3. Paste the code in the "Manual Authorization Code" field<br>
             4. Click "Login"
@@ -509,20 +526,79 @@ async function authenticateGoogle(credentialsData) {
     </div>
     
     <script>
+        function selectAll() {
+            const codeBox = document.getElementById('authCode');
+            const range = document.createRange();
+            range.selectNodeContents(codeBox);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
+        function selectAndCopy() {
+            selectAll();
+            try {
+                document.execCommand('copy');
+                showCopySuccess();
+            } catch (e) {
+                showCopyError();
+            }
+        }
+        
         function copyCode() {
             const code = document.getElementById('authCode').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = event.target;
-                btn.textContent = '✅ Copied!';
-                btn.style.background = '#28a745';
-                setTimeout(() => {
-                    btn.textContent = '📋 Copy Code';
-                    btn.style.background = '#007bff';
-                }, 2000);
-            }).catch(() => {
-                alert('Failed to copy. Please manually select and copy the code.');
-            });
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(code).then(() => {
+                    showCopySuccess();
+                }).catch(() => {
+                    // Fallback to execCommand
+                    fallbackCopy();
+                });
+            } else {
+                // Fallback to execCommand
+                fallbackCopy();
+            }
         }
+        
+        function fallbackCopy() {
+            selectAll();
+            try {
+                if (document.execCommand('copy')) {
+                    showCopySuccess();
+                } else {
+                    showCopyError();
+                }
+            } catch (e) {
+                showCopyError();
+            }
+        }
+        
+        function showCopySuccess() {
+            const btn = event.target;
+            btn.textContent = '✅ Copied!';
+            btn.style.background = '#28a745';
+            setTimeout(() => {
+                btn.textContent = '📋 Copy Code';
+                btn.style.background = '#007bff';
+            }, 2000);
+        }
+        
+        function showCopyError() {
+            const btn = event.target;
+            btn.textContent = '❌ Failed';
+            btn.style.background = '#dc3545';
+            setTimeout(() => {
+                btn.textContent = '📋 Copy Code';
+                btn.style.background = '#007bff';
+            }, 2000);
+        }
+        
+        // Auto-select the code when page loads
+        window.onload = function() {
+            selectAll();
+        };
         
         // Auto-close after 30 seconds
         setTimeout(() => {
@@ -543,8 +619,14 @@ async function authenticateGoogle(credentialsData) {
 				// Try to bind; if privileged or fails, fall back to random port and alternate host
 				const tryListen = (h, p) => server.listen(p, h, async () => {
 					try {
-						oauth2Client = buildOAuthClient(norm, `http://${h}:${server.address().port}${pathName}`);
-						const authUrl = oauth2Client.generateAuthUrl({ access_type: 'offline', scope: SCOPES, prompt: 'consent' });
+						const redirectUri = `http://${h}:${server.address().port}${pathName}`;
+						const oauthClient = buildOAuthClient(norm, redirectUri);
+						const authUrl = oauthClient.generateAuthUrl({ 
+							access_type: 'offline', 
+							scope: SCOPES, 
+							prompt: 'consent',
+							response_type: 'code'
+						});
 						await shell.openExternal(authUrl);
 					} catch (openErr) {
 						try { server.close(); } catch (_) {}
@@ -1193,6 +1275,8 @@ function cancelScheduledJob(id) {
 ipcMain.handle('updateClientCredentials', async (event, credentialsData) => updateClientCredentials(credentialsData));
 ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
 ipcMain.handle('submitManualAuthCode', async (event, authCode) => submitManualAuthCode(authCode));
+ipcMain.handle('clearAuthenticationState', async () => clearAuthenticationState());
+ipcMain.handle('getFreshAuthorizationCode', async () => getFreshAuthorizationCode());
 
 // Debug function to help troubleshoot authentication issues
 ipcMain.handle('debug-auth-status', async () => {
@@ -1511,6 +1595,46 @@ ipcMain.handle('signatures-get-default', async () => {
 	}
 });
 
+// Function to clear authentication state and force fresh OAuth flow
+async function clearAuthenticationState() {
+	try {
+		// Clear all stored tokens and credentials
+		store.delete('googleToken');
+		store.delete('googleTokenClientId');
+		store.delete('googleCreds');
+		store.delete('smtp.activeEmail');
+		
+		// Reset service instances
+		oauth2Client = null;
+		gmailService = null;
+		sheetsService = null;
+		
+		// Clear app settings
+		store.delete('app-settings');
+		
+		logEvent('info', 'Authentication state cleared');
+		return { success: true, message: 'Authentication state cleared successfully' };
+	} catch (error) {
+		logEvent('error', 'Failed to clear authentication state', { error: error.message });
+		return { success: false, error: error.message };
+	}
+}
+
+// Function to get fresh authorization code
+async function getFreshAuthorizationCode() {
+	try {
+		// Clear any existing state
+		await clearAuthenticationState();
+		
+		// Start fresh OAuth flow
+		const result = await authenticateGoogle({});
+		return result;
+	} catch (error) {
+		logEvent('error', 'Failed to get fresh authorization code', { error: error.message });
+		return { success: false, error: error.message };
+	}
+}
+
 // Manual authorization code submission for instant login
 async function submitManualAuthCode(authCode) {
 	try {
@@ -1527,7 +1651,7 @@ async function submitManualAuthCode(authCode) {
 		}
 		
 		// Get current credentials
-		const norm = store.get('googleCreds');
+		let norm = store.get('googleCreds');
 		if (!norm) {
 			// Use default credentials if none set
 			const def = (typeof loadDefaultOAuthCredentials === 'function') ? loadDefaultOAuthCredentials() : null;
@@ -1536,13 +1660,28 @@ async function submitManualAuthCode(authCode) {
 			store.set('googleCreds', norm);
 		}
 		
-		// Build OAuth client
-		oauth2Client = buildOAuthClient(norm);
+		// Validate credentials
+		if (!norm.client_id || !norm.client_secret) {
+			throw new Error('Invalid OAuth credentials. Please check your configuration.');
+		}
 		
-		logEvent('info', 'Attempting manual auth with code', { codeLength: cleanCode.length });
+		logEvent('info', 'Attempting manual auth with code', { 
+			codeLength: cleanCode.length,
+			clientId: norm.client_id ? 'present' : 'missing',
+			hasRedirectUri: !!norm.redirect_uri 
+		});
+		
+		// Build OAuth client with proper redirect URI
+		const redirectUri = norm.redirect_uri || 'http://localhost';
+		oauth2Client = buildOAuthClient(norm, redirectUri);
 		
 		// Exchange code for tokens
 		const { tokens } = await oauth2Client.getToken(cleanCode);
+		
+		if (!tokens || !tokens.access_token) {
+			throw new Error('Failed to obtain access token from Google. Please try again.');
+		}
+		
 		oauth2Client.setCredentials(tokens);
 		
 		// Store tokens
@@ -1560,7 +1699,9 @@ async function submitManualAuthCode(authCode) {
 		try {
 			const profile = await gmailService.users.getProfile({ userId: 'me' });
 			emailAddr = profile?.data?.emailAddress || 'authenticated';
-		} catch (_) {}
+		} catch (profileError) {
+			logEvent('warning', 'Failed to get user profile', { error: profileError.message });
+		}
 		
 		// Save account entry
 		saveAccountEntry(emailAddr, norm, tokens);
@@ -1585,13 +1726,19 @@ async function submitManualAuthCode(authCode) {
 		if (error.message.includes('invalid_grant')) {
 			errorMessage = 'Invalid or expired authorization code. Please get a fresh code from Google by clicking "Start Google Sign-in" again.';
 		} else if (error.message.includes('unauthorized_client')) {
-			errorMessage = 'Unauthorized client. Please check your OAuth credentials.';
+			errorMessage = 'Unauthorized client. Please check your OAuth credentials and ensure the client ID matches.';
 		} else if (error.message.includes('invalid_client')) {
-			errorMessage = 'Invalid client credentials. Please check your OAuth configuration.';
+			errorMessage = 'Invalid client credentials. Please check your client ID and client secret.';
 		} else if (error.message.includes('redirect_uri_mismatch')) {
-			errorMessage = 'Redirect URI mismatch. Please try the automatic sign-in flow instead.';
+			errorMessage = 'Redirect URI mismatch. The authorization code was generated for a different redirect URI. Please try the automatic sign-in flow instead.';
 		} else if (error.message.includes('code_already_used')) {
-			errorMessage = 'This authorization code has already been used. Please get a fresh code from Google.';
+			errorMessage = 'This authorization code has already been used. Authorization codes can only be used once. Please get a fresh code from Google.';
+		} else if (error.message.includes('access_denied')) {
+			errorMessage = 'Access denied by user. Please make sure you completed the Google authorization process.';
+		} else if (error.message.includes('server_error')) {
+			errorMessage = 'Google server error. Please try again in a few minutes.';
+		} else if (error.message.includes('temporarily_unavailable')) {
+			errorMessage = 'Google service temporarily unavailable. Please try again later.';
 		}
 		
 		return { success: false, error: errorMessage };
