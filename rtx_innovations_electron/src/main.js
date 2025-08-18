@@ -395,6 +395,14 @@ function buildOAuthClient(norm, redirectUriOverride) {
 	// For desktop apps, Google automatically handles redirect URIs
 	// Use the redirect URI from credentials or default to localhost
 	const redirect = redirectUriOverride || norm.redirect_uri || 'http://localhost';
+	
+	// Log the redirect URI being used for debugging
+	logEvent('info', 'Building OAuth client', { 
+		redirectUri: redirect,
+		hasOverride: !!redirectUriOverride,
+		hasCredentialUri: !!norm.redirect_uri
+	});
+	
 	return new google.auth.OAuth2(norm.client_id, norm.client_secret, redirect);
 }
 
@@ -445,7 +453,9 @@ async function authenticateGoogle(credentialsData) {
 		
 		logEvent('info', 'Starting fresh Google authentication', { 
 			clientId: norm.client_id ? 'present' : 'missing',
-			hasRedirectUri: !!norm.redirect_uri 
+			hasRedirectUri: !!norm.redirect_uri,
+			credentialsType: norm.installed ? 'installed' : 'web',
+			projectId: norm.project_id || 'unknown'
 		});
 
 		const { shell } = require('electron');
@@ -588,8 +598,11 @@ async function authenticateGoogle(credentialsData) {
                 textarea.value = document.getElementById('authCode').textContent;
                 textarea.style.position = 'fixed';
                 textarea.style.opacity = '0';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '-9999px';
                 document.body.appendChild(textarea);
                 textarea.select();
+                textarea.setSelectionRange(0, 99999); // For mobile devices
                 
                 if (document.execCommand('copy')) {
                     document.body.removeChild(textarea);
@@ -1729,15 +1742,20 @@ async function clearAuthenticationState() {
 	}
 }
 
-// Function to get fresh authorization code
+// Function to get a fresh authorization code
 async function getFreshAuthorizationCode() {
 	try {
 		// Clear any existing authentication state
 		await clearAuthenticationState();
 		
-		// Start fresh authentication
+		// Start a fresh authentication flow
 		const result = await authenticateGoogle({});
-		return result;
+		
+		if (result.success) {
+			return { success: true, message: 'Fresh authentication flow started. Please complete the Google sign-in process.' };
+		} else {
+			return { success: false, error: result.error || 'Failed to start fresh authentication' };
+		}
 	} catch (error) {
 		logEvent('error', 'Failed to get fresh authorization code', { error: error.message });
 		return { success: false, error: error.message };
@@ -1812,13 +1830,57 @@ async function submitManualAuthCode(authCode) {
 		
 		oauth2Client = buildOAuthClient(norm, storedRedirectUri);
 		
-		// Exchange code for tokens
-		logEvent('info', 'Exchanging code for tokens', { 
-			redirectUri: storedRedirectUri,
-			codeLength: cleanCode.length
-		});
-		
-		const { tokens } = await oauth2Client.getToken(cleanCode);
+		// Try to exchange code for tokens with the primary redirect URI
+		let tokens;
+		try {
+			logEvent('info', 'Exchanging code for tokens with primary redirect URI', { 
+				redirectUri: storedRedirectUri,
+				codeLength: cleanCode.length
+			});
+			
+			const result = await oauth2Client.getToken(cleanCode);
+			tokens = result.tokens;
+		} catch (primaryError) {
+			logEvent('warning', 'Primary redirect URI failed, trying fallback URIs', { 
+				primaryError: primaryError.message,
+				primaryRedirectUri: storedRedirectUri
+			});
+			
+			// Try fallback redirect URIs
+			const fallbackUris = [
+				'http://localhost',
+				'http://127.0.0.1',
+				norm.redirect_uri
+			].filter(uri => uri && uri !== storedRedirectUri);
+			
+			for (const fallbackUri of fallbackUris) {
+				try {
+					logEvent('info', 'Trying fallback redirect URI', { fallbackUri });
+					
+					const fallbackClient = buildOAuthClient(norm, fallbackUri);
+					const result = await fallbackClient.getToken(cleanCode);
+					tokens = result.tokens;
+					
+					// Update the stored redirect URI to the successful one
+					store.set('oauthRedirectUri', fallbackUri);
+					logEvent('info', 'Fallback redirect URI successful, updated stored URI', { fallbackUri });
+					
+					// Use the successful client
+					oauth2Client = fallbackClient;
+					break;
+				} catch (fallbackError) {
+					logEvent('warning', 'Fallback redirect URI failed', { 
+						fallbackUri,
+						error: fallbackError.message
+					});
+				}
+			}
+			
+			// If all fallbacks failed, throw the original error
+			if (!tokens) {
+				throw primaryError;
+			}
+		}
 		
 		if (!tokens || !tokens.access_token) {
 			throw new Error('Failed to obtain access token from Google. Please try again.');
