@@ -436,6 +436,7 @@ async function authenticateGoogle(credentialsData) {
 		try { store.delete('googleToken'); } catch (_) {}
 		try { store.delete('googleTokenClientId'); } catch (_) {}
 		try { store.delete('oauthRedirectUri'); } catch (_) {}
+		try { store.delete('app-settings'); } catch (_) {}
 		
 		// Reset OAuth client to ensure fresh state
 		oauth2Client = null;
@@ -755,9 +756,12 @@ async function authenticateGoogle(credentialsData) {
         try { store.delete('smtp.activeEmail'); } catch (_) {}
         store.set('googleToken', token);
         store.set('googleTokenClientId', norm.client_id);
+        
         // Prime clients and validate access token
         await ensureServices();
         try { await oauth2Client.getAccessToken(); } catch (_) {}
+        
+        // Only set app settings after successful token validation
         // Fetch profile for email; if it fails, still mark as authenticated
         let emailAddr = null;
         try {
@@ -766,8 +770,14 @@ async function authenticateGoogle(credentialsData) {
         } catch (_) {}
         if (!emailAddr) { try { const who = await gmailService.users.getProfile({ userId: 'me' }); emailAddr = who?.data?.emailAddress || null; } catch (_) {} }
         if (!emailAddr) emailAddr = 'authenticated';
+        
+        // Save account entry
         saveAccountEntry(emailAddr, norm, token);
+        
+        // Now set app settings after everything is validated
         try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
+        
+        // Emit success
         try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: emailAddr }); try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {} } } catch (_) {}
 		logEvent('info', 'Authenticated and token stored', { email: emailAddr });
 		// Authentication successful
@@ -1365,6 +1375,9 @@ ipcMain.handle('getFreshAuthorizationCode', async () => getFreshAuthorizationCod
 // Debug function to help troubleshoot authentication issues
 ipcMain.handle('debug-auth-status', async () => {
 	try {
+		// First validate and fix any inconsistencies
+		const validationResult = await validateAuthenticationState();
+		
 		const status = {
 			hasGoogleCreds: !!store.get('googleCreds'),
 			hasGoogleToken: !!store.get('googleToken'),
@@ -1376,7 +1389,17 @@ ipcMain.handle('debug-auth-status', async () => {
 			accounts: Object.keys(store.get('accounts') || {}),
 			installId: store.get('installId'),
 			platform: process.platform,
-			version: app.getVersion()
+			version: app.getVersion(),
+			validationResult: validationResult,
+			oauthRedirectUri: store.get('oauthRedirectUri'),
+			// Add more detailed state information
+			stateConsistency: {
+				hasToken: !!store.get('googleToken'),
+				hasCreds: !!store.get('googleCreds'),
+				hasRedirectUri: !!store.get('oauthRedirectUri'),
+				appSaysAuthenticated: !!(store.get('app-settings')?.isAuthenticated),
+				isConsistent: !!(store.get('googleToken') && store.get('googleCreds') && store.get('app-settings')?.isAuthenticated)
+			}
 		};
 		
 		logEvent('info', 'Debug auth status requested', status);
@@ -1385,6 +1408,10 @@ ipcMain.handle('debug-auth-status', async () => {
 		return { success: false, error: error.message };
 	}
 });
+
+// Add IPC handler for validateAuthenticationState
+ipcMain.handle('validateAuthenticationState', async () => validateAuthenticationState());
+
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
@@ -1749,9 +1776,24 @@ async function submitManualAuthCode(authCode) {
 		
 		// Get the redirect URI that was used to generate this code
 		// This is critical - the code must be exchanged with the same redirect URI
-		const storedRedirectUri = store.get('oauthRedirectUri');
+		let storedRedirectUri = store.get('oauthRedirectUri');
+		
+		// If no stored redirect URI, try to reconstruct it or use a default
 		if (!storedRedirectUri) {
-			throw new Error('No redirect URI found. Please start a fresh authentication flow by clicking "Start Google Sign-in".');
+			logEvent('warning', 'No stored redirect URI found, attempting to reconstruct', { 
+				codeLength: cleanCode.length,
+				clientId: norm.client_id ? 'present' : 'missing'
+			});
+			
+			// Try to use the default redirect URI from credentials
+			if (norm.redirect_uri) {
+				storedRedirectUri = norm.redirect_uri;
+				logEvent('info', 'Using redirect URI from credentials', { redirectUri: storedRedirectUri });
+			} else {
+				// For desktop apps, use localhost as fallback
+				storedRedirectUri = 'http://localhost';
+				logEvent('info', 'Using fallback localhost redirect URI', { redirectUri: storedRedirectUri });
+			}
 		}
 		
 		logEvent('info', 'Attempting manual auth with code', { 
@@ -1761,7 +1803,7 @@ async function submitManualAuthCode(authCode) {
 			hasRedirectUri: !!norm.redirect_uri 
 		});
 		
-		// Build OAuth client with the EXACT same redirect URI used to generate the code
+		// Build OAuth client with the redirect URI
 		logEvent('info', 'Building OAuth client', { 
 			redirectUri: storedRedirectUri,
 			codeLength: cleanCode.length,
@@ -1921,3 +1963,107 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 app.on('before-quit', () => { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('app-quitting'); try { flushTelemetry(); } catch (_) {} }); 
+
+// Function to validate and fix authentication state
+async function validateAuthenticationState() {
+	try {
+		const hasToken = !!store.get('googleToken');
+		const hasCreds = !!store.get('googleCreds');
+		const appSettings = store.get('app-settings');
+		
+		// If we have app settings saying we're authenticated but no token, fix the inconsistency
+		if (appSettings && appSettings.isAuthenticated && !hasToken) {
+			logEvent('warning', 'Fixing inconsistent auth state - authenticated but no token', { 
+				hasToken, 
+				hasCreds, 
+				appSettings 
+			});
+			
+			// Clear the inconsistent state
+			store.delete('app-settings');
+			store.delete('oauthRedirectUri');
+			
+			// Reset services
+			oauth2Client = null;
+			gmailService = null;
+			sheetsService = null;
+			
+			return { success: true, message: 'Authentication state fixed - please sign in again' };
+		}
+		
+		// If we have a token but no credentials, clear the token
+		if (hasToken && !hasCreds) {
+			logEvent('warning', 'Clearing orphaned token - no credentials found');
+			store.delete('googleToken');
+			store.delete('googleTokenClientId');
+			store.delete('oauthRedirectUri');
+			
+			// Reset services
+			oauth2Client = null;
+			gmailService = null;
+			sheetsService = null;
+			
+			return { success: true, message: 'Orphaned token cleared - please sign in again' };
+		}
+		
+		// If we have both token and creds, validate the token
+		if (hasToken && hasCreds) {
+			try {
+				const norm = store.get('googleCreds');
+				oauth2Client = buildOAuthClient(norm);
+				oauth2Client.setCredentials(store.get('googleToken'));
+				
+				// Test the token by making a simple API call
+				await oauth2Client.getAccessToken();
+				
+				// Token is valid, ensure services are initialized
+				await ensureServices();
+				
+				return { success: true, message: 'Authentication state is valid' };
+			} catch (tokenError) {
+				logEvent('warning', 'Token validation failed, clearing invalid token', { error: tokenError.message });
+				
+				// Token is invalid, clear everything
+				store.delete('googleToken');
+				store.delete('googleTokenClientId');
+				store.delete('oauthRedirectUri');
+				store.delete('app-settings');
+				
+				// Reset services
+				oauth2Client = null;
+				gmailService = null;
+				sheetsService = null;
+				
+				return { success: true, message: 'Invalid token cleared - please sign in again' };
+			}
+		}
+		
+		return { success: true, message: 'No authentication state to validate' };
+	} catch (error) {
+		logEvent('error', 'Failed to validate authentication state', { error: error.message });
+		return { success: false, error: error.message };
+	}
+}
+
+// Enhanced clearAuthenticationState function
+async function clearAuthenticationState() {
+	try {
+		// Clear all OAuth-related data
+		store.delete('googleToken');
+		store.delete('googleTokenClientId');
+		store.delete('oauthRedirectUri');
+		store.delete('app-settings');
+		store.delete('googleCreds');
+		
+		// Reset OAuth client
+		oauth2Client = null;
+		gmailService = null;
+		sheetsService = null;
+		
+		logEvent('info', 'Authentication state cleared');
+		return { success: true, message: 'Authentication state cleared successfully' };
+	} catch (error) {
+		logEvent('error', 'Failed to clear authentication state', { error: error.message });
+		return { success: false, error: error.message };
+	}
+}
