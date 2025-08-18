@@ -442,38 +442,56 @@
 										<option value="georgia">Georgia</option>
 										<option value="verdana">Verdana</option>
 										<option value="monospace">Monospace</option>
+										<option value="courier-new">Courier New</option>
+										<option value="tahoma">Tahoma</option>
 									</select>
 									<select class="ql-size">
+										<option value="8px">8</option>
 										<option value="10px">10</option>
 										<option value="12px">12</option>
 										<option value="14px" selected>14</option>
 										<option value="16px">16</option>
 										<option value="18px">18</option>
+										<option value="20px">20</option>
 										<option value="24px">24</option>
+										<option value="28px">28</option>
 										<option value="32px">32</option>
+										<option value="36px">36</option>
+										<option value="48px">48</option>
 									</select>
 								</span>
 								<span class="ql-formats">
-									<button class="ql-bold"></button>
-									<button class="ql-italic"></button>
-									<button class="ql-underline"></button>
-									<button class="ql-strike"></button>
+									<button class="ql-bold" title="Bold (Ctrl+B)"></button>
+									<button class="ql-italic" title="Italic (Ctrl+I)"></button>
+									<button class="ql-underline" title="Underline (Ctrl+U)"></button>
+									<button class="ql-strike" title="Strikethrough"></button>
+									<button class="ql-code" title="Inline Code"></button>
+									<button class="ql-code-block" title="Code Block"></button>
 								</span>
 								<span class="ql-formats">
-									<select class="ql-color"></select>
-									<select class="ql-background"></select>
+									<select class="ql-color" title="Text Color"></select>
+									<select class="ql-background" title="Background Color"></select>
+									<button class="ql-clean" title="Clear Formatting"></button>
 								</span>
 								<span class="ql-formats">
-									<button class="ql-header" value="1"></button>
-									<button class="ql-header" value="2"></button>
-									<select class="ql-align"></select>
+									<button class="ql-header" value="1" title="Heading 1"></button>
+									<button class="ql-header" value="2" title="Heading 2"></button>
+									<button class="ql-header" value="3" title="Heading 3"></button>
+									<select class="ql-align" title="Text Alignment"></select>
+									<button class="ql-indent" value="+1" title="Increase Indent"></button>
+									<button class="ql-indent" value="-1" title="Decrease Indent"></button>
 								</span>
 								<span class="ql-formats">
-									<button class="ql-list" value="ordered"></button>
-									<button class="ql-list" value="bullet"></button>
-									<button class="ql-blockquote"></button>
-									<button class="ql-link"></button>
-									<button class="ql-clean"></button>
+									<button class="ql-list" value="ordered" title="Numbered List"></button>
+									<button class="ql-list" value="bullet" title="Bullet List"></button>
+									<button class="ql-blockquote" title="Quote"></button>
+									<button class="ql-link" title="Insert Link"></button>
+									<button class="ql-image" title="Insert Image"></button>
+								</span>
+								<span class="ql-formats">
+									<button class="ql-table" title="Insert Table"></button>
+									<button class="ql-undo" title="Undo (Ctrl+Z)"></button>
+									<button class="ql-redo" title="Redo (Ctrl+Y)"></button>
 								</span>
 							</div>
 							<div id="emailEditor" style="height:260px; background:#fff;"></div>
@@ -1161,6 +1179,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/quill-image-uploader@1.2.4/dist/quill.imageUploader.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/quill-clipboard@1.0.0/dist/quill.clipboard.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/quill-table@1.0.0/dist/quill-table.min.js"></script>
 
 	<style>
 		/* Force page scroll */

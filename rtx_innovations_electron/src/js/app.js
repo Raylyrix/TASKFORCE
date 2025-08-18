@@ -94,6 +94,133 @@ class RTXApp {
                 }
             }
 
+            // Enhanced clipboard module with better macOS support
+            class EnhancedClipboard extends CustomClipboard {
+                constructor(quill, options) {
+                    super(quill, options);
+                    this.quill = quill;
+                }
+
+                // Override paste to handle macOS clipboard issues
+                onPaste(e) {
+                    // For macOS, we need to handle the clipboard data more carefully
+                    if (navigator.platform.indexOf('Mac') !== -1) {
+                        // Use a timeout to ensure clipboard data is available
+                        setTimeout(() => {
+                            this.handleMacOSPaste(e);
+                        }, 10);
+                    } else {
+                        super.onPaste(e);
+                    }
+                }
+
+                handleMacOSPaste(e) {
+                    const items = e.clipboardData?.items || [];
+                    let hasHandled = false;
+
+                    // Handle images first
+                    for (const item of items) {
+                        if (item.type && item.type.startsWith('image/')) {
+                            const file = item.getAsFile();
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                    const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                                    this.quill.insertEmbed(range.index, 'image', reader.result, 'user');
+                                    this.quill.setSelection(range.index + 1, 0, 'user');
+                                };
+                                reader.readAsDataURL(file);
+                                e.preventDefault();
+                                hasHandled = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Handle rich text with enhanced macOS support
+                    if (!hasHandled) {
+                        const html = e.clipboardData.getData('text/html');
+                        const text = e.clipboardData.getData('text/plain');
+                        const rtf = e.clipboardData.getData('text/rtf');
+                        
+                        if (html && html.trim()) {
+                            e.preventDefault();
+                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                            
+                            // Clean up the HTML before pasting
+                            let cleanHtml = this.cleanHtmlForPaste(html);
+                            
+                            // Insert HTML content
+                            this.quill.clipboard.dangerouslyPasteHTML(range.index, cleanHtml, 'user');
+                            
+                            // Set selection after the pasted content
+                            const newLength = this.quill.getLength();
+                            this.quill.setSelection(range.index + (newLength - range.index), 0, 'user');
+                        } else if (rtf && rtf.trim()) {
+                            e.preventDefault();
+                            this.handleRtfPaste(rtf, e);
+                        } else if (text && text.trim()) {
+                            e.preventDefault();
+                            
+                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                            
+                            // Split text by lines and preserve basic structure
+                            const lines = text.split('\n');
+                            let currentIndex = range.index;
+                            
+                            lines.forEach((line, index) => {
+                                if (line.trim()) {
+                                    this.quill.insertText(currentIndex, line, 'user');
+                                    currentIndex += line.length;
+                                }
+                                if (index < lines.length - 1) {
+                                    this.quill.insertText(currentIndex, '\n', 'user');
+                                    currentIndex += 1;
+                                }
+                            });
+                            
+                            this.quill.setSelection(currentIndex, 0, 'user');
+                        }
+                    }
+                }
+
+                cleanHtmlForPaste(html) {
+                    return html
+                        .replace(/<o:p[^>]*>/g, '') // Remove Office-specific tags
+                        .replace(/<\/o:p>/g, '')
+                        .replace(/<w:[^>]*>/g, '') // Remove Word-specific tags
+                        .replace(/<\/w:[^>]*>/g, '')
+                        .replace(/<m:[^>]*>/g, '') // Remove MathML tags
+                        .replace(/<\/m:[^>]*>/g, '')
+                        .replace(/<v:[^>]*>/g, '') // Remove VML tags
+                        .replace(/<\/v:[^>]*>/g, '')
+                        .replace(/<st1:[^>]*>/g, '') // Remove SharePoint tags
+                        .replace(/<\/st1:[^>]*>/g, '')
+                        .replace(/<meta[^>]*>/g, '') // Remove meta tags
+                        .replace(/<link[^>]*>/g, '') // Remove link tags
+                        .replace(/<style[^>]*>[\s\S]*?<\/style>/g, '') // Remove style tags
+                        .replace(/<script[^>]*>[\s\S]*?<\/script>/g, '') // Remove script tags
+                        .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+                        .replace(/\s+/g, ' ') // Normalize whitespace
+                        .trim();
+                }
+
+                handleRtfPaste(rtf, e) {
+                    // Convert RTF to plain text for now
+                    // In a full implementation, you could use a RTF parser
+                    const text = rtf.replace(/\\[a-z]+\d?/g, '').replace(/\{|\}/g, '');
+                    const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                    this.quill.insertText(range.index, text, 'user');
+                    this.quill.setSelection(range.index + text.length, 0, 'user');
+                }
+            }
+
+            // Register table module if available
+            if (window.QuillTable) {
+                window.Quill.register('modules/table', window.QuillTable.TableModule, true);
+                window.Quill.register('modules/tableToolbar', window.QuillTable.TableToolbar, true);
+            }
+
             this.quill = new window.Quill('#emailEditor', {
                 modules: { 
                     toolbar: '#editorToolbar',
@@ -116,7 +243,41 @@ class RTXApp {
                                 return delta;
                             }]
                         ]
-                    }
+                    },
+                    table: window.QuillTable ? {
+                        operationMenu: {
+                            items: {
+                                insertColumnRight: {
+                                    text: 'Insert Column Right'
+                                },
+                                insertColumnLeft: {
+                                    text: 'Insert Column Left'
+                                },
+                                insertRowUp: {
+                                    text: 'Insert Row Above'
+                                },
+                                insertRowDown: {
+                                    text: 'Insert Row Below'
+                                },
+                                deleteColumn: {
+                                    text: 'Delete Column'
+                                },
+                                deleteRow: {
+                                    text: 'Delete Row'
+                                },
+                                deleteTable: {
+                                    text: 'Delete Table'
+                                }
+                            }
+                        }
+                    } : false,
+                    tableToolbar: window.QuillTable ? {
+                        container: [
+                            'bold', 'italic', 'underline', 'strike',
+                            'color', 'background',
+                            'align', 'valign'
+                        ]
+                    } : false
                 },
                 theme: 'snow',
                 placeholder: 'Enter your email content... Use ((Name)), ((Email)), ((Company))',
@@ -128,19 +289,148 @@ class RTXApp {
                     'link', 'image',
                     'align', 'indent',
                     'code', 'code-block',
-                    'blockquote'
+                    'blockquote',
+                    'table', 'table-cell', 'table-row'
                 ]
             });
 
-            // Ensure Ctrl+A works inside editor
+            // Enhanced keyboard shortcuts for the editor
             editorContainer.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
                     e.stopPropagation();
                 }
+                
+                // Additional keyboard shortcuts
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key.toLowerCase()) {
+                        case 'b':
+                            e.preventDefault();
+                            this.quill.format('bold', !this.quill.getFormat().bold);
+                            break;
+                        case 'i':
+                            e.preventDefault();
+                            this.quill.format('italic', !this.quill.getFormat().italic);
+                            break;
+                        case 'u':
+                            e.preventDefault();
+                            this.quill.format('underline', !this.quill.getFormat().underline);
+                            break;
+                        case 'z':
+                            if (e.shiftKey) {
+                                e.preventDefault();
+                                this.quill.history.redo();
+                            } else {
+                                e.preventDefault();
+                                this.quill.history.undo();
+                            }
+                            break;
+                        case 'y':
+                            e.preventDefault();
+                            this.quill.history.redo();
+                            break;
+                    }
+                }
             });
 
-            // Enhanced paste handler for better formatting preservation
+            // Enhanced paste handler with macOS clipboard API fallback
             editorContainer.addEventListener('paste', (e) => {
+                // For macOS, try to use the enhanced clipboard handling
+                if (navigator.platform.indexOf('Mac') !== -1) {
+                    this.handleMacOSPasteEnhanced(e);
+                    return;
+                }
+                
+                // Standard paste handling for other platforms
+                this.handleStandardPaste(e);
+            });
+
+            // Enhanced macOS paste handling with clipboard API fallback
+            this.handleMacOSPasteEnhanced = async (e) => {
+                const items = e.clipboardData?.items || [];
+                let hasHandled = false;
+
+                // Handle images first
+                for (const item of items) {
+                    if (item.type && item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                                this.quill.insertEmbed(range.index, 'image', reader.result, 'user');
+                                this.quill.setSelection(range.index + 1, 0, 'user');
+                            };
+                            reader.readAsDataURL(file);
+                            e.preventDefault();
+                            hasHandled = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Handle rich text with enhanced macOS support
+                if (!hasHandled) {
+                    try {
+                        // Try to get clipboard data with a slight delay for macOS
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                        
+                        const html = e.clipboardData.getData('text/html');
+                        const text = e.clipboardData.getData('text/plain');
+                        const rtf = e.clipboardData.getData('text/rtf');
+                        
+                        if (html && html.trim()) {
+                            e.preventDefault();
+                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                            
+                            // Clean up the HTML before pasting
+                            let cleanHtml = this.cleanHtmlForPaste(html);
+                            
+                            // Show debug information
+                            this.showCopyPasteDebug('Paste HTML (macOS)', 'HTML', cleanHtml.length);
+                            
+                            // Insert HTML content
+                            this.quill.clipboard.dangerouslyPasteHTML(range.index, cleanHtml, 'user');
+                            
+                            // Set selection after the pasted content
+                            const newLength = this.quill.getLength();
+                            this.quill.setSelection(range.index + (newLength - range.index), 0, 'user');
+                        } else if (rtf && rtf.trim()) {
+                            e.preventDefault();
+                            this.showCopyPasteDebug('Paste RTF (macOS)', 'RTF', rtf.length);
+                            this.handleRtfPaste(rtf, e);
+                        } else if (text && text.trim()) {
+                            e.preventDefault();
+                            this.showCopyPasteDebug('Paste Text (macOS)', 'Plain Text', text.length);
+                            
+                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                            
+                            // Split text by lines and preserve basic structure
+                            const lines = text.split('\n');
+                            let currentIndex = range.index;
+                            
+                            lines.forEach((line, index) => {
+                                if (line.trim()) {
+                                    this.quill.insertText(currentIndex, line, 'user');
+                                    currentIndex += line.length;
+                                }
+                                if (index < lines.length - 1) {
+                                    this.quill.insertText(currentIndex, '\n', 'user');
+                                    currentIndex += 1;
+                                }
+                            });
+                            
+                            this.quill.setSelection(currentIndex, 0, 'user');
+                        }
+                    } catch (error) {
+                        console.error('macOS paste error:', error);
+                        // Fallback to standard paste
+                        this.handleStandardPaste(e);
+                    }
+                }
+            };
+
+            // Standard paste handling for other platforms
+            this.handleStandardPaste = (e) => {
                 const items = e.clipboardData?.items || [];
                 let hasHandled = false;
 
@@ -168,7 +458,6 @@ class RTXApp {
                     const rtf = e.clipboardData.getData('text/rtf');
                     
                     if (html && html.trim()) {
-                        // Use Quill's built-in HTML paste with our custom clipboard handling
                         e.preventDefault();
                         const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
                         
@@ -185,12 +474,10 @@ class RTXApp {
                         const newLength = this.quill.getLength();
                         this.quill.setSelection(range.index + (newLength - range.index), 0, 'user');
                     } else if (rtf && rtf.trim()) {
-                        // Handle RTF content (from Word, etc.)
                         e.preventDefault();
                         this.showCopyPasteDebug('Paste RTF', 'RTF', rtf.length);
                         this.handleRtfPaste(rtf, e);
                     } else if (text && text.trim()) {
-                        // Handle plain text with basic formatting
                         e.preventDefault();
                         this.showCopyPasteDebug('Paste Text', 'Plain Text', text.length);
                         
@@ -214,7 +501,7 @@ class RTXApp {
                         this.quill.setSelection(currentIndex, 0, 'user');
                     }
                 }
-            });
+            };
 
             // Drag & drop local images into editor
             editorContainer.addEventListener('drop', (ev) => {
@@ -260,6 +547,33 @@ class RTXApp {
                 }
             });
 
+            // Add custom table insertion handler
+            this.setupTableHandlers();
+
+            // Clean HTML for paste operations
+            this.cleanHtmlForPaste = (html) => {
+                if (!html) return '';
+                
+                return html
+                    .replace(/<o:p[^>]*>/g, '') // Remove Office-specific tags
+                    .replace(/<\/o:p>/g, '')
+                    .replace(/<w:[^>]*>/g, '') // Remove Word-specific tags
+                    .replace(/<\/w:[^>]*>/g, '')
+                    .replace(/<m:[^>]*>/g, '') // Remove MathML tags
+                    .replace(/<\/m:[^>]*>/g, '')
+                    .replace(/<v:[^>]*>/g, '') // Remove VML tags
+                    .replace(/<\/v:[^>]*>/g, '')
+                    .replace(/<st1:[^>]*>/g, '') // Remove SharePoint tags
+                    .replace(/<\/st1:[^>]*>/g, '')
+                    .replace(/<meta[^>]*>/g, '') // Remove meta tags
+                    .replace(/<link[^>]*>/g, '') // Remove link tags
+                    .replace(/<style[^>]*>[\s\S]*?<\/style>/g, '') // Remove style tags
+                    .replace(/<script[^>]*>[\s\S]*?<\/script>/g, '') // Remove script tags
+                    .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+                    .replace(/\s+/g, ' ') // Normalize whitespace
+                    .trim();
+            };
+
             // Show debug panel for copy-paste operations
             this.showCopyPasteDebug = (operation, contentType, contentLength) => {
                 const debugPanel = document.getElementById('copyPasteDebug');
@@ -301,6 +615,66 @@ class RTXApp {
                         toggleBtn.textContent = 'Show Details';
                     }
                 }
+            };
+
+            // Setup table handlers
+            this.setupTableHandlers = () => {
+                // Add click handler for table button in toolbar
+                const tableBtn = document.querySelector('.ql-table');
+                if (tableBtn) {
+                    tableBtn.addEventListener('click', () => {
+                        this.insertTable();
+                    });
+                }
+            };
+
+            // Insert table method
+            this.insertTable = () => {
+                const rows = prompt('Enter number of rows (default: 3):', '3');
+                const cols = prompt('Enter number of columns (default: 3):', '3');
+                
+                if (rows && cols) {
+                    const numRows = parseInt(rows) || 3;
+                    const numCols = parseInt(cols) || 3;
+                    
+                    if (window.QuillTable && this.quill.getModule('table')) {
+                        // Use QuillTable module if available
+                        const tableModule = this.quill.getModule('table');
+                        const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                        tableModule.insertTable(numRows, numCols);
+                    } else {
+                        // Fallback: insert basic HTML table
+                        this.insertBasicTable(numRows, numCols);
+                    }
+                }
+            };
+
+            // Fallback table insertion
+            this.insertBasicTable = (rows, cols) => {
+                const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                
+                let tableHtml = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+                for (let i = 0; i < rows; i++) {
+                    tableHtml += '<tr>';
+                    for (let j = 0; j < cols; j++) {
+                        tableHtml += '<td style="padding: 8px; border: 1px solid #ddd;">&nbsp;</td>';
+                    }
+                    tableHtml += '</tr>';
+                }
+                tableHtml += '</table>';
+                
+                this.quill.clipboard.dangerouslyPasteHTML(range.index, tableHtml, 'user');
+                this.quill.setSelection(range.index + 1, 0, 'user');
+            };
+
+            // Handle RTF paste
+            this.handleRtfPaste = (rtf, e) => {
+                // Convert RTF to plain text for now
+                // In a full implementation, you could use a RTF parser
+                const text = rtf.replace(/\\[a-z]+\d?/g, '').replace(/\{|\}/g, '');
+                const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
+                this.quill.insertText(range.index, text, 'user');
+                this.quill.setSelection(range.index + text.length, 0, 'user');
             };
 
             // Show current editor content in different formats
