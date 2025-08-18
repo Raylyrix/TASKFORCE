@@ -427,13 +427,14 @@ async function authenticateGoogle(credentialsData) {
 			if (!def) throw new Error('Default OAuth credentials not configured');
 			norm = normalizeCredentials(def);
 		}
+		
+		// Store credentials first
 		store.set('googleCreds', norm);
 
 		// Always go through the authentication flow for security
 		// Clear any existing tokens to force fresh authentication
 		try { store.delete('googleToken'); } catch (_) {}
 		try { store.delete('googleTokenClientId'); } catch (_) {}
-		try { store.delete('googleCreds'); } catch (_) {}
 		
 		// Reset OAuth client to ensure fresh state
 		oauth2Client = null;
