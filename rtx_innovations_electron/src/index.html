@@ -504,7 +504,7 @@
 								<span>Email Content</span>
 								<span style="font-size:12px; color:#8E8E93;">Click any column chip or cell to insert placeholders</span>
 							</label>
-							<div id="editorToolbar" style="border:1px solid #ddd; border-bottom:none; padding:8px; background:#f8f9fa; border-radius:4px 4px 0 0;">
+							<div id="editorToolbar" style="border:1px solid #e1e5e9; border-bottom:none; padding:12px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); border-radius:8px 8px 0 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
 								<!-- Font Controls -->
 								<span class="toolbar-group">
 									<select id="fontFamily" title="Font Family">
@@ -590,8 +590,8 @@
 							</div>
 							
 							<!-- Enhanced Editor Container -->
-							<div id="emailEditorContainer" style="border:1px solid #ddd; border-top:none; border-radius:0 0 4px 4px; min-height:300px; background:#fff;">
-								<div id="emailEditor" contenteditable="true" style="padding:16px; min-height:300px; outline:none; font-family:Arial, sans-serif; font-size:14px; line-height:1.6; color:#333;" 
+							<div id="emailEditorContainer" style="border:1px solid #e1e5e9; border-top:none; border-radius:0 0 8px 8px; min-height:300px; background:#fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+								<div id="emailEditor" contenteditable="true" style="padding:20px; min-height:300px; outline:none; font-family:Arial, sans-serif; font-size:14px; line-height:1.6; color:#333; border-radius:0 0 8px 8px;" 
 									 data-placeholder="Start typing your email content here... Click any column chip or cell to insert placeholders like ((Name)), ((Company)), etc."></div>
 							</div>
 							
@@ -954,49 +954,84 @@
 
 	<!-- Google Sign-in Modal -->
 	<div class="modal" id="googleSignInModal" style="display:none;">
-		<div class="modal-content" style="max-width: 600px;">
+		<div class="modal-content" style="max-width: 700px;">
 			<div class="modal-header">
-				<h3>Google Sign-in</h3>
+				<h3>🔐 Google Sign-in</h3>
 				<button class="modal-close" onclick="document.getElementById('googleSignInModal').style.display='none'">&times;</button>
 			</div>
 			<div class="modal-body">
-				<div class="form-group">
-					<label>OAuth Credentials (Optional)</label>
-					<input type="file" id="oauthFile" accept=".json" placeholder="Upload OAuth credentials file">
-					<small>Leave empty to use default credentials</small>
+				<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+					<h4 style="margin-bottom: 10px; color: #007AFF;">🚀 Quick Authentication</h4>
+					<p style="color: #666; margin-bottom: 15px;">
+						Choose your preferred authentication method. We recommend the <strong>Manual Authorization Code</strong> for fastest login.
+					</p>
 				</div>
 				
 				<div class="form-group">
-					<label>Manual Authorization Code</label>
-					<div style="display: flex; gap: 8px; align-items: center;">
-						<input type="text" id="manualAuthCode" placeholder="Paste authorization code here" style="flex: 1;">
-						<button class="btn btn-primary" onclick="submitManualAuthCode()">Submit Code</button>
+					<label style="font-weight: 600; color: #333;">📋 Manual Authorization Code (Recommended)</label>
+					<div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+						<input type="text" id="manualAuthCode" placeholder="Paste your authorization code here..." style="flex: 1; padding: 12px; font-size: 14px;">
+						<button class="btn btn-primary" onclick="submitManualAuthCode()" style="padding: 12px 20px;">
+							<i class="fas fa-sign-in-alt"></i> Login
+						</button>
 					</div>
+					<div style="background: #e8f4fd; padding: 12px; border-radius: 6px; margin-top: 10px; border-left: 4px solid #007AFF;">
+						<strong>💡 How to get the code:</strong>
+						<ol style="margin: 8px 0 0 20px; color: #555;">
+							<li>Click "Start Google Sign-in" below</li>
+							<li>Complete the Google authorization in your browser</li>
+							<li>Copy the authorization code from the success page</li>
+							<li>Paste it here and click Login</li>
+						</ol>
+					</div>
+				</div>
+				
+				<div style="text-align: center; margin: 20px 0; color: #999;">
+					<span style="background: #fff; padding: 0 10px;">OR</span>
+					<hr style="margin: 0; border: none; border-top: 1px solid #ddd; position: relative; top: -10px;">
+				</div>
+				
+				<div class="form-group">
+					<label style="font-weight: 600; color: #333;">🔄 Automatic Redirect</label>
+					<button class="btn btn-secondary" onclick="startGoogleAuth()" id="startAuthBtn" style="width: 100%; padding: 15px; font-size: 16px; margin-top: 8px;">
+						<i class="fas fa-sign-in-alt"></i> Start Google Sign-in
+					</button>
 					<small style="color: #666; margin-top: 8px; display: block;">
-						<strong>Quick Login:</strong> Copy the authorization code from your browser and paste it here for instant login.
+						This will open your browser for Google authorization. Return here after completion.
 					</small>
 				</div>
 				
 				<div class="form-group">
-					<label>Or use automatic redirect:</label>
-					<button class="btn btn-primary" onclick="startGoogleAuth()" id="startAuthBtn">
-						<i class="fas fa-sign-in-alt"></i> Start Google Sign-in
-					</button>
+					<label style="font-weight: 600; color: #333;">📁 Custom OAuth Credentials (Advanced)</label>
+					<input type="file" id="oauthFile" accept=".json" style="margin-top: 8px;">
+					<small style="color: #666; margin-top: 8px; display: block;">
+						Upload your own OAuth credentials file. Leave empty to use our default credentials.
+					</small>
 				</div>
 				
-				<div id="authProgress" style="display:none; margin-top: 16px;">
-					<div style="background: #f0f0f0; padding: 12px; border-radius: 4px;">
-						<div style="display: flex; align-items: center; gap: 8px;">
-							<div class="spinner" style="width: 16px; height: 16px;"></div>
-							<span id="authStatus">Initializing authentication...</span>
+				<div id="authProgress" style="display:none; margin-top: 20px;">
+					<div style="background: #f0f8ff; padding: 16px; border-radius: 8px; border: 1px solid #007AFF;">
+						<div style="display: flex; align-items: center; gap: 12px;">
+							<div class="spinner" style="width: 20px; height: 20px; border-top-color: #007AFF;"></div>
+							<span id="authStatus" style="color: #007AFF; font-weight: 500;">Initializing authentication...</span>
 						</div>
 					</div>
 				</div>
 				
-				<div id="authError" style="display:none; margin-top: 16px;">
-					<div style="background: #fee; color: #c33; padding: 12px; border-radius: 4px; border: 1px solid #fcc;">
-						<strong>Authentication Error:</strong> <span id="errorMessage"></span>
+				<div id="authError" style="display:none; margin-top: 20px;">
+					<div style="background: #fef2f2; color: #dc2626; padding: 16px; border-radius: 8px; border: 1px solid #fecaca;">
+						<strong>❌ Authentication Error:</strong> <span id="errorMessage"></span>
 					</div>
+				</div>
+				
+				<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-top: 20px;">
+					<h5 style="margin-bottom: 10px; color: #333;">ℹ️ About Authentication</h5>
+					<ul style="color: #666; margin: 0; padding-left: 20px;">
+						<li>We use secure OAuth 2.0 for Google authentication</li>
+						<li>Your credentials are stored locally and never shared</li>
+						<li>You can revoke access anytime in your Google Account settings</li>
+						<li>This app only requests access to Gmail and Google Sheets</li>
+					</ul>
 				</div>
 			</div>
 		</div>
