@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TASK FORCE - AutoMailer Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
     <style>
         /* Inline critical CSS for immediate loading */
         * {
@@ -433,50 +432,104 @@
 								<span>Email Content</span>
 								<span style="font-size:12px; color:#8E8E93;">Click any column chip or cell to insert placeholders</span>
 							</label>
-							<div id="editorToolbar">
-								<span class="ql-formats">
-									<select class="ql-font">
-										<option selected></option>
-										<option value="arial">Arial</option>
-										<option value="times-new-roman">Times New Roman</option>
-										<option value="georgia">Georgia</option>
-										<option value="verdana">Verdana</option>
-										<option value="monospace">Monospace</option>
-									</select>
-									<select class="ql-size">
-										<option value="10px">10</option>
-										<option value="12px">12</option>
-										<option value="14px" selected>14</option>
-										<option value="16px">16</option>
-										<option value="18px">18</option>
-										<option value="24px">24</option>
-										<option value="32px">32</option>
-									</select>
-								</span>
-								<span class="ql-formats">
-									<button class="ql-bold"></button>
-									<button class="ql-italic"></button>
-									<button class="ql-underline"></button>
-									<button class="ql-strike"></button>
-								</span>
-								<span class="ql-formats">
-									<select class="ql-color"></select>
-									<select class="ql-background"></select>
-								</span>
-								<span class="ql-formats">
-									<button class="ql-header" value="1"></button>
-									<button class="ql-header" value="2"></button>
-									<select class="ql-align"></select>
-								</span>
-								<span class="ql-formats">
-									<button class="ql-list" value="ordered"></button>
-									<button class="ql-list" value="bullet"></button>
-									<button class="ql-blockquote"></button>
-									<button class="ql-link"></button>
-									<button class="ql-clean"></button>
-								</span>
-							</div>
-							<div id="emailEditor" style="height:260px; background:#fff;"></div>
+                            <div class="form-group">
+                            <label>Email Content</label>
+                            <div id="emailEditorContainer" style="border:1px solid #e1e5e9; border-top:none; border-radius:0 0 12px 12px; min-height:400px; background:#fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow:hidden;">
+                                <!-- Editor Header Bar -->
+                                <div style="background:#f8f9fa; border-bottom:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; gap:12px; font-size:13px; color:#5f6368;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <i class="fas fa-edit" style="color:#1a73e8;"></i>
+                                        <span style="font-weight:500;">Rich Text Editor</span>
+                                    </div>
+                                    <div style="height:16px; width:1px; background:#dadce0;"></div>
+                                    <span id="editorStatus" style="color:#34a853;">Ready</span>
+                                    <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+                                        <button type="button" id="wordCountBtn" style="background:none; border:none; color:#5f6368; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:4px;" title="Word Count">
+                                            <span id="wordCount">0 words</span>
+                                        </button>
+                                        <button type="button" id="charCountBtn" style="background:none; border:none; color:#5f6368; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:4px;" title="Character Count">
+                                            <span id="charCount">0 chars</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Enhanced Toolbar -->
+                                <div style="background:#fff; border-bottom:1px solid #e1e5e9; padding:12px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <!-- Text Formatting -->
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:4px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <select id="fontFamily" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:120px;">
+                                            <option value="Arial, sans-serif">Arial</option>
+                                            <option value="'Times New Roman', serif">Times New Roman</option>
+                                            <option value="'Courier New', monospace">Courier New</option>
+                                            <option value="Georgia, serif">Georgia</option>
+                                            <option value="Verdana, sans-serif">Verdana</option>
+                                            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                                        </select>
+                                        <select id="fontSize" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:60px;">
+                                            <option value="1">8pt</option>
+                                            <option value="2">10pt</option>
+                                            <option value="3" selected>12pt</option>
+                                            <option value="4">14pt</option>
+                                            <option value="5">16pt</option>
+                                            <option value="6">18pt</option>
+                                            <option value="7">24pt</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="execCommand('bold')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
+                                        <button type="button" id="italicBtn" title="Italic (Ctrl+I)" onclick="execCommand('italic')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-style:italic; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">I</button>
+                                        <button type="button" id="underlineBtn" title="Underline (Ctrl+U)" onclick="execCommand('underline')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:underline; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">U</button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="strikeBtn" title="Strikethrough" onclick="execCommand('strikeThrough')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:line-through; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">S</button>
+                                        <button type="button" id="superscriptBtn" title="Superscript" onclick="execCommand('superscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X²</button>
+                                        <button type="button" id="subscriptBtn" title="Subscript" onclick="execCommand('subscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X₂</button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="alignLeftBtn" title="Align Left" onclick="execCommand('justifyLeft')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-left"></i></button>
+                                        <button type="button" id="alignCenterBtn" title="Align Center" onclick="execCommand('justifyCenter')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-center"></i></button>
+                                        <button type="button" id="alignRightBtn" title="Align Right" onclick="execCommand('justifyRight')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-right"></i></button>
+                                        <button type="button" id="justifyBtn" title="Justify" onclick="execCommand('justifyFull')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-justify"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="listUlBtn" title="Bullet List" onclick="execCommand('insertUnorderedList')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-list-ul"></i></button>
+                                        <button type="button" id="listOlBtn" title="Numbered List" onclick="execCommand('insertOrderedList')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-list-ol"></i></button>
+                                        <button type="button" id="blockquoteBtn" title="Blockquote" onclick="execCommand('formatBlock')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-quote-right"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="linkBtn" title="Insert Link (Ctrl+K)" onclick="insertLink()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
+                                        <button type="button" id="imageBtn" title="Insert Image" onclick="insertImage()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
+                                        <button type="button" id="tableBtn" title="Insert Table" onclick="insertTable()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
+                                        <button type="button" id="hrBtn" title="Insert Horizontal Rule" onclick="execCommand('insertHorizontalRule')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-minus"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="undoBtn" title="Undo (Ctrl+Z)" onclick="execCommand('undo')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-undo"></i></button>
+                                        <button type="button" id="redoBtn" title="Redo (Ctrl+Y)" onclick="execCommand('redo')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-redo"></i></button>
+                                        <button type="button" id="clearFormatBtn" title="Clear Formatting" onclick="clearFormatting()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-eraser"></i></button>
+                                    </div>
+                                </div>
+
+                                <!-- Editor Content Area -->
+                                <div id="emailEditor" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Click any column chip or cell to insert placeholders like ((Name)), ((Company)), etc."></div>
+
+                                <!-- Editor Footer -->
+                                <div style="background:#f8f9fa; border-top:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#5f6368;">
+                                    <div style="display:flex; align-items:center; gap:16px;">
+                                        <span>Format: Rich Text (HTML)</span>
+                                        <span id="editorMode">Standard Mode</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <button type="button" id="toggleModeBtn" style="background:none; border:1px solid #dadce0; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer; color:#5f6368;" onclick="toggleEditorMode()">Toggle Mode</button>
+                                        <button type="button" id="clearFormatBtn" style="background:none; border:1px solid #dadce0; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer; color:#5f6368;" onclick="clearFormatting()">Clear Format</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 						<div id="placeholderAssistant" class="form-group" style="margin-top:-6px;">
 							<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -817,7 +870,7 @@
 		<div class="modal-content" style="max-width: 800px; width: 90%;">
 			<div class="modal-header"><h3>Terms of Service</h3><button class="modal-close" onclick="document.getElementById('termsModal').style.display='none'">&times;</button></div>
 			<div class="modal-body" style="max-height:70vh; overflow:auto;">
-				<p>By using TASK FORCE, you agree to send emails only to recipients who have consented to receive them and to comply with Gmail and local anti-spam laws. You are responsible for your account and content. This software is provided “as-is” without warranties.</p>
+				<p>By using TASK FORCE, you agree to send emails only to recipients who have consented to receive them and to comply with Gmail and local anti-spam laws. You are responsible for your account and content. This software is provided "as-is" without warranties.</p>
 			</div>
 		</div>
 	</div>
@@ -992,52 +1045,144 @@
 		})();
 	</script>
 
-	<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/quill-image-uploader@1.2.4/dist/quill.imageUploader.min.js"></script>
+	<script>
+		// Enhanced ContentEditable Editor Functions
+		let wordCountInterval = null;
+		
+		// Initialize the enhanced editor
+		function initEnhancedEditor() {
+			const editor = document.getElementById('emailEditor');
+			if (!editor) return;
 
-	<style>
-		/* Force page scroll */
-		html, body { height: auto; overflow-y: auto; }
-		.app-container { min-height: 100vh; }
+			// Add placeholder functionality
+			editor.addEventListener('focus', function() {
+				if (editor.textContent === '') {
+					editor.textContent = '';
+				}
+			});
 
-		/* Theme-aware notifications */
-		body.theme-dark { background:#0b0b0f; color:#e6e6e9; }
-		body.theme-dark .mailer-interface { background:#14141a; }
-		.notification { background:#1f1f27; color:#f0f0f5; border:1px solid #2a2a37; }
-		.notification-success { background:#1d3b24; }
-		.notification-error { background:#4a1f1f; }
-		body.theme-dark .modal-content { background:#14141a; color:#e6e6e9; }
+			editor.addEventListener('blur', function() {
+				if (editor.textContent.trim() === '') {
+					editor.textContent = '';
+				}
+			});
 
-		/* Dark theme for form controls */
-		body.theme-dark .form-group input,
-		body.theme-dark .form-group textarea,
-		body.theme-dark .form-group select { background:#1b1b22; color:#e6e6e9; border-color:#2a2a37; }
-		body.theme-dark .btn-secondary { background:#262633; color:#e6e6e9; border:1px solid #2a2a37; }
-		body.theme-dark .btn-primary { background:#0a69ff; color:#fff; }
+			// Add keyboard shortcuts
+			editor.addEventListener('keydown', function(e) {
+				// Ctrl+B for bold
+				if (e.ctrlKey && e.key === 'b') {
+					e.preventDefault();
+					execCommand('bold');
+				}
+				// Ctrl+I for italic
+				if (e.ctrlKey && e.key === 'i') {
+					e.preventDefault();
+					execCommand('italic');
+				}
+				// Ctrl+U for underline
+				if (e.ctrlKey && e.key === 'u') {
+					e.preventDefault();
+					execCommand('underline');
+				}
+				// Ctrl+K for link
+				if (e.ctrlKey && e.key === 'k') {
+					e.preventDefault();
+					insertLink();
+				}
+			});
 
-		/* Override inline light backgrounds in dark mode */
-		body.theme-dark [style*='background: #f2f2f7'] { background:#1b1b22 !important; border-color:#2a2a37 !important; }
-		body.theme-dark [style*='background: #ffffff'] { background:#14141a !important; }
-
-		/* Tables and badges */
-		body.theme-dark table { color:#e6e6e9; }
-		body.theme-dark th { background:#1f1f27; }
-		body.theme-dark td, body.theme-dark th { border-bottom:1px solid #2a2a37; }
-		body.theme-dark .status-indicator.connected { background:#1f8b4c; }
-		body.theme-dark .status-indicator.disconnected { background:#7a2d2d; }
-		body.theme-dark small { color:#9a9ab3; }
-		body.theme-dark .chip { background:#1f1f27 !important; border:1px solid #2a2a37 !important; color:#e6e6e9; }
-
-		/* Responsive */
-		@media (max-width: 900px) {
-			.header { flex-wrap: wrap; gap:8px; }
-			.mailer-interface { padding:16px; }
-			[data-placeholder-key] { font-size:12px; cursor: pointer; }
+			// Update toolbar state based on selection
+			editor.addEventListener('mouseup', updateToolbarState);
+			editor.addEventListener('keyup', updateToolbarState);
 		}
-		@media (max-width: 600px) {
-			.header button { padding:8px 12px; }
-			.form-group input, .form-group select, .form-group textarea { font-size:13px; }
+
+		function startWordCount() {
+			const editor = document.getElementById('emailEditor');
+			if (!editor) return;
+
+			wordCountInterval = setInterval(() => {
+				const text = editor.textContent || '';
+				const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+				const chars = text.length;
+
+				document.getElementById('wordCount').textContent = `${words} words`;
+				document.getElementById('charCount').textContent = `${chars} chars`;
+			}, 500);
 		}
-	</style>
+
+		function updateToolbarState() {
+			const editor = document.getElementById('emailEditor');
+			if (!editor || !document.queryCommandState) return;
+
+			// Update button states based on current selection
+			document.getElementById('boldBtn').classList.toggle('active', document.queryCommandState('bold'));
+			document.getElementById('italicBtn').classList.toggle('active', document.queryCommandState('italic'));
+			document.getElementById('underlineBtn').classList.toggle('active', document.queryCommandState('underline'));
+			document.getElementById('strikeBtn').classList.toggle('active', document.queryCommandState('strikeThrough'));
+		}
+
+		function execCommand(command, value = null) {
+			document.execCommand(command, false, value);
+			updateToolbarState();
+		}
+
+		function insertLink() {
+			const url = prompt('Enter URL:', 'https://');
+			if (url) {
+				execCommand('createLink', url);
+			}
+		}
+
+		function insertImage() {
+			const url = prompt('Enter image URL:', 'https://');
+			if (url) {
+				execCommand('insertImage', url);
+			}
+		}
+
+		function insertTable() {
+			const rows = prompt('Enter number of rows:', '3');
+			const cols = prompt('Enter number of columns:', '3');
+			
+			if (rows && cols) {
+				let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+				for (let i = 0; i < parseInt(rows); i++) {
+					tableHTML += '<tr>';
+					for (let j = 0; j < parseInt(cols); j++) {
+						tableHTML += '<td style="padding: 8px; border: 1px solid #ddd;">Cell ' + (i + 1) + ',' + (j + 1) + '</td>';
+					}
+					tableHTML += '</tr>';
+				}
+				tableHTML += '</table>';
+				
+				execCommand('insertHTML', tableHTML);
+			}
+		}
+
+		function clearFormatting() {
+			execCommand('removeFormat');
+		}
+
+		function toggleEditorMode() {
+			const editor = document.getElementById('emailEditor');
+			const modeSpan = document.getElementById('editorMode');
+			
+			if (editor.contentEditable === 'true') {
+				editor.contentEditable = 'false';
+				modeSpan.textContent = 'Read Only Mode';
+				editor.style.backgroundColor = '#f8f9fa';
+			} else {
+				editor.contentEditable = 'true';
+				modeSpan.textContent = 'Standard Mode';
+				editor.style.backgroundColor = '#fff';
+			}
+		}
+
+		// Initialize editor when page loads
+		document.addEventListener('DOMContentLoaded', function() {
+			initEnhancedEditor();
+			startWordCount();
+		});
+	</script>
 </body>
 </html> 

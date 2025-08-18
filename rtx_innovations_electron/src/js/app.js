@@ -51,27 +51,12 @@ class RTXApp {
     setupRichEditor() {
         try {
             const editorContainer = document.getElementById('emailEditor');
-            if (!editorContainer || !window.Quill) return;
-            // Do not require table module; proceed even if unavailable
-            const Font = window.Quill.import('formats/font');
-            Font.whitelist = ['sans-serif','serif','monospace','arial','times-new-roman','georgia','verdana'];
-            window.Quill.register(Font, true);
-            const Size = window.Quill.import('attributors/style/size');
-            Size.whitelist = ['10px','12px','14px','16px','18px','24px','32px'];
-            window.Quill.register(Size, true);
-
-            this.quill = new window.Quill('#emailEditor', {
-                modules: { toolbar: '#editorToolbar' },
-                theme: 'snow',
-                placeholder: 'Enter your email content... Use ((Name)), ((Email)), ((Company))'
-            });
-            // Ensure Ctrl+A works inside editor
-            editorContainer.addEventListener('keydown', (e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-                    e.stopPropagation();
-                }
-            });
-            // Paste image from clipboard → insert as base64
+            if (!editorContainer) return;
+            
+            // Enhanced contenteditable editor is already initialized in HTML
+            console.log('✅ Enhanced contenteditable editor ready');
+            
+            // Add paste image functionality
             editorContainer.addEventListener('paste', (e) => {
                 const items = e.clipboardData?.items || [];
                 for (const it of items) {
@@ -79,9 +64,21 @@ class RTXApp {
                         const file = it.getAsFile();
                         const reader = new FileReader();
                         reader.onload = () => {
-                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
-                            this.quill.insertEmbed(range.index, 'image', reader.result, 'user');
-                            this.quill.setSelection(range.index + 1, 0, 'user');
+                            const img = document.createElement('img');
+                            img.src = reader.result;
+                            img.style.maxWidth = '100%';
+                            img.style.height = 'auto';
+                            
+                            // Insert at cursor position
+                            const selection = window.getSelection();
+                            if (selection.rangeCount > 0) {
+                                const range = selection.getRangeAt(0);
+                                range.deleteContents();
+                                range.insertNode(img);
+                                range.collapse(false);
+                            } else {
+                                editorContainer.appendChild(img);
+                            }
                         };
                         reader.readAsDataURL(file);
                         e.preventDefault();
@@ -89,6 +86,7 @@ class RTXApp {
                     }
                 }
             });
+            
             // Drag & drop local images into editor
             editorContainer.addEventListener('drop', (ev) => {
                 const files = ev.dataTransfer?.files || [];
@@ -98,25 +96,46 @@ class RTXApp {
                         if (!file.type.startsWith('image/')) return;
                         const reader = new FileReader();
                         reader.onload = () => {
-                            const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
-                            this.quill.insertEmbed(range.index, 'image', reader.result, 'user');
-                            this.quill.setSelection(range.index + 1, 0, 'user');
+                            const img = document.createElement('img');
+                            img.src = reader.result;
+                            img.style.maxWidth = '100%';
+                            img.style.height = 'auto';
+                            
+                            // Insert at cursor position
+                            const selection = window.getSelection();
+                            if (selection.rangeCount > 0) {
+                                const range = selection.getRangeAt(0);
+                                range.deleteContents();
+                                range.insertNode(img);
+                                range.collapse(false);
+                            } else {
+                                editorContainer.appendChild(img);
+                            }
                         };
                         reader.readAsDataURL(file);
                     });
                 }
             });
-        } catch (e) {
-            console.warn('Rich editor init failed', e);
+            
+            // Ensure Ctrl+A works inside editor
+            editorContainer.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+                    e.stopPropagation();
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error setting up rich editor:', error);
         }
     }
 
     getEditorPlainText() {
-        try { return (this.quill ? this.quill.getText() : (document.getElementById('emailContent')?.value || ''))?.trim(); } catch (_) { return ''; }
+        try { return (document.getElementById('emailContent')?.value || '').trim(); } catch (_) { return ''; }
     }
     getEditorHtml(rowMap = {}) {
         try {
-            const html = this.quill ? (this.quill.root.innerHTML || '') : (document.getElementById('emailContent')?.value || '');
+            const editorContainer = document.getElementById('emailEditor');
+            const html = editorContainer ? (editorContainer.innerHTML || '') : (document.getElementById('emailContent')?.value || '');
             return this.processContent(html, rowMap, false);
         } catch (_) { return ''; }
     }
@@ -170,10 +189,12 @@ class RTXApp {
             if (el && el.dataset && el.dataset.placeholderKey) {
                 const key = el.dataset.placeholderKey;
                 const ins = `((${key}))`;
-                if (this.quill) {
-                    const range = this.quill.getSelection(true) || { index: this.quill.getLength(), length: 0 };
-                    this.quill.insertText(range.index, ins, 'user');
-                    this.quill.setSelection(range.index + ins.length, 0, 'user');
+                const editorContainer = document.getElementById('emailEditor');
+                if (editorContainer) {
+                    const range = window.getSelection().getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(document.createTextNode(ins));
+                    range.collapse(false);
                 } else {
                     const ta = document.getElementById('emailContent');
                     if (ta) {
@@ -1601,8 +1622,17 @@ class RTXApp {
             const sel = document.getElementById('presetTemplateSelect'); if (!sel || !sel.value) { this.showError('Pick a preset'); return; }
             const url = sel.value;
             const res = await fetch(url); const html = await res.text();
-            if (this.quill) { this.quill.root.innerHTML = html; this.showSuccess('Preset inserted'); return; }
-            const ta = document.getElementById('emailContent'); if (ta) { ta.value = html; this.showSuccess('Preset inserted'); }
+            const editorContainer = document.getElementById('emailEditor');
+            if (editorContainer) {
+                editorContainer.innerHTML = html;
+                this.showSuccess('Preset inserted');
+            } else {
+                const ta = document.getElementById('emailContent');
+                if (ta) {
+                    ta.value = html;
+                    this.showSuccess('Preset inserted');
+                }
+            }
         } catch (e) { this.showError('Failed to insert preset'); }
     }
 
@@ -1626,9 +1656,13 @@ class RTXApp {
             window.electronAPI.loadTemplateJson?.(sel.value).then(res => {
                 if (!res?.success) { this.showError('Failed to load template: ' + res?.error); return; }
                 const tpl = res.data;
-                document.getElementById('campaignSubject').value = tpl.subject || '';
-                if (this.quill) { this.quill.root.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>')); }
-                else { const ta = document.getElementById('emailContent'); if (ta) ta.value = tpl.content || ''; }
+                const editorContainer = document.getElementById('emailEditor');
+                if (editorContainer) {
+                    editorContainer.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>'));
+                } else {
+                    const ta = document.getElementById('emailContent');
+                    if (ta) ta.value = tpl.content || '';
+                }
                 this.attachmentsPaths = tpl.attachmentsPaths || [];
                 this.showSuccess('Template loaded');
             });
@@ -1640,9 +1674,13 @@ class RTXApp {
                 const read = await window.electronAPI.readJsonFile(res.filePaths[0]);
                 if (!read.success) { this.showError('Failed to load template: ' + read.error); return; }
                 const tpl = read.data;
-                document.getElementById('campaignSubject').value = tpl.subject || '';
-                if (this.quill) { this.quill.root.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>')); }
-                else { const ta = document.getElementById('emailContent'); if (ta) ta.value = tpl.content || ''; }
+                const editorContainer = document.getElementById('emailEditor');
+                if (editorContainer) {
+                    editorContainer.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>'));
+                } else {
+                    const ta = document.getElementById('emailContent');
+                    if (ta) ta.value = tpl.content || '';
+                }
                 this.attachmentsPaths = tpl.attachmentsPaths || [];
                 this.templates = [{ id: res.filePaths[0], name: tpl.name || 'Template', ...tpl }, ...this.templates.filter(t => t.id !== res.filePaths[0])];
                 window.electronAPI.storeSet?.('templates', this.templates);
