@@ -48,7 +48,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Auth (OAuth)
     authenticateGoogle: (credentials) => wrapInvoke('authenticateGoogle', credentials),
-    submitManualAuthCode: (code) => wrapInvoke('submitManualAuthCode', code),
+    	submitManualAuthCode: (code) => wrapInvoke('submitManualAuthCode', code),
+	debugAuthStatus: () => wrapInvoke('debug-auth-status'),
     updateClientCredentials: (credentials) => wrapInvoke('updateClientCredentials', credentials),
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),

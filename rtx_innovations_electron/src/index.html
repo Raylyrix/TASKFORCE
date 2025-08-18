@@ -1024,6 +1024,23 @@
 					</div>
 				</div>
 				
+				<!-- Debug Section -->
+				<div style="background: #fff3cd; padding: 16px; border-radius: 8px; margin-top: 20px; border: 1px solid #ffeaa7;">
+					<h5 style="margin-bottom: 10px; color: #856404;">🔧 Troubleshooting</h5>
+					<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+						<button class="btn btn-warning" onclick="debugAuthStatus()" style="padding: 8px 16px; font-size: 14px;">
+							<i class="fas fa-bug"></i> Debug Auth Status
+						</button>
+						<button class="btn btn-secondary" onclick="clearAuthData()" style="padding: 8px 16px; font-size: 14px;">
+							<i class="fas fa-trash"></i> Clear Auth Data
+						</button>
+						<button class="btn btn-info" onclick="showAuthHelp()" style="padding: 8px 16px; font-size: 14px;">
+							<i class="fas fa-question-circle"></i> Help
+						</button>
+					</div>
+					<div id="debugOutput" style="display:none; margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+				</div>
+				
 				<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-top: 20px;">
 					<h5 style="margin-bottom: 10px; color: #333;">ℹ️ About Authentication</h5>
 					<ul style="color: #666; margin: 0; padding-left: 20px;">
@@ -1301,6 +1318,70 @@
 				submitManualAuthCode();
 			}
 		});
+		
+		// Debug functions for troubleshooting authentication
+		async function debugAuthStatus() {
+			try {
+				const result = await window.electronAPI.debugAuthStatus();
+				if (result.success) {
+					const debugOutput = document.getElementById('debugOutput');
+					debugOutput.style.display = 'block';
+					debugOutput.innerHTML = '<strong>Debug Information:</strong><br>' + 
+						JSON.stringify(result.status, null, 2);
+				} else {
+					showError('Failed to get debug info: ' + result.error);
+				}
+			} catch (error) {
+				showError('Debug error: ' + error.message);
+			}
+		}
+		
+		async function clearAuthData() {
+			if (confirm('This will clear all authentication data and force you to sign in again. Continue?')) {
+				try {
+					// Clear local storage
+					localStorage.clear();
+					
+					// Clear form fields
+					document.getElementById('manualAuthCode').value = '';
+					document.getElementById('oauthFile').value = '';
+					
+					// Hide any error/progress displays
+					hideAuthError();
+					hideAuthProgress();
+					
+					// Show success message
+					showSuccess('Authentication data cleared. Please sign in again.');
+					
+					// Hide debug output
+					document.getElementById('debugOutput').style.display = 'none';
+				} catch (error) {
+					showError('Failed to clear auth data: ' + error.message);
+				}
+			}
+		}
+		
+		function showAuthHelp() {
+			const helpText = `
+<strong>Authentication Help:</strong><br><br>
+<strong>Manual Authorization Code (Recommended):</strong><br>
+1. Click "Start Google Sign-in" to open Google in your browser<br>
+2. Complete the Google authorization process<br>
+3. Copy the authorization code from the success page<br>
+4. Paste it here and click "Login"<br><br>
+<strong>If you get "Invalid or expired code":</strong><br>
+• Authorization codes can only be used once<br>
+• Codes expire quickly (usually within 10 minutes)<br>
+• Get a fresh code by clicking "Start Google Sign-in" again<br><br>
+<strong>Common Issues:</strong><br>
+• Make sure you're using the latest version of the app<br>
+• Check that your internet connection is working<br>
+• Try clearing auth data if problems persist<br>
+• Ensure you have the required Google APIs enabled
+			`;
+			
+			alert(helpText);
+		}
 
 		// Signature builder functions
 	</script>

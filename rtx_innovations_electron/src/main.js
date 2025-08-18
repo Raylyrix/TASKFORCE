@@ -433,6 +433,17 @@ async function authenticateGoogle(credentialsData) {
 		// Clear any existing tokens to force fresh authentication
 		try { store.delete('googleToken'); } catch (_) {}
 		try { store.delete('googleTokenClientId'); } catch (_) {}
+		try { store.delete('googleCreds'); } catch (_) {}
+		
+		// Reset OAuth client to ensure fresh state
+		oauth2Client = null;
+		gmailService = null;
+		sheetsService = null;
+		
+		logEvent('info', 'Starting fresh Google authentication', { 
+			clientId: norm.client_id ? 'present' : 'missing',
+			hasRedirectUri: !!norm.redirect_uri 
+		});
 
 		const { shell } = require('electron');
 
@@ -457,7 +468,70 @@ async function authenticateGoogle(credentialsData) {
                             }
                         } catch (_) {}
                         res.writeHead(200, { 'Content-Type': 'text/html' });
-                        res.end('<html><body><h2>Authentication successful. You can close this window and return to the app.</h2><script>setTimeout(()=>{window.close()},500);</script></body></html>');
+                        res.end(`<html>
+<head>
+    <title>Authentication Successful</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; text-align: center; background: #f8f9fa; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h1 { color: #28a745; margin-bottom: 20px; }
+        .code-box { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; font-family: monospace; font-size: 16px; word-break: break-all; }
+        .copy-btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 10px; }
+        .copy-btn:hover { background: #0056b3; }
+        .instructions { color: #6c757d; margin: 20px 0; line-height: 1.6; }
+        .success-icon { font-size: 48px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>Authentication Successful!</h1>
+        <p class="instructions">
+            Your Google account has been successfully authenticated. 
+            <strong>Copy the authorization code below and paste it into the app:</strong>
+        </p>
+        
+        <div class="code-box" id="authCode">
+            ${code}
+        </div>
+        
+        <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+        <button class="copy-btn" onclick="window.close()">Close Window</button>
+        
+        <p class="instructions">
+            <strong>Next steps:</strong><br>
+            1. Copy the authorization code above<br>
+            2. Return to the TASK FORCE app<br>
+            3. Paste the code in the "Manual Authorization Code" field<br>
+            4. Click "Login"
+        </p>
+    </div>
+    
+    <script>
+        function copyCode() {
+            const code = document.getElementById('authCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = event.target;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = '📋 Copy Code';
+                    btn.style.background = '#007bff';
+                }, 2000);
+            }).catch(() => {
+                alert('Failed to copy. Please manually select and copy the code.');
+            });
+        }
+        
+        // Auto-close after 30 seconds
+        setTimeout(() => {
+            if (confirm('Authentication successful! Close this window?')) {
+                window.close();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>`);
 						settled = true;
 						server.close(() => resolve(tokens));
 					} catch (err) {
@@ -1118,6 +1192,30 @@ function cancelScheduledJob(id) {
 ipcMain.handle('updateClientCredentials', async (event, credentialsData) => updateClientCredentials(credentialsData));
 ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
 ipcMain.handle('submitManualAuthCode', async (event, authCode) => submitManualAuthCode(authCode));
+
+// Debug function to help troubleshoot authentication issues
+ipcMain.handle('debug-auth-status', async () => {
+	try {
+		const status = {
+			hasGoogleCreds: !!store.get('googleCreds'),
+			hasGoogleToken: !!store.get('googleToken'),
+			hasGoogleTokenClientId: !!store.get('googleTokenClientId'),
+			hasOAuthClient: !!oauth2Client,
+			hasGmailService: !!gmailService,
+			hasSheetsService: !!sheetsService,
+			appSettings: store.get('app-settings'),
+			accounts: Object.keys(store.get('accounts') || {}),
+			installId: store.get('installId'),
+			platform: process.platform,
+			version: app.getVersion()
+		};
+		
+		logEvent('info', 'Debug auth status requested', status);
+		return { success: true, status };
+	} catch (error) {
+		return { success: false, error: error.message };
+	}
+});
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
@@ -1415,6 +1513,18 @@ ipcMain.handle('signatures-get-default', async () => {
 // Manual authorization code submission for instant login
 async function submitManualAuthCode(authCode) {
 	try {
+		// Validate and clean the authorization code
+		if (!authCode || typeof authCode !== 'string') {
+			throw new Error('Invalid authorization code format. Please provide a valid code.');
+		}
+		
+		// Clean the code - remove extra whitespace and newlines
+		const cleanCode = authCode.trim().replace(/\s+/g, '');
+		
+		if (cleanCode.length < 10) {
+			throw new Error('Authorization code appears to be too short. Please check the code and try again.');
+		}
+		
 		// Get current credentials
 		const norm = store.get('googleCreds');
 		if (!norm) {
@@ -1428,8 +1538,10 @@ async function submitManualAuthCode(authCode) {
 		// Build OAuth client
 		oauth2Client = buildOAuthClient(norm);
 		
+		logEvent('info', 'Attempting manual auth with code', { codeLength: cleanCode.length });
+		
 		// Exchange code for tokens
-		const { tokens } = await oauth2Client.getToken(authCode);
+		const { tokens } = await oauth2Client.getToken(cleanCode);
 		oauth2Client.setCredentials(tokens);
 		
 		// Store tokens
@@ -1470,11 +1582,15 @@ async function submitManualAuthCode(authCode) {
 		// Provide helpful error messages
 		let errorMessage = error.message;
 		if (error.message.includes('invalid_grant')) {
-			errorMessage = 'Invalid or expired authorization code. Please get a fresh code from Google.';
+			errorMessage = 'Invalid or expired authorization code. Please get a fresh code from Google by clicking "Start Google Sign-in" again.';
 		} else if (error.message.includes('unauthorized_client')) {
 			errorMessage = 'Unauthorized client. Please check your OAuth credentials.';
 		} else if (error.message.includes('invalid_client')) {
 			errorMessage = 'Invalid client credentials. Please check your OAuth configuration.';
+		} else if (error.message.includes('redirect_uri_mismatch')) {
+			errorMessage = 'Redirect URI mismatch. Please try the automatic sign-in flow instead.';
+		} else if (error.message.includes('code_already_used')) {
+			errorMessage = 'This authorization code has already been used. Please get a fresh code from Google.';
 		}
 		
 		return { success: false, error: errorMessage };
