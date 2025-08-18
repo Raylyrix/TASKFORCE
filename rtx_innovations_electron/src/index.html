@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TASK FORCE - AutoMailer Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
+    <!-- Enhanced Editor Styles -->
     <style>
         /* Inline critical CSS for immediate loading */
         * {
@@ -105,6 +105,77 @@
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-flex;
+            
+        /* Enhanced Editor Toolbar Styles */
+        .toolbar-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-right: 12px;
+            padding: 2px;
+        }
+        
+        .toolbar-group button {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .toolbar-group button:hover {
+            background: #f0f0f0;
+            border-color: #007AFF;
+        }
+        
+        .toolbar-group button:active {
+            background: #e0e0e0;
+        }
+        
+        .toolbar-group select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #fff;
+        }
+        
+        .toolbar-group input[type="color"] {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        /* Editor Placeholder */
+        #emailEditor[data-placeholder]:empty:before {
+            content: attr(data-placeholder);
+            color: #999;
+            font-style: italic;
+            pointer-events: none;
+        }
+        
+        /* Table Styles */
+        #emailEditor table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        #emailEditor table td,
+        #emailEditor table th {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        #emailEditor table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
             align-items: center;
             gap: 8px;
         }
@@ -433,19 +504,20 @@
 								<span>Email Content</span>
 								<span style="font-size:12px; color:#8E8E93;">Click any column chip or cell to insert placeholders</span>
 							</label>
-							<div id="editorToolbar">
-								<span class="ql-formats">
-									<select class="ql-font">
-										<option selected></option>
-										<option value="arial">Arial</option>
-										<option value="times-new-roman">Times New Roman</option>
+							<div id="editorToolbar" style="border:1px solid #ddd; border-bottom:none; padding:8px; background:#f8f9fa; border-radius:4px 4px 0 0;">
+								<!-- Font Controls -->
+								<span class="toolbar-group">
+									<select id="fontFamily" title="Font Family">
+										<option value="arial" selected>Arial</option>
+										<option value="helvetica">Helvetica</option>
+										<option value="times new roman">Times New Roman</option>
 										<option value="georgia">Georgia</option>
 										<option value="verdana">Verdana</option>
 										<option value="monospace">Monospace</option>
-										<option value="courier-new">Courier New</option>
+										<option value="courier new">Courier New</option>
 										<option value="tahoma">Tahoma</option>
 									</select>
-									<select class="ql-size">
+									<select id="fontSize" title="Font Size">
 										<option value="8px">8</option>
 										<option value="10px">10</option>
 										<option value="12px">12</option>
@@ -460,50 +532,72 @@
 										<option value="48px">48</option>
 									</select>
 								</span>
-								<span class="ql-formats">
-									<button class="ql-bold" title="Bold (Ctrl+B)"></button>
-									<button class="ql-italic" title="Italic (Ctrl+I)"></button>
-									<button class="ql-underline" title="Underline (Ctrl+U)"></button>
-									<button class="ql-strike" title="Strikethrough"></button>
-									<button class="ql-code" title="Inline Code"></button>
-									<button class="ql-code-block" title="Code Block"></button>
+								
+								<!-- Text Formatting -->
+								<span class="toolbar-group">
+									<button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="execCommand('bold')"><strong>B</strong></button>
+									<button type="button" id="italicBtn" title="Italic (Ctrl+I)" onclick="execCommand('italic')"><em>I</em></button>
+									<button type="button" id="underlineBtn" title="Underline (Ctrl+U)" onclick="execCommand('underline')"><u>U</u></button>
+									<button type="button" id="strikeBtn" title="Strikethrough" onclick="execCommand('strikeThrough')"><s>S</s></button>
+									<button type="button" id="codeBtn" title="Inline Code" onclick="execCommand('insertText', '`code`')">`</button>
+									<button type="button" id="codeBlockBtn" title="Code Block" onclick="execCommand('formatBlock', '<pre>')">Code</button>
 								</span>
-								<span class="ql-formats">
-									<select class="ql-color" title="Text Color"></select>
-									<select class="ql-background" title="Background Color"></select>
-									<button class="ql-clean" title="Clear Formatting"></button>
+								
+								<!-- Colors and Background -->
+								<span class="toolbar-group">
+									<input type="color" id="textColor" title="Text Color" onchange="execCommand('foreColor', this.value)">
+									<input type="color" id="bgColor" title="Background Color" onchange="execCommand('hiliteColor', this.value)">
+									<button type="button" id="clearFormatBtn" title="Clear Formatting" onclick="execCommand('removeFormat')">Clear</button>
 								</span>
-								<span class="ql-formats">
-									<button class="ql-header" value="1" title="Heading 1"></button>
-									<button class="ql-header" value="2" title="Heading 2"></button>
-									<button class="ql-header" value="3" title="Heading 3"></button>
-									<select class="ql-align" title="Text Alignment"></select>
-									<button class="ql-indent" value="+1" title="Increase Indent"></button>
-									<button class="ql-indent" value="-1" title="Decrease Indent"></button>
+								
+								<!-- Alignment and Indentation -->
+								<span class="toolbar-group">
+									<button type="button" id="h1Btn" title="Heading 1" onclick="execCommand('formatBlock', '<h1>')">H1</button>
+									<button type="button" id="h2Btn" title="Heading 2" onclick="execCommand('formatBlock', '<h2>')">H2</button>
+									<button type="button" id="h3Btn" title="Heading 3" onclick="execCommand('formatBlock', '<h3>')">H3</button>
+									<select id="alignSelect" title="Text Alignment" onchange="execCommand('justifyLeft')">
+										<option value="left">Left</option>
+										<option value="center">Center</option>
+										<option value="right">Right</option>
+										<option value="justify">Justify</option>
+									</select>
+									<button type="button" id="indentBtn" title="Increase Indent" onclick="execCommand('indent')">→</button>
+									<button type="button" id="outdentBtn" title="Decrease Indent" onclick="execCommand('outdent')">←</button>
 								</span>
-								<span class="ql-formats">
-									<button class="ql-list" value="ordered" title="Numbered List"></button>
-									<button class="ql-list" value="bullet" title="Bullet List"></button>
-									<button class="ql-blockquote" title="Quote"></button>
-									<button class="ql-link" title="Insert Link"></button>
-									<button class="ql-image" title="Insert Image"></button>
+								
+								<!-- Lists and Formatting -->
+								<span class="toolbar-group">
+									<button type="button" id="orderedListBtn" title="Numbered List" onclick="execCommand('insertOrderedList')">1.</button>
+									<button type="button" id="bulletListBtn" title="Bullet List" onclick="execCommand('insertUnorderedList')">•</button>
+									<button type="button" id="quoteBtn" title="Quote" onclick="execCommand('formatBlock', '<blockquote>')">"</button>
+									<button type="button" id="linkBtn" title="Insert Link" onclick="insertLink()">🔗</button>
+									<button type="button" id="imageBtn" title="Insert Image" onclick="insertImage()">🖼️</button>
 								</span>
-								<span class="ql-formats">
-									<button class="ql-table" title="Insert Table"></button>
-									<button class="ql-undo" title="Undo (Ctrl+Z)"></button>
-									<button class="ql-redo" title="Redo (Ctrl+Y)"></button>
+								
+								<!-- Table and History -->
+								<span class="toolbar-group">
+									<button type="button" id="tableBtn" title="Insert Table" onclick="insertTable()">⊞</button>
+									<button type="button" id="undoBtn" title="Undo (Ctrl+Z)" onclick="execCommand('undo')">↶</button>
+									<button type="button" id="redoBtn" title="Redo (Ctrl+Y)" onclick="execCommand('redo')">↷</button>
+								</span>
+								
+								<!-- Copy-Paste Debug -->
+								<span class="toolbar-group" style="margin-left:auto;">
+									<button type="button" id="testCopyPasteBtn" title="Test Copy-Paste" onclick="testCopyPaste()">Test CP</button>
+									<button type="button" id="showContentBtn" title="Show Content" onclick="showEditorContent()">Show</button>
+									<button type="button" id="copyPasteHelpBtn" title="Copy-Paste Help" onclick="showCopyPasteHelp()">Help</button>
 								</span>
 							</div>
-							<div id="emailEditor" style="height:260px; background:#fff;"></div>
-							<div id="copyPasteDebug" style="margin-top:8px; padding:8px; background:#f8f9fa; border:1px solid #e9ecef; border-radius:4px; font-size:12px; color:#6c757d; display:none;">
-								<strong>Copy-Paste Debug:</strong> <span id="copyPasteStatus">Ready</span>
-								<button class="btn btn-sm btn-secondary" id="toggleDebugBtn" style="margin-left:8px; padding:2px 6px; font-size:11px;">Show Details</button>
-								<div id="debugDetails" style="margin-top:8px; display:none;">
-									<div><strong>Last Operation:</strong> <span id="lastOperation">None</span></div>
-									<div><strong>Content Type:</strong> <span id="contentType">None</span></div>
-									<div><strong>Content Length:</strong> <span id="contentLength">0</span></div>
-									<div><strong>Tips:</strong> <span id="debugTips">Copy-paste operations are now enhanced to preserve formatting from various sources including Word, Google Docs, and web content.</span></div>
-								</div>
+							
+							<!-- Enhanced Editor Container -->
+							<div id="emailEditorContainer" style="border:1px solid #ddd; border-top:none; border-radius:0 0 4px 4px; min-height:300px; background:#fff;">
+								<div id="emailEditor" contenteditable="true" style="padding:16px; min-height:300px; outline:none; font-family:Arial, sans-serif; font-size:14px; line-height:1.6; color:#333;" 
+									 data-placeholder="Start typing your email content here... Click any column chip or cell to insert placeholders like ((Name)), ((Company)), etc."></div>
+							</div>
+							
+							<!-- Copy-Paste Debug Panel -->
+							<div id="copyPasteDebug" style="display:none; margin-top:8px; padding:8px; background:#f8f9fa; border:1px solid #ddd; border-radius:4px; font-size:12px;">
+								<strong>Copy-Paste Debug:</strong> <span id="debugInfo">Ready</span>
 							</div>
 							<div style="margin-top:8px; font-size:11px; color:#6c757d;">
 								<label style="display:flex; align-items:center; gap:4px;">
@@ -1176,10 +1270,8 @@
 		// Signature builder functions
 	</script>
 
-	<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/quill-image-uploader@1.2.4/dist/quill.imageUploader.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/quill-clipboard@1.0.0/dist/quill.clipboard.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/quill-table@1.0.0/dist/quill-table.min.js"></script>
+	<!-- Enhanced Editor Scripts -->
+	<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
 
 	<style>
 		/* Force page scroll */
