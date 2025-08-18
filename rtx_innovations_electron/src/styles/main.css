@@ -88,7 +88,6 @@ body {
   line-height: 1.5;
   color: var(--text-primary), #000000;
   background-color: var(--bg-primary), #FFFFFF;
-  overflow: hidden;
 }
 
 /* App Container */

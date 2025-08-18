@@ -19,7 +19,6 @@ class RTXApp {
         this.gmailSignature = '';
         this.useSignature = false;
         this.attachmentsPaths = [];
-        this.quill = null;
         this.selectedSheetId = null;
         this.selectedSheetTitle = null;
         this.templates = [];
@@ -130,12 +129,15 @@ class RTXApp {
     }
 
     getEditorPlainText() {
-        try { return (document.getElementById('emailContent')?.value || '').trim(); } catch (_) { return ''; }
+        try { 
+            const editorContainer = document.getElementById('emailEditor');
+            return editorContainer ? (editorContainer.textContent || '').trim() : '';
+        } catch (_) { return ''; }
     }
     getEditorHtml(rowMap = {}) {
         try {
             const editorContainer = document.getElementById('emailEditor');
-            const html = editorContainer ? (editorContainer.innerHTML || '') : (document.getElementById('emailContent')?.value || '');
+            const html = editorContainer ? (editorContainer.innerHTML || '') : '';
             return this.processContent(html, rowMap, false);
         } catch (_) { return ''; }
     }
@@ -195,12 +197,6 @@ class RTXApp {
                     range.deleteContents();
                     range.insertNode(document.createTextNode(ins));
                     range.collapse(false);
-                } else {
-                    const ta = document.getElementById('emailContent');
-                    if (ta) {
-                        const start = ta.selectionStart || ta.value.length;
-                        ta.value = ta.value.slice(0, start) + ins + ta.value.slice(start);
-                    }
                 }
                 this.showSuccess(`Inserted placeholder: ((${key}))`);
                 e.stopPropagation();
@@ -1323,11 +1319,17 @@ class RTXApp {
 
     createNewCampaign() {
         // Clear form fields
-        const fields = ['campaignName', 'campaignSubject', 'fromName', 'emailContent'];
+        const fields = ['campaignName', 'campaignSubject', 'fromName'];
         fields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
             if (field) field.value = '';
         });
+        
+        // Clear the email editor
+        const editorContainer = document.getElementById('emailEditor');
+        if (editorContainer) {
+            editorContainer.innerHTML = '';
+        }
 
         this.showSuccess('New campaign form cleared');
     }
@@ -1626,12 +1628,6 @@ class RTXApp {
             if (editorContainer) {
                 editorContainer.innerHTML = html;
                 this.showSuccess('Preset inserted');
-            } else {
-                const ta = document.getElementById('emailContent');
-                if (ta) {
-                    ta.value = html;
-                    this.showSuccess('Preset inserted');
-                }
             }
         } catch (e) { this.showError('Failed to insert preset'); }
     }
@@ -1659,9 +1655,6 @@ class RTXApp {
                 const editorContainer = document.getElementById('emailEditor');
                 if (editorContainer) {
                     editorContainer.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>'));
-                } else {
-                    const ta = document.getElementById('emailContent');
-                    if (ta) ta.value = tpl.content || '';
                 }
                 this.attachmentsPaths = tpl.attachmentsPaths || [];
                 this.showSuccess('Template loaded');
@@ -1677,9 +1670,6 @@ class RTXApp {
                 const editorContainer = document.getElementById('emailEditor');
                 if (editorContainer) {
                     editorContainer.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>'));
-                } else {
-                    const ta = document.getElementById('emailContent');
-                    if (ta) ta.value = tpl.content || '';
                 }
                 this.attachmentsPaths = tpl.attachmentsPaths || [];
                 this.templates = [{ id: res.filePaths[0], name: tpl.name || 'Template', ...tpl }, ...this.templates.filter(t => t.id !== res.filePaths[0])];
