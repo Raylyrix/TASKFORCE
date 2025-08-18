@@ -1334,6 +1334,7 @@
 				<div id="authError" style="display:none; margin-top: 20px;">
 					<div style="background: #fef2f2; color: #dc2626; padding: 16px; border-radius: 8px; border: 1px solid #fecaca;">
 						<strong>❌ Authentication Error:</strong> <span id="errorMessage"></span>
+						<div id="errorDetails" style="margin-top: 8px; font-size: 14px; color: #991b1b; display: none;"></div>
 					</div>
 				</div>
 				
@@ -1592,7 +1593,7 @@
 						window.location.reload();
 					}, 1500);
 				} else {
-					showAuthError(result.error || 'Authorization failed');
+					showAuthError(result.error || 'Authorization failed', result.details || null);
 				}
 			} catch (error) {
 				showAuthError('Authorization error: ' + error.message);
@@ -1629,9 +1630,18 @@
 			document.getElementById('startAuthBtn').disabled = false;
 		}
 		
-		function showAuthError(message) {
+		function showAuthError(message, details = null) {
 			document.getElementById('authError').style.display = 'block';
 			document.getElementById('errorMessage').textContent = message;
+			
+			const errorDetails = document.getElementById('errorDetails');
+			if (details) {
+				errorDetails.textContent = details;
+				errorDetails.style.display = 'block';
+			} else {
+				errorDetails.style.display = 'none';
+			}
+			
 			hideAuthProgress();
 		}
 		

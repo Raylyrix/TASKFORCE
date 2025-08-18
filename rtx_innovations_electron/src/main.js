@@ -504,8 +504,8 @@ async function authenticateGoogle(credentialsData) {
             ${code}
         </div>
         
-        <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
-        <button class="copy-btn" onclick="selectAndCopy()">✂️ Select & Copy</button>
+        <button class="copy-btn" onclick="copyCode(this)">📋 Copy Code</button>
+        <button class="copy-btn" onclick="selectAndCopy(this)">✂️ Select & Copy</button>
         <button class="copy-btn" onclick="window.close()">Close Window</button>
         
         <div class="fallback-copy">
@@ -514,6 +514,16 @@ async function authenticateGoogle(credentialsData) {
         
         <div class="manual-copy">
             <strong>✅ Success!</strong> The authorization code is ready. Copy it and return to the TASK FORCE app.
+        </div>
+        
+        <div class="copy-troubleshooting" style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 12px; margin: 16px 0; color: #0d47a1;">
+            <strong>🔧 Copy Troubleshooting:</strong>
+            <ul style="margin: 8px 0 0 20px; color: #0d47a1;">
+                <li>If copy buttons don't work, manually select the code above and use Ctrl+C (Cmd+C on Mac)</li>
+                <li>Some browsers block clipboard access - this is normal and expected</li>
+                <li>The code is automatically selected when the page loads</li>
+                <li>You can also right-click the code and select "Copy" from the context menu</li>
+            </ul>
         </div>
         
         <p class="instructions">
@@ -535,64 +545,68 @@ async function authenticateGoogle(credentialsData) {
             selection.addRange(range);
         }
         
-        function selectAndCopy() {
+        function selectAndCopy(button) {
             selectAll();
             try {
                 document.execCommand('copy');
-                showCopySuccess();
+                showCopySuccess(button);
             } catch (e) {
-                showCopyError();
+                showCopyError(button);
             }
         }
         
-        function copyCode() {
+        function copyCode(button) {
             const code = document.getElementById('authCode').textContent;
             
             // Try modern clipboard API first
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(code).then(() => {
-                    showCopySuccess();
-                }).catch(() => {
+                    showCopySuccess(button);
+                }).catch((err) => {
+                    console.log('Clipboard API failed, falling back to execCommand:', err);
                     // Fallback to execCommand
-                    fallbackCopy();
+                    fallbackCopy(button);
                 });
             } else {
+                console.log('Clipboard API not available, using execCommand');
                 // Fallback to execCommand
-                fallbackCopy();
+                fallbackCopy(button);
             }
         }
         
-        function fallbackCopy() {
+        function fallbackCopy(button) {
             selectAll();
             try {
                 if (document.execCommand('copy')) {
-                    showCopySuccess();
+                    showCopySuccess(button);
                 } else {
-                    showCopyError();
+                    showCopyError(button);
                 }
             } catch (e) {
-                showCopyError();
+                showCopyError(button);
             }
         }
         
-        function showCopySuccess() {
-            const btn = event.target;
-            btn.textContent = '✅ Copied!';
-            btn.style.background = '#28a745';
-            setTimeout(() => {
-                btn.textContent = '📋 Copy Code';
-                btn.style.background = '#007bff';
-            }, 2000);
+        function showCopySuccess(button) {
+            if (button) {
+                button.textContent = '✅ Copied!';
+                button.style.background = '#28a745';
+                setTimeout(() => {
+                    button.textContent = '📋 Copy Code';
+                    button.style.background = '#007bff';
+                }, 2000);
+            }
         }
         
-        function showCopyError() {
-            const btn = event.target;
-            btn.textContent = '❌ Failed';
-            btn.style.background = '#dc3545';
-            setTimeout(() => {
-                btn.textContent = '📋 Copy Code';
-                btn.style.background = '#007bff';
-            }, 2000);
+        function showCopyError(button) {
+            if (button) {
+                button.textContent = '❌ Failed';
+                button.style.background = '#dc3545';
+                setTimeout(() => {
+                    button.textContent = '📋 Copy Code';
+                    button.style.background = '#007bff';
+                }, 2000);
+            }
         }
         
         // Auto-select the code when page loads
@@ -1673,9 +1687,16 @@ async function submitManualAuthCode(authCode) {
 		
 		// Build OAuth client with proper redirect URI
 		const redirectUri = norm.redirect_uri || 'http://localhost';
+		logEvent('info', 'Building OAuth client', { 
+			redirectUri: redirectUri,
+			codeLength: cleanCode.length,
+			clientId: norm.client_id ? 'present' : 'missing'
+		});
+		
 		oauth2Client = buildOAuthClient(norm, redirectUri);
 		
 		// Exchange code for tokens
+		logEvent('info', 'Exchanging code for tokens', { redirectUri: redirectUri });
 		const { tokens } = await oauth2Client.getToken(cleanCode);
 		
 		if (!tokens || !tokens.access_token) {
@@ -1719,29 +1740,51 @@ async function submitManualAuthCode(authCode) {
 		
 	} catch (error) {
 		console.error('Manual auth code error:', error);
-		logEvent('error', 'Manual auth code failed', { error: error.message });
+		logEvent('error', 'Manual auth code failed', { 
+			error: error.message,
+			errorStack: error.stack,
+			errorName: error.name
+		});
 		
 		// Provide helpful error messages
 		let errorMessage = error.message;
+		let errorDetails = '';
+		
 		if (error.message.includes('invalid_grant')) {
 			errorMessage = 'Invalid or expired authorization code. Please get a fresh code from Google by clicking "Start Google Sign-in" again.';
+			errorDetails = 'This usually means the code has expired or was already used. Authorization codes are only valid for a few minutes and can only be used once.';
 		} else if (error.message.includes('unauthorized_client')) {
 			errorMessage = 'Unauthorized client. Please check your OAuth credentials and ensure the client ID matches.';
+			errorDetails = 'The client ID in your OAuth credentials does not match what Google expects.';
 		} else if (error.message.includes('invalid_client')) {
 			errorMessage = 'Invalid client credentials. Please check your client ID and client secret.';
+			errorDetails = 'The OAuth client credentials are not valid or have been revoked.';
 		} else if (error.message.includes('redirect_uri_mismatch')) {
 			errorMessage = 'Redirect URI mismatch. The authorization code was generated for a different redirect URI. Please try the automatic sign-in flow instead.';
+			errorDetails = 'The authorization code was generated for a different redirect URI than what we\'re using to exchange it.';
 		} else if (error.message.includes('code_already_used')) {
 			errorMessage = 'This authorization code has already been used. Authorization codes can only be used once. Please get a fresh code from Google.';
+			errorDetails = 'Each authorization code can only be used once. You need to get a fresh code from Google.';
 		} else if (error.message.includes('access_denied')) {
 			errorMessage = 'Access denied by user. Please make sure you completed the Google authorization process.';
+			errorDetails = 'You may have cancelled the authorization process in your browser.';
 		} else if (error.message.includes('server_error')) {
 			errorMessage = 'Google server error. Please try again in a few minutes.';
+			errorDetails = 'Google\'s servers are experiencing issues. Please wait and try again.';
 		} else if (error.message.includes('temporarily_unavailable')) {
 			errorMessage = 'Google service temporarily unavailable. Please try again later.';
+			errorDetails = 'Google\'s OAuth service is temporarily down. Please try again later.';
+		} else {
+			errorDetails = 'An unexpected error occurred during authentication. Please check the console for more details.';
 		}
 		
-		return { success: false, error: errorMessage };
+		logEvent('error', 'Detailed error info', { 
+			originalError: error.message,
+			userMessage: errorMessage,
+			details: errorDetails
+		});
+		
+		return { success: false, error: errorMessage, details: errorDetails };
 	}
 }
 
