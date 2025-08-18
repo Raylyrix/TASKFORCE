@@ -524,23 +524,31 @@ async function authenticateGoogle(credentialsData) {
         try { store.delete('smtp.activeEmail'); } catch (_) {}
         store.set('googleToken', token);
         store.set('googleTokenClientId', norm.client_id);
-        // Prime clients and validate access token
-        await ensureServices();
-        try { await oauth2Client.getAccessToken(); } catch (_) {}
-        // Fetch profile for email; if it fails, still mark as authenticated
-        let emailAddr = null;
-        try {
-            const profile = await gmailService.users.getProfile({ userId: 'me' });
-            emailAddr = profile?.data?.emailAddress || null;
-        } catch (_) {}
-        if (!emailAddr) { try { const who = await gmailService.users.getProfile({ userId: 'me' }); emailAddr = who?.data?.emailAddress || null; } catch (_) {} }
-        if (!emailAddr) emailAddr = 'authenticated';
-        saveAccountEntry(emailAddr, norm, token);
-        try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
-        try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: emailAddr }); try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {} } } catch (_) {}
-		logEvent('info', 'Authenticated and token stored', { email: emailAddr });
-		// Authentication successful
-		return { success: true, userEmail: emailAddr };
+        
+        // INSTANT SUCCESS - Don't wait for profile fetch
+        try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: 'authenticated' }); try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {} } } catch (_) {}
+        
+        // Background: ensure services and resolve profile with timeout
+        ;(async () => {
+            try {
+                await ensureServices();
+                let emailAddr = 'authenticated';
+                try {
+                    const p = await Promise.race([
+                        gmailService.users.getProfile({ userId: 'me' }),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+                    ]);
+                    if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
+                    saveAccountEntry(emailAddr, norm, token);
+                    try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
+                    try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr }); } catch (_) {}
+                    logEvent('info', 'Authenticated and token stored', { email: emailAddr });
+                } catch (_) {}
+            } catch (_) {}
+        })();
+        
+        // Return immediately
+        return { success: true, userEmail: 'authenticated' };
 	} catch (error) {
 		console.error('Authentication error:', error);
 		logEvent('error', 'Authentication error', { error: error.message });
@@ -849,7 +857,7 @@ function initAutoUpdater() {
 		if (isDev) { logEvent('info', 'AutoUpdater disabled in development'); return; }
 		autoUpdater = require('electron-updater').autoUpdater;
 		autoUpdater.autoDownload = false;
-		autoUpdater.setFeedURL({ provider: 'github', owner: 'Raylyrix', repo: 'RTXAPPS' });
+		        autoUpdater.setFeedURL({ provider: 'github', owner: 'Raylyrix', repo: 'TASKFORCE' });
 		// Forward events to renderer
 		autoUpdater.on('checking-for-update', () => { if (mainWindow) mainWindow.webContents.send('update-status', { status: 'checking' }); });
 		autoUpdater.on('update-available', (info) => {

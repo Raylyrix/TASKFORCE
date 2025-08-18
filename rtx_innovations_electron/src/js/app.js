@@ -193,10 +193,31 @@ class RTXApp {
                 const ins = `((${key}))`;
                 const editorContainer = document.getElementById('emailEditor');
                 if (editorContainer) {
-                    const range = window.getSelection().getRangeAt(0);
+                    // Focus the editor first
+                    editorContainer.focus();
+                    
+                    // Get current selection or create new one at end
+                    let selection = window.getSelection();
+                    let range;
+                    
+                    if (selection.rangeCount > 0) {
+                        range = selection.getRangeAt(0);
+                    } else {
+                        range = document.createRange();
+                        range.selectNodeContents(editorContainer);
+                        range.collapse(false);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                    
+                    // Insert the placeholder
                     range.deleteContents();
                     range.insertNode(document.createTextNode(ins));
                     range.collapse(false);
+                    
+                    // Update selection
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                 }
                 this.showSuccess(`Inserted placeholder: ((${key}))`);
                 e.stopPropagation();
