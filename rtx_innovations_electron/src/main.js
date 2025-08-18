@@ -429,37 +429,10 @@ async function authenticateGoogle(credentialsData) {
 		}
 		store.set('googleCreds', norm);
 
-		const existing = store.get('googleToken');
-		if (existing) {
-			oauth2Client = buildOAuthClient(norm);
-			oauth2Client.setCredentials(existing);
-			// Instant attach without waiting for profile
-			try {
-				if (mainWindow && mainWindow.webContents) {
-					mainWindow.webContents.send('auth-success', { email: 'authenticated' });
-					try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {}
-				}
-			} catch (_) {}
-			// Background: ensure services and resolve profile with timeout
-			;(async () => {
-				try {
-					await ensureServices();
-					let emailAddr = 'authenticated';
-					try {
-						const p = await Promise.race([
-							gmailService.users.getProfile({ userId: 'me' }),
-							new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-						]);
-						if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
-						saveAccountEntry(emailAddr, norm, existing);
-						try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
-						try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr }); } catch (_) {}
-						logEvent('info', 'Authenticated and token stored', { email: emailAddr });
-					} catch (_) {}
-				} catch (_) {}
-			})();
-			return { success: true, userEmail: 'authenticated' };
-		}
+		// Always go through the authentication flow for security
+		// Clear any existing tokens to force fresh authentication
+		try { store.delete('googleToken'); } catch (_) {}
+		try { store.delete('googleTokenClientId'); } catch (_) {}
 
 		const { shell } = require('electron');
 
