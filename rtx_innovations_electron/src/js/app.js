@@ -461,7 +461,17 @@ class RTXApp {
                 // Load account data
                 this.loadAccountData();
             } else {
-                this.showError('Authorization failed: ' + (result.error || 'Unknown error'));
+                // Show detailed error with specific details if available
+                let errorMessage = result.error || 'Authorization failed';
+                if (result.details) {
+                    errorMessage += ': ' + result.details;
+                }
+                this.showError(errorMessage);
+                
+                // If it's a redirect URI issue, suggest starting fresh
+                if (result.error && result.error.includes('redirect URI')) {
+                    this.showError('Please click "Start Google Sign-in" to begin a fresh authentication flow.');
+                }
             }
         } catch (error) {
             this.showError('Authorization error: ' + error.message);

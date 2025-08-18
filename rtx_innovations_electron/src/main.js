@@ -435,6 +435,7 @@ async function authenticateGoogle(credentialsData) {
 		// Clear any existing tokens to force fresh authentication
 		try { store.delete('googleToken'); } catch (_) {}
 		try { store.delete('googleTokenClientId'); } catch (_) {}
+		try { store.delete('oauthRedirectUri'); } catch (_) {}
 		
 		// Reset OAuth client to ensure fresh state
 		oauth2Client = null;
@@ -545,16 +546,6 @@ async function authenticateGoogle(credentialsData) {
             selection.addRange(range);
         }
         
-        function selectAndCopy(button) {
-            selectAll();
-            try {
-                document.execCommand('copy');
-                showCopySuccess(button);
-            } catch (e) {
-                showCopyError(button);
-            }
-        }
-        
         function copyCode(button) {
             const code = document.getElementById('authCode').textContent;
             
@@ -580,32 +571,106 @@ async function authenticateGoogle(credentialsData) {
                 if (document.execCommand('copy')) {
                     showCopySuccess(button);
                 } else {
-                    showCopyError(button);
+                    // Try alternative method
+                    tryAlternativeCopy(button);
                 }
             } catch (e) {
-                showCopyError(button);
+                console.log('execCommand failed, trying alternative method:', e);
+                tryAlternativeCopy(button);
+            }
+        }
+        
+        function tryAlternativeCopy(button) {
+            // Try to create a temporary textarea and copy from it
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = document.getElementById('authCode').textContent;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                
+                if (document.execCommand('copy')) {
+                    document.body.removeChild(textarea);
+                    showCopySuccess(button);
+                } else {
+                    document.body.removeChild(textarea);
+                    showCopyError(button, 'Copy failed. Please manually select and copy the code.');
+                }
+            } catch (e) {
+                console.log('Alternative copy method failed:', e);
+                showCopyError(button, 'Copy failed. Please manually select and copy the code.');
+            }
+        }
+        
+        function selectAndCopy(button) {
+            selectAll();
+            try {
+                // Try clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    const code = document.getElementById('authCode').textContent;
+                    navigator.clipboard.writeText(code).then(() => {
+                        showCopySuccess(button);
+                    }).catch((err) => {
+                        console.log('Clipboard API failed in selectAndCopy:', err);
+                        fallbackCopy(button);
+                    });
+                } else {
+                    // Fallback to execCommand
+                    if (document.execCommand('copy')) {
+                        showCopySuccess(button);
+                    } else {
+                        showCopyError(button, 'Copy failed. Please manually select and copy the code.');
+                    }
+                }
+            } catch (e) {
+                console.log('selectAndCopy error:', e);
+                showCopyError(button, 'Copy failed. Please manually select and copy the code.');
             }
         }
         
         function showCopySuccess(button) {
             if (button) {
+                const originalText = button.textContent;
                 button.textContent = '✅ Copied!';
                 button.style.background = '#28a745';
+                button.style.color = 'white';
+                button.disabled = true;
+                
                 setTimeout(() => {
-                    button.textContent = '📋 Copy Code';
+                    button.textContent = originalText;
                     button.style.background = '#007bff';
+                    button.style.color = 'white';
+                    button.disabled = false;
                 }, 2000);
             }
         }
         
-        function showCopyError(button) {
+        function showCopyError(button, message = 'Copy failed') {
             if (button) {
+                const originalText = button.textContent;
                 button.textContent = '❌ Failed';
                 button.style.background = '#dc3545';
+                button.style.color = 'white';
+                button.disabled = true;
+                
+                // Show error message below the button
+                const errorMsg = document.createElement('div');
+                errorMsg.style.color = '#dc3545';
+                errorMsg.style.fontSize = '12px';
+                errorMsg.style.marginTop = '5px';
+                errorMsg.textContent = message;
+                button.parentNode.insertBefore(errorMsg, button.nextSibling);
+                
                 setTimeout(() => {
-                    button.textContent = '📋 Copy Code';
+                    button.textContent = originalText;
                     button.style.background = '#007bff';
-                }, 2000);
+                    button.style.color = 'white';
+                    button.disabled = false;
+                    if (errorMsg.parentNode) {
+                        errorMsg.parentNode.removeChild(errorMsg);
+                    }
+                }, 3000);
             }
         }
         
@@ -634,6 +699,11 @@ async function authenticateGoogle(credentialsData) {
 				const tryListen = (h, p) => server.listen(p, h, async () => {
 					try {
 						const redirectUri = `http://${h}:${server.address().port}${pathName}`;
+						
+						// Store the redirect URI for manual code submission
+						store.set('oauthRedirectUri', redirectUri);
+						logEvent('info', 'Stored redirect URI for manual auth', { redirectUri: redirectUri });
+						
 						const oauthClient = buildOAuthClient(norm, redirectUri);
 						const authUrl = oauthClient.generateAuthUrl({ 
 							access_type: 'offline', 
@@ -1612,19 +1682,17 @@ ipcMain.handle('signatures-get-default', async () => {
 // Function to clear authentication state and force fresh OAuth flow
 async function clearAuthenticationState() {
 	try {
-		// Clear all stored tokens and credentials
+		// Clear all OAuth-related data
 		store.delete('googleToken');
 		store.delete('googleTokenClientId');
+		store.delete('oauthRedirectUri');
+		store.delete('app-settings');
 		store.delete('googleCreds');
-		store.delete('smtp.activeEmail');
 		
-		// Reset service instances
+		// Reset OAuth client
 		oauth2Client = null;
 		gmailService = null;
 		sheetsService = null;
-		
-		// Clear app settings
-		store.delete('app-settings');
 		
 		logEvent('info', 'Authentication state cleared');
 		return { success: true, message: 'Authentication state cleared successfully' };
@@ -1637,10 +1705,10 @@ async function clearAuthenticationState() {
 // Function to get fresh authorization code
 async function getFreshAuthorizationCode() {
 	try {
-		// Clear any existing state
+		// Clear any existing authentication state
 		await clearAuthenticationState();
 		
-		// Start fresh OAuth flow
+		// Start fresh authentication
 		const result = await authenticateGoogle({});
 		return result;
 	} catch (error) {
@@ -1679,24 +1747,35 @@ async function submitManualAuthCode(authCode) {
 			throw new Error('Invalid OAuth credentials. Please check your configuration.');
 		}
 		
+		// Get the redirect URI that was used to generate this code
+		// This is critical - the code must be exchanged with the same redirect URI
+		const storedRedirectUri = store.get('oauthRedirectUri');
+		if (!storedRedirectUri) {
+			throw new Error('No redirect URI found. Please start a fresh authentication flow by clicking "Start Google Sign-in".');
+		}
+		
 		logEvent('info', 'Attempting manual auth with code', { 
 			codeLength: cleanCode.length,
 			clientId: norm.client_id ? 'present' : 'missing',
+			storedRedirectUri: storedRedirectUri,
 			hasRedirectUri: !!norm.redirect_uri 
 		});
 		
-		// Build OAuth client with proper redirect URI
-		const redirectUri = norm.redirect_uri || 'http://localhost';
+		// Build OAuth client with the EXACT same redirect URI used to generate the code
 		logEvent('info', 'Building OAuth client', { 
-			redirectUri: redirectUri,
+			redirectUri: storedRedirectUri,
 			codeLength: cleanCode.length,
 			clientId: norm.client_id ? 'present' : 'missing'
 		});
 		
-		oauth2Client = buildOAuthClient(norm, redirectUri);
+		oauth2Client = buildOAuthClient(norm, storedRedirectUri);
 		
 		// Exchange code for tokens
-		logEvent('info', 'Exchanging code for tokens', { redirectUri: redirectUri });
+		logEvent('info', 'Exchanging code for tokens', { 
+			redirectUri: storedRedirectUri,
+			codeLength: cleanCode.length
+		});
+		
 		const { tokens } = await oauth2Client.getToken(cleanCode);
 		
 		if (!tokens || !tokens.access_token) {
@@ -1760,8 +1839,8 @@ async function submitManualAuthCode(authCode) {
 			errorMessage = 'Invalid client credentials. Please check your client ID and client secret.';
 			errorDetails = 'The OAuth client credentials are not valid or have been revoked.';
 		} else if (error.message.includes('redirect_uri_mismatch')) {
-			errorMessage = 'Redirect URI mismatch. The authorization code was generated for a different redirect URI. Please try the automatic sign-in flow instead.';
-			errorDetails = 'The authorization code was generated for a different redirect URI than what we\'re using to exchange it.';
+			errorMessage = 'Redirect URI mismatch. Please start a fresh authentication flow by clicking "Start Google Sign-in".';
+			errorDetails = 'The authorization code was generated for a different redirect URI. This usually happens when the authentication flow is interrupted.';
 		} else if (error.message.includes('code_already_used')) {
 			errorMessage = 'This authorization code has already been used. Authorization codes can only be used once. Please get a fresh code from Google.';
 			errorDetails = 'Each authorization code can only be used once. You need to get a fresh code from Google.';
@@ -1774,6 +1853,9 @@ async function submitManualAuthCode(authCode) {
 		} else if (error.message.includes('temporarily_unavailable')) {
 			errorMessage = 'Google service temporarily unavailable. Please try again later.';
 			errorDetails = 'Google\'s OAuth service is temporarily down. Please try again later.';
+		} else if (error.message.includes('No redirect URI found')) {
+			errorMessage = 'Authentication flow not started. Please click "Start Google Sign-in" first.';
+			errorDetails = 'You need to start the Google authentication process before you can submit an authorization code.';
 		} else {
 			errorDetails = 'An unexpected error occurred during authentication. Please check the console for more details.';
 		}
