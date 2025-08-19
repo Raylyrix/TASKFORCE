@@ -97,10 +97,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Import local spreadsheets
     loadLocalSpreadsheet: (filePath) => wrapInvoke('load-local-spreadsheet', filePath),
 
+    // SalesQL Scraper
+    startScraping: (params) => wrapInvoke('startScraping', params),
+    getScrapingProgress: (sessionId) => wrapInvoke('getScrapingProgress', sessionId),
+    exportToGoogleSheets: (params) => wrapInvoke('exportToGoogleSheets', params),
+    exportToGoogleSheetsEnhanced: (params) => wrapInvoke('exportToGoogleSheetsEnhanced', params),
+    storeScrapedData: (params) => wrapInvoke('storeScrapedData', params),
+    storeScrapedDataEnhanced: (params) => wrapInvoke('storeScrapedDataEnhanced', params),
+    checkExtensionPath: (extensionId) => wrapInvoke('checkExtensionPath', extensionId),
+    installChromeExtension: (params) => wrapInvoke('installChromeExtension', params),
+    getExtensionPath: (extensionId) => wrapInvoke('getExtensionPath', extensionId),
+    receiveScrapedData: (params) => wrapInvoke('receiveScrapedData', params),
+
     // Updates
     checkForUpdates: () => wrapInvoke('update-check'),
     downloadUpdate: () => wrapInvoke('update-download'),
     quitAndInstall: () => wrapInvoke('update-quit-and-install'),
+    
+    // Event listeners
+    on: (channel, callback) => {
+        const validChannels = ['scraping-completed', 'update-status', 'auth-success', 'app-quitting'];
+        if (validChannels.includes(channel)) {
+            ipcRenderer.on(channel, callback);
+        }
+    },
+    
+    removeAllListeners: (channel) => {
+        ipcRenderer.removeAllListeners(channel);
+    },
 });
 
 // LEGACY DUPLICATE BRIDGE (remove to avoid redeclaration errors)

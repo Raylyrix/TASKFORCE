@@ -41,6 +41,101 @@
             background: #f5f5f7;
         }
         
+        /* Tabbed Interface Styles */
+        .tab-container {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e7;
+            padding: 0 30px;
+        }
+        
+        .tab-list {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            border-bottom: 1px solid #e5e5e7;
+        }
+        
+        .tab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            user-select: none;
+            position: relative;
+        }
+        
+        .tab-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .tab-item.active {
+            border-bottom-color: #007AFF;
+            background: #ffffff;
+        }
+        
+        .tab-item .tab-close {
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            background: #e5e5e7;
+            color: #8E8E93;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-item .tab-close:hover {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .add-tab-btn {
+            padding: 12px 16px;
+            background: #f2f2f7;
+            border: 1px dashed #c7c7cc;
+            border-radius: 8px;
+            color: #8E8E93;
+            cursor: pointer;
+            margin: 8px 0;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .add-tab-btn:hover {
+            background: #e5e5e7;
+            border-color: #8E8E93;
+            color: #1d1d1f;
+        }
+        
+        .tab-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .tab-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .tab-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
         .header {
             background: #ffffff;
             padding: 20px 30px;
@@ -338,10 +433,9 @@
                 <button class="btn btn-secondary" id="loginBtn"><i class="fas fa-sign-in-alt"></i>Login</button>
 				<button class="btn btn-secondary" id="importSheetBtn"><i class="fas fa-file-import"></i>Import</button>
 				<button class="btn btn-secondary" id="togglePreviewBtn"><i class="fas fa-table"></i>Preview</button>
-										<button class="btn btn-secondary" id="logsBtn"><i class="fas fa-list"></i>Logs</button>
-						<button class="btn btn-secondary" id="salesqlScraperBtn"><i class="fas fa-database"></i>SalesQL Scraper</button>
-						<button class="btn btn-primary" id="newCampaignWindowBtn"><i class="fas fa-plus"></i>New Campaign Window</button>
-						<button class="btn btn-secondary" id="themeToggle"><i class="fas fa-moon"></i>Theme</button>
+										        <button class="btn btn-secondary" id="logsBtn"><i class="fas fa-list"></i>Logs</button>
+        <button class="btn btn-secondary" id="salesqlScraperBtn"><i class="fas fa-database"></i>SalesQL Scraper</button>
+        <button class="btn btn-secondary" id="themeToggle"><i class="fas fa-moon"></i>Theme</button>
 				<button class="btn btn-secondary" id="helpToolbarBtn"><i class="fas fa-circle-question"></i>Help</button>
 				<div id="helpDropdown" style="display:none; position:absolute; right:0; top:100%; margin-top:8px; background:#ffffff; border:1px solid #e5e5e7; border-radius:8px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); overflow:hidden; min-width:220px;">
 					<button class="btn btn-secondary" id="helpCheckBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Check for Updates</button>
@@ -353,15 +447,32 @@
             </div>
             
 		<div class="main-content" style="width:100%;">
+			<!-- Tabbed Interface -->
+			<div class="tab-container">
+				<ul class="tab-list" id="tabList">
+					<li class="tab-item active" data-tab="tab1">
+						Campaign 1
+						<span class="tab-close" onclick="window.rtxApp.closeTab('tab1')">&times;</span>
+					</li>
+				</ul>
+				<div class="add-tab-btn" onclick="window.rtxApp.addNewTab()">
+					<i class="fas fa-plus"></i>
+					Add New Campaign Tab
+				</div>
+			</div>
+			
 			<div class="content-area" style="padding:16px;">
-				<div class="mailer-interface" style="max-width:unset; width:100%;">
-					<h2 style="margin-bottom: 16px; color: #1d1d1f;">Email Campaign Manager</h2>
-					<div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-						<!-- These buttons now live in the top bar, keeping here for keyboard access if needed -->
-						<button class="btn btn-secondary" id="importSheetBtn" style="display:none;"><i class="fas fa-file-import"></i>Import Spreadsheet</button>
-						<button class="btn btn-secondary" id="togglePreviewBtn" style="display:none;"><i class="fas fa-table"></i>Toggle Data Preview</button>
-						<button class="btn btn-secondary" id="logsBtn" style="display:none;"><i class="fas fa-list"></i>Logs</button>
-            </div>
+				<!-- Tab 1 Content -->
+				<div id="tab1" class="tab-content active">
+					<div class="mailer-interface" style="max-width:unset; width:100%;">
+						<div class="tab-header">
+							<h2 class="tab-title">Email Campaign Manager</h2>
+							<div class="tab-actions">
+								<button class="btn btn-secondary" id="importSheetBtn1"><i class="fas fa-file-import"></i>Import Spreadsheet</button>
+								<button class="btn btn-secondary" id="togglePreviewBtn1"><i class="fas fa-table"></i>Toggle Data Preview</button>
+								<button class="btn btn-secondary" id="logsBtn1"><i class="fas fa-list"></i>Logs</button>
+							</div>
+						</div>
             
 					<!-- Account and From -->
 					<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -540,24 +651,35 @@
                                 <!-- Editor Content Area -->
                                 <div id="emailEditor" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Click any column chip or cell to insert placeholders like ((Name)), ((Company)), etc."></div>
 
-                                <!-- Attachments Section -->
-                                <div class="form-group" style="margin-top: 16px;">
-                                    <label>Attachments</label>
-                                    <div id="campaignAttachments" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa; min-height: 80px;">
-                                        <div style="text-align: center; color: #8E8E93;">
-                                            <i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                                            <p>No attachments selected</p>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                                        <button type="button" class="btn btn-secondary" id="addCampaignAttachmentBtn">
-                                            <i class="fas fa-plus"></i> Add Attachment
-                                        </button>
-                                        <button type="button" class="btn btn-secondary" id="removeAllCampaignAttachmentsBtn">
-                                            <i class="fas fa-trash"></i> Remove All
-                                        </button>
-                                    </div>
-                                </div>
+                                						<!-- Enhanced Attachments Section -->
+						<div class="form-group" style="margin-top: 16px;">
+							<label style="display: flex; align-items: center; gap: 8px;">
+								<span>📎 Attachments (Required by Default)</span>
+								<label style="font-size: 12px; font-weight: normal; color: #8E8E93; margin-left: auto;">
+									<input type="checkbox" id="sendWithoutAttachments" style="margin-right: 4px;">
+									Send without attachments
+								</label>
+							</label>
+							<div id="campaignAttachments" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa; min-height: 80px;">
+								<div style="text-align: center; color: #8E8E93;">
+									<i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
+									<p>No attachments selected</p>
+									<small style="font-size: 11px; color: #c7c7cc;">Attachments are required by default</small>
+								</div>
+							</div>
+							<div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+								<button type="button" class="btn btn-primary" id="addCampaignAttachmentBtn">
+									<i class="fas fa-plus"></i> Add Attachment
+								</button>
+								<button type="button" class="btn btn-secondary" id="removeAllCampaignAttachmentsBtn">
+									<i class="fas fa-trash"></i> Remove All
+								</button>
+								<div style="margin-left: auto; font-size: 12px; color: #8E8E93;">
+									<i class="fas fa-info-circle"></i> 
+									<span id="attachmentStatus">Required</span>
+								</div>
+							</div>
+						</div>
 
                                 <!-- Editor Footer -->
                                 <div style="background:#f8f9fa; border-top:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#5f6368;">
@@ -584,15 +706,7 @@
 							</label>
 							<button class="btn btn-secondary" id="previewEmailBtn"><i class="fas fa-eye"></i>Preview</button>
                             </div>
-						<div class="form-group">
-							<label>Attachments</label>
-							<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-								<button class="btn btn-secondary" id="pickAttachmentsBtn"><i class="fas fa-paperclip"></i>Choose Files</button>
-								<button class="btn btn-danger" id="clearAttachmentsBtn"><i class="fas fa-trash"></i>Clear All</button>
-								<span id="attachmentsLabel" style="color:#8E8E93;">No files selected</span>
-							</div>
-							<div id="attachmentsList" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
-						</div>
+
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
 							<div class="form-group">
 								<label>Batch Size</label>
@@ -677,6 +791,9 @@
                         </div>
                     </div>
                 </div>
+				</div><!-- End tab1 content -->
+			</div><!-- End content-area -->
+		</div><!-- End main-content -->
 
 	<!-- Login Modal -->
 	<div class="modal" id="loginModal">
@@ -945,17 +1062,29 @@
 							<input type="text" id="scrapingFileName" placeholder="salesql_data" style="width: 100%;">
 						</div>
 						
-						<div style="display: flex; gap: 8px; margin-bottom: 16px;">
-							<button class="btn btn-primary" id="startScrapingBtn">
-								<i class="fas fa-play"></i> Start Scraping
-							</button>
-							<button class="btn btn-secondary" id="stopScrapingBtn" disabled>
-								<i class="fas fa-stop"></i> Stop
-							</button>
-							<button class="btn btn-secondary" id="exportScrapedDataBtn" disabled>
-								<i class="fas fa-download"></i> Export CSV
-							</button>
-						</div>
+						                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <button class="btn btn-primary" id="startScrapingBtn">
+                                <i class="fas fa-play"></i> Start Scraping
+                            </button>
+                            <button class="btn btn-secondary" id="stopScrapingBtn" disabled>
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                            <button class="btn btn-secondary" id="exportScrapedDataBtn" disabled>
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <button class="btn btn-secondary" onclick="rtxApp.exportToCSVEnhanced()" id="enhancedExportBtn" disabled>
+                                <i class="fas fa-file-csv"></i> Enhanced CSV
+                            </button>
+                            <button class="btn btn-secondary" onclick="rtxApp.exportToGoogleSheetsEnhanced()" id="enhancedSheetsBtn" disabled>
+                                <i class="fas fa-table"></i> Enhanced Sheets
+                            </button>
+                            <button class="btn btn-secondary" onclick="rtxApp.exportToTaskforceEnhanced()" id="taskforceBtn" disabled>
+                                <i class="fas fa-paper-plane"></i> To Taskforce
+                            </button>
+                        </div>
 						
 						<div id="scrapingStatus" style="padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #e5e5e7;">
 							<strong>Status:</strong> <span id="scrapingStatusText">Ready to scrape</span>
@@ -970,6 +1099,9 @@
 								<div id="scrapingProgressBar" style="height: 100%; background: #007AFF; width: 0%; transition: width 0.3s;"></div>
 							</div>
 						</div>
+						
+						<!-- Instructions Container -->
+						<div id="scraperInstructions" style="margin-top: 16px;"></div>
 					</div>
 					
 					<!-- Right Panel: Data Display -->

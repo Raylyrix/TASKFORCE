@@ -1459,6 +1459,514 @@ ipcMain.handle('signatures-get-default', async () => {
 ipcMain.handle('get-app-version', async () => app.getVersion());
 ipcMain.handle('get-app-name', async () => app.getName());
 
+// Helper function to get Chrome user data directory
+function getChromeUserDataDirectory() {
+    const platform = process.platform;
+    const homeDir = require('os').homedir();
+    
+    switch (platform) {
+        case 'win32':
+            return path.join(homeDir, 'AppData', 'Local', 'Google', 'Chrome', 'User Data');
+        case 'darwin':
+            return path.join(homeDir, 'Library', 'Application Support', 'Google', 'Chrome');
+        case 'linux':
+            return path.join(homeDir, '.config', 'google-chrome');
+        default:
+            return null;
+    }
+}
+
+// SalesQL Scraper IPC handlers
+ipcMain.handle('startScraping', async (e, params) => {
+    try {
+        logEvent('info', 'Starting scraping session', { sessionId: params.sessionId });
+        
+        // Check if Chrome extension is installed
+        const extensionPath = await checkExtensionPath('salesql-scraper');
+        if (!extensionPath) {
+            return { 
+                success: false, 
+                error: 'Chrome extension not found. Please install the SalesQL Scraper extension first.' 
+            };
+        }
+        
+        // Start the scraping process
+        // This will trigger the Chrome extension to begin scraping
+        const scrapingSession = {
+            sessionId: params.sessionId,
+            startTime: Date.now(),
+            status: 'running',
+            progress: 0,
+            data: []
+        };
+        
+        // Store session info
+        store.set(`scraping_session_${params.sessionId}`, scrapingSession);
+        
+        return { 
+            success: true, 
+            message: 'Scraping started. Please use the Chrome extension to scrape data.',
+            sessionId: params.sessionId
+        };
+    } catch (error) {
+        logEvent('error', 'Scraping start failed', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('getScrapingProgress', async (e, sessionId) => {
+    try {
+        // Get actual scraping session data
+        const session = store.get(`scraping_session_${sessionId}`);
+        if (!session) {
+            return { 
+                success: false, 
+                error: 'Scraping session not found' 
+            };
+        }
+        
+        // Check if there's scraped data available
+        const scrapedData = store.get(`scraped_data_${sessionId}`);
+        
+        return {
+            success: true,
+            completed: session.status === 'completed',
+            currentPage: session.progress || 0,
+            totalPages: 100, // This will be updated based on actual data
+            data: scrapedData ? scrapedData.data : [],
+            status: session.status,
+            startTime: session.startTime
+        };
+    } catch (error) {
+        logEvent('error', 'Progress check failed', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('exportToGoogleSheets', async (e, params) => {
+    try {
+        logEvent('info', 'Exporting to Google Sheets', { 
+            sheetUrl: params.sheetUrl, 
+            dataCount: params.data.length 
+        });
+        
+        // Extract sheet ID from URL
+        const sheetIdMatch = params.sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (!sheetIdMatch) {
+            return { 
+                success: false, 
+                error: 'Invalid Google Sheets URL. Please provide a valid Google Sheets URL.' 
+            };
+        }
+        
+        const sheetId = sheetIdMatch[1];
+        
+        // Use Google Sheets API to export data
+        const { google } = require('googleapis');
+        
+        // Get OAuth2 client from stored credentials
+        const oauth2Client = new google.auth.OAuth2(
+            getUpdatedCredentials().client_id,
+            getUpdatedCredentials().client_secret,
+            'http://localhost'
+        );
+        
+        // Set credentials from stored tokens
+        const tokens = store.get('googleToken');
+        if (!tokens) {
+            return { 
+                success: false, 
+                error: 'Google authentication required. Please sign in first.' 
+            };
+        }
+        
+        oauth2Client.setCredentials(tokens);
+        
+        // Create Google Sheets API client
+        const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+        
+        // Prepare data for export - ensure all contact data is on the same row
+        const exportData = params.data.map(contact => [
+            contact.company || '',
+            contact.profile || '',
+            contact.email || '',
+            contact.phone || '',
+            contact.name || '',
+            contact.title || '',
+            contact.linkedin || ''
+        ]);
+        
+        // Add headers
+        const headers = ['Company', 'Profile', 'Email', 'Phone', 'Name', 'Title', 'LinkedIn'];
+        exportData.unshift(headers);
+        
+        // Write data to the sheet
+        const response = await sheets.spreadsheets.values.update({
+            spreadsheetId: sheetId,
+            range: 'A1',
+            valueInputOption: 'RAW',
+            resource: {
+                values: exportData
+            }
+        });
+        
+        logEvent('info', 'Google Sheets export completed', { 
+            rowsAdded: exportData.length - 1,
+            sheetId: sheetId
+        });
+        
+        return { 
+            success: true, 
+            rowsAdded: exportData.length - 1,
+            sheetUrl: params.sheetUrl,
+            sheetId: sheetId
+        };
+    } catch (error) {
+        logEvent('error', 'Google Sheets export failed', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('exportToGoogleSheetsEnhanced', async (e, params) => {
+    try {
+        logEvent('info', 'Enhanced export to Google Sheets', { 
+            sheetUrl: params.sheetUrl, 
+            dataCount: params.data.length,
+            createNewTab: params.createNewTab,
+            tabName: params.tabName
+        });
+        
+        // Extract sheet ID from URL
+        const sheetIdMatch = params.sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (!sheetIdMatch) {
+            return { 
+                success: false, 
+                error: 'Invalid Google Sheets URL. Please provide a valid Google Sheets URL.' 
+            };
+        }
+        
+        const sheetId = sheetIdMatch[1];
+        
+        // Use Google Sheets API to export data
+        const { google } = require('googleapis');
+        
+        // Get OAuth2 client from stored credentials
+        const oauth2Client = new google.auth.OAuth2(
+            getUpdatedCredentials().client_id,
+            getUpdatedCredentials().client_secret,
+            'http://localhost'
+        );
+        
+        // Set credentials from stored tokens
+        const tokens = store.get('googleToken');
+        if (!tokens) {
+            return { 
+                success: false, 
+                error: 'Google authentication required. Please sign in first.' 
+            };
+        }
+        
+        oauth2Client.setCredentials(tokens);
+        
+        // Create Google Sheets API client
+        const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+        
+        // Create new tab if requested
+        let targetSheetId = sheetId;
+        if (params.createNewTab && params.tabName) {
+            try {
+                const addSheetResponse = await sheets.spreadsheets.batchUpdate({
+                    spreadsheetId: sheetId,
+                    resource: {
+                        requests: [{
+                            addSheet: {
+                                properties: {
+                                    title: params.tabName
+                                }
+                            }
+                        }]
+                    }
+                });
+                
+                targetSheetId = addSheetResponse.data.replies[0].addSheet.properties.sheetId;
+                logEvent('info', 'New tab created', { tabName: params.tabName, sheetId: targetSheetId });
+            } catch (error) {
+                logEvent('warning', 'Failed to create new tab, using existing', { error: error.message });
+            }
+        }
+        
+        // Prepare data for export - ensure all contact data is on the same row
+        const exportData = params.data.map(contact => [
+            contact.company || '',
+            contact.profile || '',
+            contact.email || '',
+            contact.phone || '',
+            contact.name || '',
+            contact.title || '',
+            contact.linkedin || '',
+            contact.industry || '',
+            contact.location || '',
+            contact.scrapedAt || new Date().toISOString()
+        ]);
+        
+        // Add headers
+        const headers = ['Company', 'Profile', 'Email', 'Phone', 'Name', 'Title', 'LinkedIn', 'Industry', 'Location', 'Scraped At'];
+        exportData.unshift(headers);
+        
+        // Write data to the sheet
+        const response = await sheets.spreadsheets.values.update({
+            spreadsheetId: sheetId,
+            range: params.createNewTab ? `${params.tabName}!A1` : 'A1',
+            valueInputOption: 'RAW',
+            resource: {
+                values: exportData
+            }
+        });
+        
+        // Apply formatting
+        try {
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId: sheetId,
+                resource: {
+                    requests: [
+                        {
+                            updateDimensionProperties: {
+                                range: {
+                                    sheetId: targetSheetId,
+                                    dimension: 'COLUMNS',
+                                    startIndex: 0,
+                                    endIndex: headers.length
+                                },
+                                properties: {
+                                    pixelSize: 150
+                                },
+                                fields: 'pixelSize'
+                            }
+                        },
+                        {
+                            repeatCell: {
+                                range: {
+                                    sheetId: targetSheetId,
+                                    startRowIndex: 0,
+                                    endRowIndex: 1
+                                },
+                                cell: {
+                                    userEnteredFormat: {
+                                        backgroundColor: { red: 0.2, green: 0.6, blue: 0.9 },
+                                        textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+                                    }
+                                },
+                                fields: 'userEnteredFormat'
+                            }
+                        }
+                    ]
+                }
+            });
+        } catch (formatError) {
+            logEvent('warning', 'Formatting failed, data exported without formatting', { error: formatError.message });
+        }
+        
+        logEvent('info', 'Enhanced Google Sheets export completed', { 
+            rowsAdded: exportData.length - 1,
+            sheetId: sheetId,
+            tabCreated: params.createNewTab
+        });
+        
+        return { 
+            success: true, 
+            rowsAdded: exportData.length - 1,
+            sheetUrl: params.sheetUrl,
+            tabCreated: params.createNewTab,
+            tabName: params.tabName
+        };
+    } catch (error) {
+        logEvent('error', 'Enhanced Google Sheets export failed', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('storeScrapedData', async (e, params) => {
+    try {
+        logEvent('info', 'Storing scraped data', { 
+            sessionId: params.sessionId, 
+            dataCount: params.data.length 
+        });
+        
+        // Store data in app storage for use in campaigns
+        store.set(`scraped_data_${params.sessionId}`, {
+            data: params.data,
+            timestamp: Date.now(),
+            count: params.data.length
+        });
+        
+        return { success: true, contactsStored: params.data.length };
+    } catch (error) {
+        logEvent('error', 'Data storage failed', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('storeScrapedDataEnhanced', async (e, params) => {
+    try {
+        logEvent('info', 'Storing enhanced scraped data', { 
+            sessionId: params.sessionId, 
+            dataCount: params.data.length,
+            metadata: params.metadata
+        });
+        
+        // Store enhanced data with metadata
+        store.set(`scraped_data_enhanced_${params.sessionId}`, {
+            data: params.data,
+            metadata: params.metadata,
+            timestamp: Date.now()
+        });
+        
+        return { success: true, contactsStored: params.data.length };
+    } catch (error) {
+        logEvent('error', 'Enhanced data storage failed', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('checkExtensionPath', async (e, extensionId) => {
+    try {
+        // Check if extension exists in app assets
+        const extensionPath = path.join(__dirname, '..', 'assets', 'extensions', extensionId);
+        if (fs.existsSync(extensionPath)) {
+            return extensionPath;
+        }
+        return null;
+    } catch (error) {
+        logEvent('error', 'Extension path check failed', { error: error.message });
+        return null;
+    }
+});
+
+ipcMain.handle('installChromeExtension', async (e, params) => {
+    try {
+        logEvent('info', 'Installing Chrome extension', { 
+            extensionPath: params.extensionPath, 
+            extensionId: params.extensionId 
+        });
+        
+        // Check if extension exists in app assets
+        const extensionPath = path.join(__dirname, '..', 'assets', 'extensions', params.extensionId);
+        if (!fs.existsSync(extensionPath)) {
+            return { 
+                success: false, 
+                error: 'Extension not found in app assets' 
+            };
+        }
+        
+        // Get Chrome user data directory
+        const chromeUserDataDir = getChromeUserDataDirectory();
+        if (!chromeUserDataDir) {
+            return { 
+                success: false, 
+                error: 'Chrome user data directory not found' 
+            };
+        }
+        
+        // Copy extension to Chrome extensions directory
+        const chromeExtensionsDir = path.join(chromeUserDataDir, 'Extensions');
+        const targetExtensionDir = path.join(chromeExtensionsDir, params.extensionId);
+        
+        // Create extensions directory if it doesn't exist
+        if (!fs.existsSync(chromeExtensionsDir)) {
+            fs.mkdirSync(chromeExtensionsDir, { recursive: true });
+        }
+        
+        // Copy extension files
+        if (fs.existsSync(targetExtensionDir)) {
+            // Remove existing installation
+            fs.rmSync(targetExtensionDir, { recursive: true, force: true });
+        }
+        
+        // Copy extension
+        fs.cpSync(extensionPath, targetExtensionDir, { recursive: true });
+        
+        // Create a simple installation manifest
+        const installManifest = {
+            external_update_url: "https://clients2.google.com/service/update2/crx"
+        };
+        
+        fs.writeFileSync(
+            path.join(chromeExtensionsDir, `${params.extensionId}.json`),
+            JSON.stringify(installManifest, null, 2)
+        );
+        
+        logEvent('info', 'Chrome extension installed successfully', { 
+            extensionId: params.extensionId,
+            targetPath: targetExtensionDir
+        });
+        
+        return { 
+            success: true, 
+            message: 'Extension installed successfully. Please restart Chrome to activate it.',
+            extensionPath: targetExtensionDir
+        };
+    } catch (error) {
+        logEvent('error', 'Extension installation failed', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('getExtensionPath', async (e, extensionId) => {
+    try {
+        // Get extension path from app assets
+        const extensionPath = path.join(__dirname, '..', 'assets', 'extensions', extensionId);
+        if (fs.existsSync(extensionPath)) {
+            return extensionPath;
+        }
+        return null;
+    } catch (error) {
+        logEvent('error', 'Get extension path failed', { error: error.message });
+        return null;
+    }
+});
+
+// IPC handler to receive scraped data from Chrome extension
+ipcMain.handle('receiveScrapedData', async (e, params) => {
+    try {
+        logEvent('info', 'Received scraped data from extension', { 
+            sessionId: params.sessionId, 
+            dataCount: params.data.length 
+        });
+        
+        // Store the scraped data
+        store.set(`scraped_data_${params.sessionId}`, {
+            data: params.data,
+            timestamp: Date.now(),
+            count: params.data.length,
+            metadata: params.metadata || {}
+        });
+        
+        // Update session status
+        const session = store.get(`scraping_session_${params.sessionId}`) || {};
+        session.status = 'completed';
+        session.progress = 100;
+        session.completedAt = Date.now();
+        store.set(`scraping_session_${params.sessionId}`, session);
+        
+        // Notify renderer process
+        if (mainWindow && mainWindow.webContents) {
+            mainWindow.webContents.send('scraping-completed', {
+                sessionId: params.sessionId,
+                dataCount: params.data.length
+            });
+        }
+        
+        return { 
+            success: true, 
+            message: 'Data received and stored successfully',
+            contactsStored: params.data.length
+        };
+    } catch (error) {
+        logEvent('error', 'Failed to receive scraped data', { error: error.message });
+        return { success: false, error: error.message };
+    }
+});
+
 // Generate unique app identifier for macOS signature
 function getAppIdentifier() {
 	const id = store.get('appIdentifier');

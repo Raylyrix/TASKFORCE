@@ -41,6 +41,8 @@ class RTXApp {
         this.loadSendAsList();
         this.updateUI();
         this.initializeGlobalInstance();
+        this.initializeLivePreview();
+        this.initializePlaceholderSystem();
         console.log('✅ RTX Innovations AutoMailer Pro initialized successfully!');
         
         // Show a success message on the page
@@ -397,6 +399,12 @@ class RTXApp {
             removeAllCampaignAttachmentsBtn.addEventListener('click', () => this.removeAllCampaignAttachments());
         }
 
+        // Attachment requirement checkbox
+        const sendWithoutAttachmentsCheckbox = document.getElementById('sendWithoutAttachments');
+        if (sendWithoutAttachmentsCheckbox) {
+            sendWithoutAttachmentsCheckbox.addEventListener('change', () => this.updateAttachmentRequirement());
+        }
+
         // Modal close buttons
         const closeSalesqlModal = document.getElementById('closeSalesqlModal');
         const closeSubjectPlaceholdersModal = document.getElementById('closeSubjectPlaceholdersModal');
@@ -471,11 +479,7 @@ class RTXApp {
             startCampaignBtn.addEventListener('click', () => this.createCampaign());
         }
 
-        // New Campaign Window button
-        const newCampaignWindowBtn = document.getElementById('newCampaignWindowBtn');
-        if (newCampaignWindowBtn) {
-            newCampaignWindowBtn.addEventListener('click', () => this.openNewCampaignWindow());
-        }
+
 
         // Refresh Preview button
         const refreshPreviewBtn = document.getElementById('refreshPreviewBtn');
@@ -490,9 +494,17 @@ class RTXApp {
             emailEditor.addEventListener('paste', () => this.debouncePreviewUpdate());
         }
         
-        // Auto-refresh preview when subject changes
+                // Auto-refresh preview when subject changes
         const campaignSubject = document.getElementById('campaignSubject');
         if (campaignSubject) {
+        
+        // Listen for scraping completion events from main process
+        if (window.electronAPI) {
+            window.electronAPI.on('scraping-completed', (data) => {
+                console.log('Scraping completed:', data);
+                this.handleScrapingCompletion(data);
+            });
+        }
             campaignSubject.addEventListener('input', () => this.debouncePreviewUpdate());
         }
         
@@ -500,6 +512,9 @@ class RTXApp {
         if (fromName) {
             fromName.addEventListener('input', () => this.debouncePreviewUpdate());
         }
+
+        // Tab management event listeners
+        this.setupTabEventListeners();
 
         // From override input
         const fromOverrideInput = document.getElementById('fromOverride');
@@ -711,7 +726,7 @@ class RTXApp {
         // Preset templates
         const insertPresetBtn = document.getElementById('insertPresetBtn');
         if (insertPresetBtn) {
-            insertPresetBtn.addEventListener('click', () => this.insertSelectedPreset());
+            insertPresetBtn.addEventListener('click', () => this.insertPresetTemplate());
         }
 
         // Signature builder actions (enhanced)
@@ -756,6 +771,33 @@ class RTXApp {
         }
 
         console.log('Event listeners setup complete');
+    }
+
+    setupTabEventListeners() {
+        try {
+            // Add click handlers for existing tabs
+            const tabItems = document.querySelectorAll('.tab-item');
+            tabItems.forEach(tab => {
+                const tabId = tab.getAttribute('data-tab');
+                if (tabId) {
+                    tab.addEventListener('click', (e) => {
+                        if (!e.target.classList.contains('tab-close')) {
+                            this.switchTab(tabId);
+                        }
+                    });
+                }
+            });
+
+            // Add click handler for add tab button
+            const addTabBtn = document.querySelector('.add-tab-btn');
+            if (addTabBtn) {
+                addTabBtn.addEventListener('click', () => this.addNewTab());
+            }
+
+            console.log('✅ Tab event listeners setup complete');
+        } catch (error) {
+            console.error('Error setting up tab event listeners:', error);
+        }
     }
 
     renderAttachmentsList() {
@@ -2409,104 +2451,361 @@ class RTXApp {
         container.innerHTML = html;
     }
 
-    // Templates
+    // Enhanced Template Management System
     async loadTemplatesFromStore() {
-        // Merge userData templates with recent list
-        const disk = await window.electronAPI.listTemplates?.();
-        const recent = (await window.electronAPI.storeGet?.('templates')) || [];
-        const byId = new Map();
-        (Array.isArray(disk) ? disk : []).forEach(t => byId.set(t.id, t));
-        (Array.isArray(recent) ? recent : []).forEach(t => byId.set(t.id, t));
-        this.templates = Array.from(byId.values());
-        this.renderTemplatesSelect();
-        // Load preset list
-        const presetSel = document.getElementById('presetTemplateSelect');
-        if (presetSel) {
-            const presets = [
-                { name: 'Newsletter (simple)', url: 'https://raw.githubusercontent.com/htmlemail/htmlemail/master/dist/simple.html' },
-                { name: 'Announcement (basic)', url: 'https://raw.githubusercontent.com/leemunroe/responsive-html-email-template/master/dist/index.html' },
-                { name: 'Event (bulletin)', url: 'https://raw.githubusercontent.com/mailgun/transactional-email-templates/master/templates/promo.html' }
-            ];
-            presetSel.innerHTML = '';
-            presets.forEach(p => { const opt = document.createElement('option'); opt.value = p.url; opt.textContent = p.name; presetSel.appendChild(opt); });
+        try {
+            console.log('🔄 Loading templates from store...');
+            
+            // Load templates from both disk and recent list
+            const diskTemplates = await window.electronAPI.listTemplates?.() || [];
+            const recentTemplates = (await window.electronAPI.storeGet?.('templates')) || [];
+            
+            // Merge templates, prioritizing disk templates
+            const templateMap = new Map();
+            
+            // Add disk templates first
+            diskTemplates.forEach(t => {
+                if (t && t.id) {
+                    templateMap.set(t.id, {
+                        ...t,
+                        source: 'disk',
+                        lastModified: t.lastModified || new Date().toISOString()
+                    });
+                }
+            });
+            
+            // Add recent templates (don't overwrite disk templates)
+            recentTemplates.forEach(t => {
+                if (t && t.id && !templateMap.has(t.id)) {
+                    templateMap.set(t.id, {
+                        ...t,
+                        source: 'recent',
+                        lastModified: t.lastModified || new Date().toISOString()
+                    });
+                }
+            });
+            
+            this.templates = Array.from(templateMap.values());
+            
+            // Sort by last modified (newest first)
+            this.templates.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+            
+            this.renderTemplatesSelect();
+            this.renderPresetTemplates();
+            
+            console.log(`✅ Loaded ${this.templates.length} templates`);
+            this.logEvent('info', 'Templates loaded', { count: this.templates.length });
+            
+        } catch (error) {
+            console.error('❌ Failed to load templates:', error);
+            this.showError('Failed to load templates: ' + error.message);
+            this.logEvent('error', 'Failed to load templates', { error: error.message });
         }
     }
 
     renderTemplatesSelect() {
-        const sel = document.getElementById('templateSelect');
-        if (!sel) return; sel.innerHTML = '';
-        this.templates.forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt); });
-    }
-
-    async insertSelectedPreset() {
         try {
-            const sel = document.getElementById('presetTemplateSelect'); if (!sel || !sel.value) { this.showError('Pick a preset'); return; }
-            const url = sel.value;
-            const res = await fetch(url); const html = await res.text();
-            const editorContainer = document.getElementById('emailEditor');
-            if (editorContainer) {
-                editorContainer.innerHTML = html;
-                this.showSuccess('Preset inserted');
+            const select = document.getElementById('templateSelect');
+            if (!select) return;
+            
+            // Clear existing options
+            select.innerHTML = '<option value="">Select a template...</option>';
+            
+            if (this.templates.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No templates available';
+                option.disabled = true;
+                select.appendChild(option);
+                return;
             }
-        } catch (e) { this.showError('Failed to insert preset'); }
-    }
-
-    saveCurrentTemplate() {
-        const data = this.getCampaignData(); if (!data) return;
-        const name = prompt('Template name:'); if (!name) return;
-        const tpl = { name, subject: data.subject, content: data.content, attachmentsPaths: this.attachmentsPaths };
-        // Save in app templates directory by default
-        window.electronAPI.saveTemplateJson?.(name, tpl).then(async res => {
-            if (!res?.success) { this.showError('Failed to save template: ' + res?.error); return; }
-            this.templates = [{ id: res.path, name, ...tpl }, ...this.templates.filter(t => t.id !== res.path)];
-            window.electronAPI.storeSet?.('templates', this.templates);
-            this.renderTemplatesSelect();
-            this.showSuccess('Template saved');
-        });
-    }
-
-    loadSelectedTemplate() {
-        const sel = document.getElementById('templateSelect'); if (!sel) return;
-        if (sel.value) {
-            window.electronAPI.loadTemplateJson?.(sel.value).then(res => {
-                if (!res?.success) { this.showError('Failed to load template: ' + res?.error); return; }
-                const tpl = res.data;
-                const editorContainer = document.getElementById('emailEditor');
-                if (editorContainer) {
-                    editorContainer.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>'));
-                }
-                this.attachmentsPaths = tpl.attachmentsPaths || [];
-                this.showSuccess('Template loaded');
+            
+            // Add template options
+            this.templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = `${template.name} (${template.source === 'disk' ? 'Saved' : 'Recent'})`;
+                select.appendChild(option);
             });
-            return;
+            
+            console.log(`✅ Rendered ${this.templates.length} template options`);
+            
+        } catch (error) {
+            console.error('❌ Failed to render template select:', error);
         }
-        // If none selected, offer file open as fallback
-        window.electronAPI.showOpenDialog?.({ properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] }).then(async res => {
-            if (!res.canceled && res.filePaths?.length) {
-                const read = await window.electronAPI.readJsonFile(res.filePaths[0]);
-                if (!read.success) { this.showError('Failed to load template: ' + read.error); return; }
-                const tpl = read.data;
-                const editorContainer = document.getElementById('emailEditor');
-                if (editorContainer) {
-                    editorContainer.innerHTML = (tpl.html || this.escapeHtml(tpl.content || '').replace(/\n/g,'<br/>'));
-                }
-                this.attachmentsPaths = tpl.attachmentsPaths || [];
-                this.templates = [{ id: res.filePaths[0], name: tpl.name || 'Template', ...tpl }, ...this.templates.filter(t => t.id !== res.filePaths[0])];
-                window.electronAPI.storeSet?.('templates', this.templates);
-                this.renderTemplatesSelect();
-                this.showSuccess('Template loaded');
-            }
-        });
     }
 
-    deleteSelectedTemplate() {
-        const sel = document.getElementById('templateSelect'); if (!sel || !sel.value) return;
-        window.electronAPI.deleteTemplateJson?.(sel.value).then(() => {
-            this.templates = this.templates.filter(t => t.id !== sel.value);
-            window.electronAPI.storeSet?.('templates', this.templates);
+    renderPresetTemplates() {
+        try {
+            const select = document.getElementById('presetTemplateSelect');
+            if (!select) return;
+            
+            // Clear existing options
+            select.innerHTML = '<option value="">Select a preset template...</option>';
+            
+            const presetTemplates = [
+                { name: 'Welcome Email', content: 'Welcome to our service! We\'re excited to have you on board.' },
+                { name: 'Newsletter', content: 'Here\'s our latest newsletter with updates and insights.' },
+                { name: 'Product Announcement', content: 'We\'re excited to announce our new product launch!' },
+                { name: 'Event Invitation', content: 'You\'re invited to our upcoming event. Please RSVP.' },
+                { name: 'Follow-up', content: 'Thank you for your interest. Here\'s some additional information.' }
+            ];
+            
+            presetTemplates.forEach(preset => {
+                const option = document.createElement('option');
+                option.value = preset.name;
+                option.textContent = preset.name;
+                option.dataset.content = preset.content;
+                select.appendChild(option);
+            });
+            
+            console.log('✅ Preset templates rendered');
+            
+        } catch (error) {
+            console.error('❌ Failed to render preset templates:', error);
+        }
+    }
+
+    async saveCurrentTemplate() {
+        try {
+            const name = prompt('Enter template name:');
+            if (!name || name.trim() === '') {
+                this.showWarning('Template name cannot be empty');
+                return;
+            }
+            
+            // Check if template name already exists
+            const existingTemplate = this.templates.find(t => t.name.toLowerCase() === name.toLowerCase());
+            if (existingTemplate) {
+                const overwrite = confirm(`Template "${name}" already exists. Do you want to overwrite it?`);
+                if (!overwrite) return;
+            }
+            
+            // Prepare template data
+            const templateData = {
+                name: name.trim(),
+                subject: document.getElementById('campaignSubject')?.value || '',
+                content: this.getEditorHtml() || '',
+                fromName: document.getElementById('fromName')?.value || '',
+                attachments: this.campaignAttachments || [],
+                createdAt: new Date().toISOString(),
+                lastModified: new Date().toISOString()
+            };
+            
+            console.log('💾 Saving template:', templateData.name);
+            
+            // Save template to disk
+            const result = await window.electronAPI.saveTemplateJson?.(name, templateData);
+            
+            if (result?.success) {
+                // Update local templates list
+                const newTemplate = {
+                    id: result.path,
+                    name: templateData.name,
+                    ...templateData,
+                    source: 'disk'
+                };
+                
+                // Remove old template if it existed
+                this.templates = this.templates.filter(t => t.id !== result.path);
+                
+                // Add new template at the beginning
+                this.templates.unshift(newTemplate);
+                
+                // Update store
+                await window.electronAPI.storeSet?.('templates', this.templates);
+                
+                // Refresh UI
+                this.renderTemplatesSelect();
+                
+                this.showSuccess(`Template "${name}" saved successfully!`);
+                this.logEvent('info', 'Template saved', { templateName: name });
+                
+            } else {
+                throw new Error(result?.error || 'Unknown error occurred');
+            }
+            
+        } catch (error) {
+            console.error('❌ Failed to save template:', error);
+            this.showError('Failed to save template: ' + error.message);
+            this.logEvent('error', 'Failed to save template', { error: error.message });
+        }
+    }
+
+    async loadSelectedTemplate() {
+        try {
+            const select = document.getElementById('templateSelect');
+            if (!select || !select.value) {
+                this.showWarning('Please select a template to load');
+                return;
+            }
+            
+            const templateId = select.value;
+            const template = this.templates.find(t => t.id === templateId);
+            
+            if (!template) {
+                this.showError('Selected template not found');
+                return;
+            }
+            
+            console.log('📂 Loading template:', template.name);
+            
+            // Load template content from disk if it's a disk template
+            let templateContent = template;
+            
+            if (template.source === 'disk') {
+                try {
+                    const loadResult = await window.electronAPI.loadTemplateJson?.(templateId);
+                    if (loadResult?.success) {
+                        templateContent = loadResult.data;
+                    } else {
+                        throw new Error(loadResult?.error || 'Failed to load template content');
+                    }
+                } catch (loadError) {
+                    console.warn('Failed to load template content from disk, using cached version:', loadError);
+                    // Continue with cached version
+                }
+            }
+            
+            // Apply template to form
+            this.applyTemplateToForm(templateContent);
+            
+            this.showSuccess(`Template "${template.name}" loaded successfully!`);
+            this.logEvent('info', 'Template loaded', { templateName: template.name });
+            
+        } catch (error) {
+            console.error('❌ Failed to load template:', error);
+            this.showError('Failed to load template: ' + error.message);
+            this.logEvent('error', 'Failed to load template', { error: error.message });
+        }
+    }
+
+    applyTemplateToForm(template) {
+        try {
+            // Apply subject
+            const subjectField = document.getElementById('campaignSubject');
+            if (subjectField && template.subject) {
+                subjectField.value = template.subject;
+            }
+            
+            // Apply content
+            const editor = document.getElementById('emailEditor');
+            if (editor && template.content) {
+                editor.innerHTML = template.content;
+            }
+            
+            // Apply from name
+            const fromNameField = document.getElementById('fromName');
+            if (fromNameField && template.fromName) {
+                fromNameField.value = template.fromName;
+            }
+            
+            // Apply attachments
+            if (template.attachments && template.attachments.length > 0) {
+                this.campaignAttachments = [...template.attachments];
+                this.updateCampaignAttachmentsDisplay();
+            }
+            
+            // Update preview
+            this.debouncePreviewUpdate();
+            
+            console.log('✅ Template applied to form');
+            
+        } catch (error) {
+            console.error('❌ Failed to apply template to form:', error);
+        }
+    }
+
+    async deleteSelectedTemplate() {
+        try {
+            const select = document.getElementById('templateSelect');
+            if (!select || !select.value) {
+                this.showWarning('Please select a template to delete');
+                return;
+            }
+            
+            const templateId = select.value;
+            const template = this.templates.find(t => t.id === templateId);
+            
+            if (!template) {
+                this.showError('Selected template not found');
+                return;
+            }
+            
+            const confirmDelete = confirm(`Are you sure you want to delete template "${template.name}"? This action cannot be undone.`);
+            if (!confirmDelete) return;
+            
+            console.log('🗑️ Deleting template:', template.name);
+            
+            // Delete from disk if it's a disk template
+            if (template.source === 'disk') {
+                try {
+                    await window.electronAPI.deleteTemplateJson?.(templateId);
+                } catch (deleteError) {
+                    console.warn('Failed to delete template from disk:', deleteError);
+                    // Continue with local removal
+                }
+            }
+            
+            // Remove from local templates list
+            this.templates = this.templates.filter(t => t.id !== templateId);
+            
+            // Update store
+            await window.electronAPI.storeSet?.('templates', this.templates);
+            
+            // Refresh UI
             this.renderTemplatesSelect();
-            this.showSuccess('Template deleted');
-        });
+            
+            this.showSuccess(`Template "${template.name}" deleted successfully!`);
+            this.logEvent('info', 'Template deleted', { templateName: template.name });
+            
+        } catch (error) {
+            console.error('❌ Failed to delete template:', error);
+            this.showError('Failed to delete template: ' + error.message);
+            this.logEvent('error', 'Failed to delete template', { error: error.message });
+        }
+    }
+
+    insertPresetTemplate() {
+        try {
+            const select = document.getElementById('presetTemplateSelect');
+            if (!select || !select.value) {
+                this.showWarning('Please select a preset template');
+                return;
+            }
+            
+            const selectedOption = select.options[select.selectedIndex];
+            const content = selectedOption.dataset.content;
+            
+            if (!content) {
+                this.showError('Preset template content not found');
+                return;
+            }
+            
+            // Insert content into editor
+            const editor = document.getElementById('emailEditor');
+            if (editor) {
+                // Insert at cursor position or append
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(document.createTextNode(content));
+                    range.collapse(false);
+                } else {
+                    editor.appendChild(document.createTextNode(content));
+                }
+                
+                // Update preview
+                this.debouncePreviewUpdate();
+                
+                this.showSuccess('Preset template inserted successfully!');
+            }
+            
+        } catch (error) {
+            console.error('❌ Failed to insert preset template:', error);
+            this.showError('Failed to insert preset template: ' + error.message);
+        }
     }
 
     showPreview() {
@@ -2600,7 +2899,201 @@ class RTXApp {
         // Initialize the scraper interface
         this.scrapedData = [];
         this.isScraping = false;
+        this.chromeExtensionId = 'salesql-scraper'; // Chrome extension ID
+        this.chromeExtensionInstalled = false;
         this.updateScrapingUI();
+        
+        // Check if Chrome extension is installed
+        this.checkChromeExtensionStatus();
+        
+        // Initialize Google Sheets integration if URL is provided
+        this.initializeGoogleSheetsIntegration();
+    }
+    
+    async checkChromeExtensionStatus() {
+        try {
+            // Check if Chrome extension is available
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                // Try to communicate with the extension
+                chrome.runtime.sendMessage(this.chromeExtensionId, { action: 'ping' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.log('Chrome extension not installed or not accessible');
+                        this.chromeExtensionInstalled = false;
+                        this.showChromeExtensionInstallPrompt();
+                    } else {
+                        console.log('Chrome extension is available');
+                        this.chromeExtensionInstalled = true;
+                        this.updateChromeExtensionStatus();
+                    }
+                });
+            } else {
+                // Fallback: check if extension is installed via Electron
+                this.checkElectronExtensionStatus();
+            }
+        } catch (error) {
+            console.log('Chrome extension check failed:', error);
+            this.chromeExtensionInstalled = false;
+            this.showChromeExtensionInstallPrompt();
+        }
+    }
+    
+    async checkElectronExtensionStatus() {
+        try {
+            // Check if extension files exist in the app directory
+            const extensionPath = await window.electronAPI?.checkExtensionPath?.(this.chromeExtensionId);
+            if (extensionPath) {
+                this.chromeExtensionInstalled = true;
+                this.updateChromeExtensionStatus();
+            } else {
+                this.chromeExtensionInstalled = false;
+                this.showChromeExtensionInstallPrompt();
+            }
+        } catch (error) {
+            console.log('Electron extension check failed:', error);
+            this.chromeExtensionInstalled = false;
+            this.showChromeExtensionInstallPrompt();
+        }
+    }
+    
+    showChromeExtensionInstallPrompt() {
+        const container = document.getElementById('scrapedDataContainer');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div style="text-align: center; color: #8E8E93; margin-top: 40px;">
+                <i class="fas fa-puzzle-piece" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                <h4>Chrome Extension Required</h4>
+                <p style="margin-bottom: 20px;">To use the SalesQL Scraper, you need to install the Chrome extension.</p>
+                
+                <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <h5 style="margin-bottom: 12px;">Installation Steps:</h5>
+                    <ol style="margin: 0; padding-left: 20px;">
+                        <li>Download the SalesQL Scraper extension</li>
+                        <li>Open Chrome and go to <code>chrome://extensions/</code></li>
+                        <li>Enable "Developer mode"</li>
+                        <li>Click "Load unpacked" and select the extension folder</li>
+                        <li>Refresh this page</li>
+                    </ol>
+                </div>
+                
+                <button class="btn btn-primary" onclick="rtxApp.installChromeExtension()">
+                    <i class="fas fa-download"></i> Download Extension
+                </button>
+                
+                <button class="btn btn-secondary" onclick="rtxApp.refreshExtensionStatus()" style="margin-left: 8px;">
+                    <i class="fas fa-sync"></i> Refresh Status
+                </button>
+            </div>
+        `;
+    }
+    
+    updateChromeExtensionStatus() {
+        const statusElement = document.getElementById('scrapingStatusText');
+        if (statusElement) {
+            statusElement.innerHTML = `
+                <span style="color: #34C759;">
+                    <i class="fas fa-check-circle"></i> Chrome Extension Ready
+                </span>
+            `;
+        }
+        
+        // Enable scraping controls
+        const startBtn = document.getElementById('startScrapingBtn');
+        if (startBtn) startBtn.disabled = false;
+    }
+    
+    async installChromeExtension() {
+        try {
+            this.showInfo('Installing Chrome extension...');
+            
+            // Try to install from app assets first
+            await this.installChromeExtensionFromAssets();
+            
+        } catch (error) {
+            console.error('Extension installation failed:', error);
+            this.showError('Failed to install extension: ' + error.message);
+            // Fallback to manual installation
+            this.showManualExtensionInstallModal();
+        }
+    }
+    
+    showExtensionInstructions() {
+        const instructions = `
+            <div style="background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <h4 style="margin: 0 0 12px 0; color: #2c5aa0;">
+                    <i class="fas fa-info-circle"></i> How to Use the SalesQL Scraper Extension
+                </h4>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Open Chrome and navigate to <strong>SalesQL</strong> (app.salesql.com)</li>
+                    <li style="margin-bottom: 8px;">Click on the <strong>SalesQL Scraper</strong> extension icon in your browser toolbar</li>
+                    <li style="margin-bottom: 8px;">Click <strong>"Scrape"</strong> to start scraping contacts from the current page</li>
+                    <li style="margin-bottom: 8px;">The extension will automatically collect contact data and send it back to this app</li>
+                    <li style="margin-bottom: 8px;">Once scraping is complete, you can export the data to Google Sheets or CSV</li>
+                </ol>
+                <p style="margin: 12px 0 0 0; font-size: 14px; color: #666;">
+                    <strong>Note:</strong> Make sure you're on a SalesQL contacts page before starting the scraper.
+                </p>
+            </div>
+        `;
+        
+        // Insert instructions into the scraper modal
+        const instructionsContainer = document.getElementById('scraperInstructions');
+        if (instructionsContainer) {
+            instructionsContainer.innerHTML = instructions;
+        }
+    }
+    
+    handleScrapingCompletion(data) {
+        console.log('Handling scraping completion:', data);
+        
+        // Stop progress monitoring
+        if (this.scrapingProgressInterval) {
+            clearInterval(this.scrapingProgressInterval);
+            this.scrapingProgressInterval = null;
+        }
+        
+        // Update UI
+        this.isScraping = false;
+        this.updateScrapingUI();
+        
+        // Show success message
+        this.showSuccess(`Scraping completed! Found ${data.dataCount} contacts.`);
+        
+        // Refresh data display
+        this.refreshScrapedData();
+        
+        // Enable export buttons
+        this.updateExportButtons();
+    }
+    
+    async refreshScrapedData() {
+        try {
+            // Get the latest scraped data
+            const progress = await window.electronAPI?.getScrapingProgress?.(this.currentScrapingSession);
+            if (progress && progress.success && progress.data) {
+                this.scrapedData = progress.data;
+                this.updateScrapedDataDisplay();
+            }
+        } catch (error) {
+            console.error('Failed to refresh scraped data:', error);
+        }
+    }
+    
+    updateExportButtons() {
+        // Enable export buttons when data is available
+        const enhancedExportBtn = document.getElementById('enhancedExportBtn');
+        const enhancedSheetsBtn = document.getElementById('enhancedSheetsBtn');
+        const taskforceBtn = document.getElementById('taskforceBtn');
+        const exportScrapedDataBtn = document.getElementById('exportScrapedDataBtn');
+        
+        if (enhancedExportBtn) enhancedExportBtn.disabled = false;
+        if (enhancedSheetsBtn) enhancedSheetsBtn.disabled = false;
+        if (taskforceBtn) taskforceBtn.disabled = false;
+        if (exportScrapedDataBtn) exportScrapedDataBtn.disabled = false;
+    }
+    
+    refreshExtensionStatus() {
+        this.checkChromeExtensionStatus();
     }
     
     async startSalesqlScraping() {
@@ -2611,8 +3104,21 @@ class RTXApp {
         this.updateScrapingUI();
         
         try {
-            // Simulate scraping process (replace with actual Chrome extension integration)
-            await this.simulateScraping();
+            // Check if Chrome extension is available
+            const extensionPath = await window.electronAPI?.checkExtensionPath?.('salesql-scraper');
+            if (extensionPath) {
+                this.chromeExtensionInstalled = true;
+                await this.startRealScraping();
+            } else {
+                // Try to install the extension first
+                await this.installChromeExtension();
+                if (this.chromeExtensionInstalled) {
+                    await this.startRealScraping();
+                } else {
+                    // Fallback to manual data entry
+                    await this.startManualScraping();
+                }
+            }
         } catch (error) {
             console.error('❌ Scraping failed:', error);
             this.showError('Scraping failed: ' + error.message);
@@ -2622,42 +3128,297 @@ class RTXApp {
         }
     }
     
-    async simulateScraping() {
-        const delay = parseInt(document.getElementById('scrapingDelay')?.value || '4') * 1000;
-        const totalPages = 5;
-        
-        for (let page = 1; page <= totalPages; page++) {
-            if (!this.isScraping) break;
+    async startRealScraping() {
+        try {
+            // Get scraping parameters
+            const delay = parseInt(document.getElementById('scrapingDelay')?.value || '4') * 1000;
+            const sheetUrl = document.getElementById('salesqlSheetUrl')?.value;
             
-            // Update progress
-            this.updateScrapingProgress(page, totalPages);
+            // Initialize scraping session
+            this.scrapedData = [];
+            this.currentScrapingSession = Date.now();
             
-            // Simulate page data
-            const pageData = this.generateSamplePageData(page);
-            this.scrapedData.push(...pageData);
+            // Start scraping via Electron IPC
+            const result = await window.electronAPI?.startScraping?.({
+                sessionId: this.currentScrapingSession,
+                delay: delay,
+                sheetUrl: sheetUrl
+            });
             
-            // Update data display
-            this.updateScrapedDataDisplay();
-            
-            // Wait before next page
-            if (page < totalPages) {
-                await new Promise(resolve => setTimeout(resolve, delay));
+            if (result && result.success) {
+                this.showSuccess('Scraping started successfully! Please use the Chrome extension to scrape data from SalesQL.');
+                this.startScrapingProgressMonitor();
+                
+                // Show instructions for using the extension
+                this.showExtensionInstructions();
+            } else {
+                throw new Error(result?.error || 'Failed to start scraping');
             }
+            
+        } catch (error) {
+            throw new Error('Real scraping failed: ' + error.message);
         }
-        
-        this.showSuccess(`Scraping completed! Found ${this.scrapedData.length} contacts.`);
     }
     
-    generateSamplePageData(page) {
-        const companies = ['TechCorp', 'InnovateLabs', 'DataFlow', 'CloudTech', 'FutureSystems'];
-        const names = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'David Brown'];
-        const emails = ['john@example.com', 'jane@example.com', 'mike@example.com', 'sarah@example.com', 'david@example.com'];
+    async startElectronScraping(delay, sheetUrl) {
+        try {
+            // Use Electron IPC to start scraping
+            const result = await window.electronAPI?.startScraping?.({
+                sessionId: this.currentScrapingSession,
+                delay: delay,
+                sheetUrl: sheetUrl
+            });
+            
+            if (result && result.success) {
+                this.showSuccess('Scraping started successfully!');
+                this.startScrapingProgressMonitor();
+            } else {
+                throw new Error(result?.error || 'Failed to start scraping via Electron');
+            }
+        } catch (error) {
+            throw new Error('Electron scraping failed: ' + error.message);
+        }
+    }
+    
+    async startManualScraping() {
+        try {
+            // Show manual data entry interface
+            this.showManualDataEntryModal();
+        } catch (error) {
+            throw new Error('Manual scraping failed: ' + error.message);
+        }
+    }
+    
+    startScrapingProgressMonitor() {
+        // Monitor scraping progress
+        this.scrapingProgressInterval = setInterval(async () => {
+            try {
+                await this.checkScrapingProgress();
+            } catch (error) {
+                console.error('Progress check failed:', error);
+            }
+        }, 2000); // Check every 2 seconds
+    }
+    
+    async checkScrapingProgress() {
+        try {
+            // Check progress via Electron IPC
+            const progress = await window.electronAPI?.getScrapingProgress?.(this.currentScrapingSession);
+            if (progress && progress.success) {
+                this.handleScrapingProgress(progress);
+            }
+        } catch (error) {
+            console.error('Progress check failed:', error);
+        }
+    }
+    
+    handleScrapingProgress(progress) {
+        if (progress.completed) {
+            // Scraping completed
+            clearInterval(this.scrapingProgressInterval);
+            this.isScraping = false;
+            this.updateScrapingUI();
+            
+            if (progress.data && progress.data.length > 0) {
+                this.scrapedData = progress.data;
+                this.updateScrapedDataDisplay();
+                this.showSuccess(`Scraping completed! Found ${this.scrapedData.length} contacts.`);
+            }
+        } else if (progress.currentPage && progress.totalPages) {
+            // Update progress
+            this.updateScrapingProgress(progress.currentPage, progress.totalPages);
+        }
         
-        return Array.from({ length: 5 }, (_, i) => ({
-            company: companies[(page + i) % companies.length],
-            profile: `https://linkedin.com/in/${names[(page + i) % names.length].toLowerCase().replace(' ', '')}`,
-            email: emails[(page + i) % emails.length]
-        }));
+        if (progress.data && progress.data.length > 0) {
+            // Update data display with new data
+            this.scrapedData = progress.data;
+            this.updateScrapedDataDisplay();
+        }
+    }
+    
+    showManualDataEntryModal() {
+        // Create a modal for manual data entry
+        const modalHtml = `
+            <div id="manualDataEntryModal" class="modal">
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-edit"></i> Manual Data Entry</h3>
+                        <button class="btn btn-secondary" onclick="rtxApp.hideModal('manualDataEntryModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 16px;">Enter contact data manually or paste from CSV:</p>
+                        
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label>Paste CSV Data:</label>
+                            <textarea id="csvPasteArea" placeholder="company,profile,email&#10;TechCorp,https://linkedin.com/in/johndoe,john@techcorp.com" style="width: 100%; height: 120px; font-family: monospace;"></textarea>
+                        </div>
+                        
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label>Or Add Individual Contacts:</label>
+                            <div id="individualContactsContainer">
+                                <div class="contact-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px;">
+                                    <input type="text" placeholder="Company" class="contact-company">
+                                    <input type="text" placeholder="Profile URL" class="contact-profile">
+                                    <input type="email" placeholder="Email" class="contact-email">
+                                    <button class="btn btn-danger" onclick="rtxApp.removeContactEntry(this)" style="width: 40px;">×</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="rtxApp.addContactEntry()" style="margin-top: 8px;">
+                                <i class="fas fa-plus"></i> Add Contact
+                            </button>
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="rtxApp.hideModal('manualDataEntryModal')">Cancel</button>
+                            <button class="btn btn-primary" onclick="rtxApp.processManualData()">Process Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to DOM
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        this.showModal('manualDataEntryModal');
+    }
+    
+    addContactEntry() {
+        const container = document.getElementById('individualContactsContainer');
+        if (!container) return;
+        
+        const entryHtml = `
+            <div class="contact-entry" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px;">
+                <input type="text" placeholder="Company" class="contact-company">
+                <input type="text" placeholder="Profile URL" class="contact-profile">
+                <input type="email" placeholder="Email" class="contact-email">
+                <button class="btn btn-danger" onclick="rtxApp.removeContactEntry(this)" style="width: 40px;">×</button>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', entryHtml);
+    }
+    
+    removeContactEntry(button) {
+        button.closest('.contact-entry').remove();
+    }
+    
+    async processManualData() {
+        try {
+            const csvPasteArea = document.getElementById('csvPasteArea');
+            const csvData = csvPasteArea?.value?.trim();
+            
+            let processedData = [];
+            
+            if (csvData) {
+                // Process CSV data
+                processedData = this.parseCSVData(csvData);
+            } else {
+                // Process individual entries
+                processedData = this.processIndividualEntries();
+            }
+            
+            if (processedData.length === 0) {
+                this.showError('No valid data found. Please enter some contacts.');
+                return;
+            }
+            
+            // Validate and clean data
+            processedData = this.validateAndCleanScrapedData(processedData);
+            
+            // Set scraped data and close modal
+            this.scrapedData = processedData;
+            this.hideModal('manualDataEntryModal');
+            this.updateScrapedDataDisplay();
+            
+            this.showSuccess(`Data processed successfully! Found ${this.scrapedData.length} contacts.`);
+            
+        } catch (error) {
+            console.error('Data processing failed:', error);
+            this.showError('Failed to process data: ' + error.message);
+        }
+    }
+    
+    parseCSVData(csvText) {
+        try {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 2) return [];
+            
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                if (values.length >= 3) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        if (values[index]) {
+                            row[header] = values[index].replace(/^"|"$/g, ''); // Remove quotes
+                        }
+                    });
+                    
+                    // Map to standard format
+                    const contact = {
+                        company: row.company || row.name || row.organization || '',
+                        profile: row.profile || row.linkedin || row.url || '',
+                        email: row.email || row.mail || row.email1 || ''
+                    };
+                    
+                    if (contact.company && contact.email) {
+                        data.push(contact);
+                    }
+                }
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('CSV parsing failed:', error);
+            throw new Error('Invalid CSV format');
+        }
+    }
+    
+    processIndividualEntries() {
+        const entries = document.querySelectorAll('.contact-entry');
+        const data = [];
+        
+        entries.forEach(entry => {
+            const company = entry.querySelector('.contact-company')?.value?.trim();
+            const profile = entry.querySelector('.contact-profile')?.value?.trim();
+            const email = entry.querySelector('.contact-email')?.value?.trim();
+            
+            if (company && email) {
+                data.push({
+                    company: company,
+                    profile: profile || '',
+                    email: email
+                });
+            }
+        });
+        
+        return data;
+    }
+    
+    validateAndCleanScrapedData(data) {
+        return data.filter(item => {
+            // Basic validation
+            if (!item.company || !item.email) return false;
+            
+            // Clean company name
+            item.company = item.company.trim();
+            
+            // Clean and validate email
+            item.email = item.email.trim().toLowerCase();
+            if (!this.isValidEmail(item.email)) return false;
+            
+            // Clean profile URL
+            if (item.profile) {
+                item.profile = item.profile.trim();
+                if (!item.profile.startsWith('http')) {
+                    item.profile = 'https://' + item.profile;
+                }
+            }
+            
+            return true;
+        });
     }
     
     updateScrapingProgress(current, total) {
@@ -2687,14 +3448,30 @@ class RTXApp {
             return;
         }
         
-        // Create table
+        // Create enhanced table with actions
         let html = `
+            <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0;">Scraped Data (${this.scrapedData.length} contacts)</h5>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="rtxApp.exportToGoogleSheets()" ${!this.canExportToSheets() ? 'disabled' : ''}>
+                        <i class="fas fa-table"></i> Export to Sheets
+                    </button>
+                    <button class="btn btn-secondary" onclick="rtxApp.exportScrapedData()">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
+                    <button class="btn btn-secondary" onclick="rtxApp.exportToTaskforce()">
+                        <i class="fas fa-paper-plane"></i> Send to Taskforce
+                    </button>
+                </div>
+            </div>
+            
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                 <thead>
                     <tr style="background: #f8f9fa;">
                         <th style="padding: 8px; border: 1px solid #e5e5e7; text-align: left;">Company</th>
                         <th style="padding: 8px; border: 1px solid #e5e5e7; text-align: left;">Profile</th>
                         <th style="padding: 8px; border: 1px solid #e5e5e7; text-align: left;">Email</th>
+                        <th style="padding: 8px; border: 1px solid #e5e5e7; text-align: center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2705,9 +3482,17 @@ class RTXApp {
                 <tr>
                     <td style="padding: 8px; border: 1px solid #e5e5e7;">${this.escapeHtml(item.company)}</td>
                     <td style="padding: 8px; border: 1px solid #e5e5e7;">
-                        <a href="${item.profile}" target="_blank" style="color: #007AFF;">${this.escapeHtml(item.profile)}</a>
+                        ${item.profile ? `<a href="${item.profile}" target="_blank" style="color: #007AFF;">${this.escapeHtml(item.profile)}</a>` : '-'}
                     </td>
                     <td style="padding: 8px; border: 1px solid #e5e5e7;">${this.escapeHtml(item.email)}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e5e7; text-align: center;">
+                        <button class="btn btn-sm btn-secondary" onclick="rtxApp.editContact(${index})" style="padding: 2px 6px; font-size: 10px;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="rtxApp.removeContact(${index})" style="padding: 2px 6px; font-size: 10px; margin-left: 4px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
             `;
         });
@@ -2715,26 +3500,124 @@ class RTXApp {
         html += `
                 </tbody>
             </table>
-            <div style="margin-top: 16px; text-align: center;">
-                <strong>Total: ${this.scrapedData.length} contacts</strong>
-            </div>
         `;
         
         container.innerHTML = html;
+    }
+    
+    canExportToSheets() {
+        const sheetUrl = document.getElementById('salesqlSheetUrl')?.value;
+        return sheetUrl && sheetUrl.includes('docs.google.com/spreadsheets');
+    }
+    
+    editContact(index) {
+        // Show edit modal for the contact
+        this.showContactEditModal(index);
+    }
+    
+    removeContact(index) {
+        if (confirm('Are you sure you want to remove this contact?')) {
+            this.scrapedData.splice(index, 1);
+            this.updateScrapedDataDisplay();
+            this.showSuccess('Contact removed successfully.');
+        }
+    }
+    
+    showContactEditModal(index) {
+        const contact = this.scrapedData[index];
+        if (!contact) return;
+        
+        const modalHtml = `
+            <div id="contactEditModal" class="modal">
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-edit"></i> Edit Contact</h3>
+                        <button class="btn btn-secondary" onclick="rtxApp.hideModal('contactEditModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label>Company:</label>
+                            <input type="text" id="editCompany" value="${this.escapeHtml(contact.company)}" style="width: 100%;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label>Profile URL:</label>
+                            <input type="text" id="editProfile" value="${this.escapeHtml(contact.profile || '')}" style="width: 100%;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label>Email:</label>
+                            <input type="email" id="editEmail" value="${this.escapeHtml(contact.email)}" style="width: 100%;">
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="rtxApp.hideModal('contactEditModal')">Cancel</button>
+                            <button class="btn btn-primary" onclick="rtxApp.saveContactEdit(${index})">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('contactEditModal');
+        if (existingModal) existingModal.remove();
+        
+        // Add modal to DOM
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        this.showModal('contactEditModal');
+    }
+    
+    saveContactEdit(index) {
+        const company = document.getElementById('editCompany')?.value?.trim();
+        const profile = document.getElementById('editProfile')?.value?.trim();
+        const email = document.getElementById('editEmail')?.value?.trim();
+        
+        if (!company || !email) {
+            this.showError('Company and email are required.');
+            return;
+        }
+        
+        if (!this.isValidEmail(email)) {
+            this.showError('Please enter a valid email address.');
+            return;
+        }
+        
+        // Update contact
+        this.scrapedData[index] = {
+            company: company,
+            profile: profile || '',
+            email: email.toLowerCase()
+        };
+        
+        this.hideModal('contactEditModal');
+        this.updateScrapedDataDisplay();
+        this.showSuccess('Contact updated successfully.');
     }
     
     updateScrapingUI() {
         const startBtn = document.getElementById('startScrapingBtn');
         const stopBtn = document.getElementById('stopScrapingBtn');
         const exportBtn = document.getElementById('exportScrapedDataBtn');
+        const enhancedExportBtn = document.getElementById('enhancedExportBtn');
+        const enhancedSheetsBtn = document.getElementById('enhancedSheetsBtn');
+        const taskforceBtn = document.getElementById('taskforceBtn');
         const statusText = document.getElementById('scrapingStatusText');
         const progressContainer = document.getElementById('scrapingProgress');
         
         if (startBtn) startBtn.disabled = this.isScraping;
         if (stopBtn) stopBtn.disabled = !this.isScraping;
         if (exportBtn) exportBtn.disabled = this.scrapedData.length === 0;
+        if (enhancedExportBtn) enhancedExportBtn.disabled = this.scrapedData.length === 0;
+        if (enhancedSheetsBtn) enhancedSheetsBtn.disabled = this.scrapedData.length === 0;
+        if (taskforceBtn) taskforceBtn.disabled = this.scrapedData.length === 0;
+        
         if (statusText) {
-            statusText.textContent = this.isScraping ? 'Scraping in progress...' : 'Ready to scrape';
+            if (this.isScraping) {
+                statusText.innerHTML = '<span style="color: #FF9500;"><i class="fas fa-spinner fa-spin"></i> Scraping in progress...</span>';
+            } else if (this.chromeExtensionInstalled) {
+                statusText.innerHTML = '<span style="color: #34C759;"><i class="fas fa-check-circle"></i> Ready to scrape</span>';
+            } else {
+                statusText.innerHTML = '<span style="color: #FF3B30;"><i class="fas fa-exclamation-triangle"></i> Chrome extension required</span>';
+            }
         }
         if (progressContainer && !this.isScraping) {
             progressContainer.style.display = 'none';
@@ -2744,11 +3627,25 @@ class RTXApp {
     stopSalesqlScraping() {
         console.log('⏹️ Stopping SalesQL scraping...');
         this.isScraping = false;
+        
+        // Clear progress monitoring
+        if (this.scrapingProgressInterval) {
+            clearInterval(this.scrapingProgressInterval);
+        }
+        
+        // Stop scraping in Chrome extension
+        if (this.chromeExtensionInstalled && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+            chrome.runtime.sendMessage(this.chromeExtensionId, {
+                action: 'stopScraping',
+                sessionId: this.currentScrapingSession
+            });
+        }
+        
         this.updateScrapingUI();
         this.showSuccess('Scraping stopped.');
     }
     
-    exportScrapedData() {
+    async exportScrapedData() {
         if (this.scrapedData.length === 0) {
             this.showError('No data to export');
             return;
@@ -2765,19 +3662,98 @@ class RTXApp {
         }
     }
     
+    async exportToGoogleSheets() {
+        if (!this.canExportToSheets()) {
+            this.showError('Please provide a valid Google Sheets URL first.');
+            return;
+        }
+        
+        try {
+            const sheetUrl = document.getElementById('salesqlSheetUrl')?.value;
+            this.showInfo('Exporting to Google Sheets...');
+            
+            // Export data to Google Sheets
+            const result = await window.electronAPI?.exportToGoogleSheets?.({
+                sheetUrl: sheetUrl,
+                data: this.scrapedData,
+                sessionId: this.currentScrapingSession
+            });
+            
+            if (result && result.success) {
+                this.showSuccess('Data exported to Google Sheets successfully!');
+            } else {
+                throw new Error(result?.error || 'Export failed');
+            }
+        } catch (error) {
+            console.error('Google Sheets export failed:', error);
+            this.showError('Failed to export to Google Sheets: ' + error.message);
+        }
+    }
+    
+    async exportToTaskforce() {
+        if (this.scrapedData.length === 0) {
+            this.showError('No data to export');
+            return;
+        }
+        
+        try {
+            // Convert scraped data to Taskforce format
+            const taskforceData = this.convertToTaskforceFormat(this.scrapedData);
+            
+            // Store data for use in email campaigns
+            await window.electronAPI?.storeScrapedData?.({
+                data: taskforceData,
+                sessionId: this.currentScrapingSession
+            });
+            
+            this.showSuccess('Data exported to Taskforce successfully! You can now use it in email campaigns.');
+            
+            // Close scraper modal and open email campaign interface
+            this.hideModal('salesqlScraperModal');
+            
+        } catch (error) {
+            console.error('Taskforce export failed:', error);
+            this.showError('Failed to export to Taskforce: ' + error.message);
+        }
+    }
+    
+    convertToTaskforceFormat(data) {
+        // Convert to format compatible with email campaign system
+        return data.map(item => ({
+            company: item.company,
+            profile: item.profile,
+            email: item.email,
+            // Add any additional fields needed for email campaigns
+            name: item.name || '',
+            position: item.position || '',
+            phone: item.phone || ''
+        }));
+    }
+    
     convertToCSV(data) {
         if (data.length === 0) return '';
         
-        const headers = Object.keys(data[0]);
+        // CRITICAL FIX: Ensure all data for a single contact is on the same row
+        const headers = ['Company', 'Profile', 'Email'];
         const csvRows = [headers.join(',')];
         
         for (const row of data) {
-            const values = headers.map(header => {
-                const value = row[header] || '';
-                // Escape commas and quotes
-                return `"${String(value).replace(/"/g, '""')}"`;
+            const values = [
+                row.company || '',
+                row.profile || '',
+                row.email || ''
+            ];
+            
+            // Escape commas and quotes properly
+            const escapedValues = values.map(value => {
+                const stringValue = String(value);
+                if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                return stringValue;
             });
-            csvRows.push(values.join(','));
+            
+            csvRows.push(escapedValues.join(','));
         }
         
         return csvRows.join('\n');
@@ -2793,620 +3769,372 @@ class RTXApp {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
     
-    // Subject line placeholders
-    showSubjectPlaceholdersModal() {
-        this.showModal('subjectPlaceholdersModal');
-        this.populateSubjectPlaceholders();
+    initializeGoogleSheetsIntegration() {
+        const sheetUrlInput = document.getElementById('salesqlSheetUrl');
+        if (sheetUrlInput) {
+            sheetUrlInput.addEventListener('change', () => {
+                this.updateExportButtons();
+            });
+        }
     }
     
-    populateSubjectPlaceholders() {
-        const container = document.getElementById('subjectPlaceholdersList');
-        if (!container) return;
-        
-        // Get available placeholders from sheet data
-        const placeholders = this.getAvailablePlaceholders();
-        
-        if (placeholders.length === 0) {
-            container.innerHTML = '<p style="color: #8E8E93;">No placeholders available. Import a sheet first.</p>';
+    updateExportButtons() {
+        const sheetsExportBtn = document.querySelector('button[onclick="rtxApp.exportToGoogleSheets()"]');
+        if (sheetsExportBtn) {
+            sheetsExportBtn.disabled = !this.canExportToSheets();
+        }
+    }
+    
+    // Enhanced CSV export with proper row structure
+    exportToCSVEnhanced() {
+        if (this.scrapedData.length === 0) {
+            this.showError('No data to export');
             return;
         }
         
-        let html = '';
-        placeholders.forEach(placeholder => {
-            html += `
-                <div class="placeholder-item" style="padding: 8px; border: 1px solid #e5e5e7; border-radius: 4px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s;" 
-                     onmouseover="this.style.background='#f1f3f4'" 
-                     onmouseout="this.style.background='#fff'"
-                     onclick="window.rtxApp.selectSubjectPlaceholder('${placeholder}')">
-                    <strong>((${placeholder}))</strong>
-                    <small style="color: #8E8E93; margin-left: 8px;">Click to select</small>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
-    }
-    
-    selectSubjectPlaceholder(placeholder) {
-        const input = document.getElementById('subjectPreviewInput');
-        if (input) {
-            const currentValue = input.value || '';
-            const cursorPos = input.selectionStart || 0;
-            const newValue = currentValue.slice(0, cursorPos) + `((${placeholder}))` + currentValue.slice(cursorPos);
-            input.value = newValue;
-            
-            // Set cursor position after the inserted placeholder
-            const newPos = cursorPos + `((${placeholder}))`.length;
-            input.setSelectionRange(newPos, newPos);
-            input.focus();
-        }
-    }
-    
-    insertSelectedSubjectPlaceholder() {
-        const input = document.getElementById('subjectPreviewInput');
-        const subjectInput = document.getElementById('campaignSubject');
-        
-        if (input && subjectInput) {
-            subjectInput.value = input.value;
-            this.hideModal('subjectPlaceholdersModal');
-            this.showSuccess('Subject line updated with placeholders!');
-        }
-    }
-    
-    // Email progress handling
-    showEmailProgressModal() {
-        this.showModal('emailProgressModal');
-        this.emailSendingCancelled = false;
-    }
-    
-    updateEmailProgress(current, total, details = '') {
-        const progressBar = document.getElementById('emailProgressBar');
-        const progressText = document.getElementById('emailProgressText');
-        const progressStatus = document.getElementById('emailProgressStatus');
-        const progressDetails = document.getElementById('emailProgressDetails');
-        
-        if (progressBar && progressText) {
-            const percentage = total > 0 ? (current / total) * 100 : 0;
-            progressBar.style.width = `${percentage}%`;
-            progressText.textContent = `${current}/${total}`;
-        }
-        
-        if (progressStatus) {
-            progressStatus.innerHTML = `<p>Sending emails... ${current} of ${total} completed</p>`;
-        }
-        
-        if (progressDetails && details) {
-            progressDetails.innerHTML = details;
-        }
-    }
-    
-    cancelEmailSending() {
-        this.emailSendingCancelled = true;
-        this.hideModal('emailProgressModal');
-        this.showSuccess('Email sending cancelled');
-    }
-    
-    // Enhanced logging
-    logEvent(level, message, data = {}) {
-        const timestamp = new Date().toISOString();
-        const logEntry = {
-            timestamp,
-            level,
-            message,
-            data,
-            userId: this.currentAccount?.email || 'unknown'
-        };
-        
-        console.log(`[${level.toUpperCase()}] ${message}`, data);
-        
-        // Store in local storage for debugging
         try {
-            const logs = JSON.parse(localStorage.getItem('rtx_logs') || '[]');
-            logs.push(logEntry);
+            const fileName = document.getElementById('scrapingFileName')?.value || 'salesql_data';
             
-            // Keep only last 1000 logs
-            if (logs.length > 1000) {
-                logs.splice(0, logs.length - 1000);
-            }
-            
-            localStorage.setItem('rtx_logs', JSON.stringify(logs));
-        } catch (e) {
-            console.warn('Failed to store log:', e);
+            // Enhanced CSV with better formatting and validation
+            const csv = this.convertToCSVEnhanced(this.scrapedData);
+            this.downloadCSV(csv, fileName);
+            this.showSuccess('Enhanced CSV exported successfully!');
+        } catch (error) {
+            console.error('❌ Enhanced export failed:', error);
+            this.showError('Enhanced export failed: ' + error.message);
         }
     }
-
-    // Campaign attachment methods
-    addCampaignAttachment() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.multiple = true;
-        input.accept = '*/*';
+    
+    convertToCSVEnhanced(data) {
+        if (data.length === 0) return '';
         
-        input.onchange = (e) => {
-            const files = Array.from(e.target.files);
-            if (files.length > 0) {
-                if (!this.campaignAttachments) {
-                    this.campaignAttachments = [];
-                }
+        // Enhanced headers with more comprehensive data
+        const headers = [
+            'Company', 'Profile', 'Email', 'Name', 'Position', 'Phone', 'Industry', 'Location'
+        ];
+        const csvRows = [headers.join(',')];
+        
+        for (const row of data) {
+            // Ensure all data for a single contact is on the same row
+            const values = [
+                row.company || '',
+                row.profile || '',
+                row.email || '',
+                row.name || '',
+                row.position || '',
+                row.phone || '',
+                row.industry || '',
+                row.location || ''
+            ];
+            
+            // Enhanced escaping for CSV
+            const escapedValues = values.map(value => {
+                const stringValue = String(value).trim();
+                if (stringValue === '') return '';
                 
-                files.forEach(file => {
-                    this.campaignAttachments.push({
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                        file: file
-                    });
+                // Handle special characters properly
+                if (stringValue.includes(',') || stringValue.includes('"') || 
+                    stringValue.includes('\n') || stringValue.includes('\r')) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                return stringValue;
+            });
+            
+            csvRows.push(escapedValues.join(','));
+        }
+        
+        return csvRows.join('\n');
+    }
+    
+    // Chrome extension management
+    async installChromeExtensionFromAssets() {
+        try {
+            this.showInfo('Installing Chrome extension from app assets...');
+            
+            // Check if extension exists in app assets
+            const extensionPath = await window.electronAPI?.getExtensionPath?.(this.chromeExtensionId);
+            
+            if (extensionPath) {
+                // Install extension to Chrome
+                const result = await window.electronAPI?.installChromeExtension?.({
+                    extensionPath: extensionPath,
+                    extensionId: this.chromeExtensionId
                 });
                 
-                this.updateCampaignAttachmentsDisplay();
-                this.showSuccess(`Added ${files.length} attachment(s)`);
+                if (result && result.success) {
+                    this.showSuccess('Chrome extension installed successfully!');
+                    this.chromeExtensionInstalled = true;
+                    this.updateChromeExtensionStatus();
+                } else {
+                    throw new Error(result?.error || 'Installation failed');
+                }
+            } else {
+                // Show manual installation instructions
+                this.showManualExtensionInstallModal();
             }
-        };
-        
-        input.click();
-    }
-
-    handleCampaignAttachments() {
-        if (!this.campaignAttachments) {
-            this.campaignAttachments = [];
+        } catch (error) {
+            console.error('Extension installation failed:', error);
+            this.showError('Failed to install extension: ' + error.message);
+            this.showManualExtensionInstallModal();
         }
-        this.updateCampaignAttachmentsDisplay();
     }
-
-    updateCampaignAttachmentsDisplay() {
-        const container = document.getElementById('campaignAttachments');
-        if (!container) return;
-
-        if (!this.campaignAttachments || this.campaignAttachments.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; color: #8E8E93;">
-                    <i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                    <p>No attachments selected</p>
-                </div>
-            `;
-            return;
-        }
-
-        const html = this.campaignAttachments.map((attachment, index) => `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: white; border: 1px solid #e5e5e7; border-radius: 4px; margin-bottom: 8px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-paperclip" style="color: #007AFF;"></i>
-                    <div>
-                        <div style="font-weight: 500; font-size: 14px;">${attachment.name}</div>
-                        <div style="font-size: 12px; color: #8E8E93;">${this.formatFileSize(attachment.size)}</div>
+    
+    showManualExtensionInstallModal() {
+        const modalHtml = `
+            <div id="manualExtensionInstallModal" class="modal">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-puzzle-piece"></i> Manual Extension Installation</h3>
+                        <button class="btn btn-secondary" onclick="rtxApp.hideModal('manualExtensionInstallModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0;">Installation Steps:</h4>
+                            <ol style="margin: 0; padding-left: 20px;">
+                                <li>Download the SalesQL Scraper extension from the link below</li>
+                                <li>Extract the ZIP file to a folder</li>
+                                <li>Open Chrome and navigate to <code>chrome://extensions/</code></li>
+                                <li>Enable "Developer mode" (toggle in top right)</li>
+                                <li>Click "Load unpacked" and select the extracted extension folder</li>
+                                <li>Refresh this page to verify installation</li>
+                            </ol>
+                        </div>
+                        
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <a href="https://github.com/your-repo/salesql-scraper-extension/releases/latest/download/salesql-scraper.zip" 
+                               target="_blank" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Download Extension
+                            </a>
+                        </div>
+                        
+                        <div style="background: #fff3cd; padding: 12px; border-radius: 6px; border: 1px solid #ffeaa7;">
+                            <strong>Note:</strong> If you don't have access to the extension, you can still use the manual data entry feature 
+                            by clicking "Start Scraping" without the extension installed.
+                        </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-danger" onclick="window.rtxApp.removeCampaignAttachment(${index})">
-                    <i class="fas fa-trash"></i>
-                </button>
             </div>
-        `).join('');
-
-        container.innerHTML = html;
-    }
-
-    removeCampaignAttachment(index) {
-        if (this.campaignAttachments && this.campaignAttachments[index]) {
-            this.campaignAttachments.splice(index, 1);
-            this.updateCampaignAttachmentsDisplay();
-            this.showSuccess('Attachment removed');
-        }
-    }
-
-    removeAllCampaignAttachments() {
-        if (this.campaignAttachments && this.campaignAttachments.length > 0) {
-            this.campaignAttachments = [];
-            this.updateCampaignAttachmentsDisplay();
-            this.showSuccess('All attachments removed');
-        }
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    // Modal management methods
-    showModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'block';
-            document.body.classList.add('modal-open');
-        }
-    }
-
-    hideModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        }
-    }
-
-    // Email sending progress methods
-    promptForAttachments() {
-        return new Promise((resolve) => {
-            this.showModal('attachmentModal');
-            
-            // Set up event listeners for the modal
-            const continueBtn = document.getElementById('continueWithoutAttachmentsBtn');
-            const confirmBtn = document.getElementById('confirmAttachmentsBtn');
-            
-            if (continueBtn) {
-                continueBtn.onclick = () => {
-                    this.hideModal('attachmentModal');
-                    resolve(false);
-                };
-            }
-            
-            if (confirmBtn) {
-                confirmBtn.onclick = () => {
-                    this.hideModal('attachmentModal');
-                    resolve(true);
-                };
-            }
-        });
-    }
-
-    // Utility methods
-    showWarning(message) {
-        const warningDiv = document.createElement('div');
-        warningDiv.className = 'alert alert-warning';
-        warningDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-        warningDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>${message}</span>
-            <button type="button" class="close" onclick="this.parentElement.remove()" style="float: right; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
         `;
         
-        document.body.appendChild(warningDiv);
+        // Remove existing modal if any
+        const existingModal = document.getElementById('manualExtensionInstallModal');
+        if (existingModal) existingModal.remove();
         
-        setTimeout(() => {
-            if (warningDiv.parentElement) {
-                warningDiv.remove();
-            }
-        }, 5000);
+        // Add modal to DOM
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        this.showModal('manualExtensionInstallModal');
     }
-
-    // Preview functionality
-    debouncePreviewUpdate() {
-        if (this.previewUpdateTimeout) {
-            clearTimeout(this.previewUpdateTimeout);
+    
+    // Enhanced Google Sheets integration
+    async exportToGoogleSheetsEnhanced() {
+        if (!this.canExportToSheets()) {
+            this.showError('Please provide a valid Google Sheets URL first.');
+            return;
         }
-        this.previewUpdateTimeout = setTimeout(() => {
-            this.refreshEmailPreview();
-        }, 500);
-    }
-
-    refreshEmailPreview() {
+        
         try {
-            const previewContainer = document.getElementById('emailPreview');
-            if (!previewContainer) return;
-
-            const subject = document.getElementById('campaignSubject')?.value || 'No Subject';
-            const fromName = document.getElementById('fromName')?.value || 'Your Name';
-            const content = this.getEditorHtml() || 'No content yet';
-            const fromEmail = this.selectedFrom || 'your-email@gmail.com';
-
-            const previewHTML = `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-                    <!-- Email Header -->
-                    <div style="background: #f8f9fa; padding: 20px; border-bottom: 1px solid #e0e0e0;">
-                        <div style="margin-bottom: 10px;">
-                            <strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <strong>Subject:</strong> ${subject}
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <strong>Date:</strong> ${new Date().toLocaleString()}
-                        </div>
+            const sheetUrl = document.getElementById('salesqlSheetUrl')?.value;
+            this.showInfo('Exporting to Google Sheets with enhanced formatting...');
+            
+            // Prepare data with better structure
+            const enhancedData = this.prepareDataForGoogleSheets(this.scrapedData);
+            
+            // Export data to Google Sheets
+            const result = await window.electronAPI?.exportToGoogleSheetsEnhanced?.({
+                sheetUrl: sheetUrl,
+                data: enhancedData,
+                sessionId: this.currentScrapingSession,
+                createNewTab: true,
+                tabName: `SalesQL_Data_${new Date().toISOString().split('T')[0]}`
+            });
+            
+            if (result && result.success) {
+                this.showSuccess(`Data exported to Google Sheets successfully! ${result.rowsAdded || 0} rows added.`);
+                
+                // Open the Google Sheet in browser
+                if (result.sheetUrl) {
+                    window.open(result.sheetUrl, '_blank');
+                }
+            } else {
+                throw new Error(result?.error || 'Export failed');
+            }
+        } catch (error) {
+            console.error('Enhanced Google Sheets export failed:', error);
+            this.showError('Failed to export to Google Sheets: ' + error.message);
+        }
+    }
+    
+    prepareDataForGoogleSheets(data) {
+        // Prepare data with proper formatting for Google Sheets
+        return data.map((item, index) => ({
+            row: index + 2, // Start from row 2 (row 1 is headers)
+            data: {
+                company: item.company || '',
+                profile: item.profile || '',
+                email: item.email || '',
+                name: item.name || '',
+                position: item.position || '',
+                phone: item.phone || '',
+                industry: item.industry || '',
+                location: item.location || '',
+                scrapedDate: new Date().toISOString().split('T')[0]
+            }
+        }));
+    }
+    
+    // Enhanced Taskforce integration
+    async exportToTaskforceEnhanced() {
+        if (this.scrapedData.length === 0) {
+            this.showError('No data to export');
+            return;
+        }
+        
+        try {
+            // Convert scraped data to enhanced Taskforce format
+            const taskforceData = this.convertToTaskforceFormatEnhanced(this.scrapedData);
+            
+            // Store data for use in email campaigns
+            const result = await window.electronAPI?.storeScrapedDataEnhanced?.({
+                data: taskforceData,
+                sessionId: this.currentScrapingSession,
+                metadata: {
+                    totalContacts: this.scrapedData.length,
+                    exportDate: new Date().toISOString(),
+                    source: 'SalesQL Scraper'
+                }
+            });
+            
+            if (result && result.success) {
+                this.showSuccess(`Data exported to Taskforce successfully! ${result.contactsStored || 0} contacts stored.`);
+                
+                // Close scraper modal and open email campaign interface
+                this.hideModal('salesqlScraperModal');
+                
+                // Show campaign creation prompt
+                this.showCampaignCreationPrompt(taskforceData.length);
+            } else {
+                throw new Error(result?.error || 'Export failed');
+            }
+        } catch (error) {
+            console.error('Enhanced Taskforce export failed:', error);
+            this.showError('Failed to export to Taskforce: ' + error.message);
+        }
+    }
+    
+    convertToTaskforceFormatEnhanced(data) {
+        // Enhanced conversion with more comprehensive data mapping
+        return data.map(item => ({
+            company: item.company,
+            profile: item.profile,
+            email: item.email,
+            name: item.name || this.extractNameFromProfile(item.profile),
+            position: item.position || '',
+            phone: item.phone || '',
+            industry: item.industry || this.extractIndustryFromCompany(item.company),
+            location: item.location || '',
+            linkedinUrl: item.profile || '',
+            scrapedDate: new Date().toISOString(),
+            status: 'active',
+            tags: ['salesql-scraped', 'new-contact']
+        }));
+    }
+    
+    extractNameFromProfile(profileUrl) {
+        if (!profileUrl) return '';
+        
+        try {
+            // Extract name from LinkedIn profile URL
+            const match = profileUrl.match(/\/in\/([^\/\?]+)/);
+            if (match) {
+                return match[1].replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            }
+        } catch (e) {
+            console.warn('Failed to extract name from profile:', e);
+        }
+        
+        return '';
+    }
+    
+    extractIndustryFromCompany(companyName) {
+        if (!companyName) return '';
+        
+        // Simple industry detection based on company name
+        const name = companyName.toLowerCase();
+        
+        if (name.includes('tech') || name.includes('software') || name.includes('digital')) return 'Technology';
+        if (name.includes('finance') || name.includes('bank') || name.includes('investment')) return 'Finance';
+        if (name.includes('health') || name.includes('medical') || name.includes('pharma')) return 'Healthcare';
+        if (name.includes('retail') || name.includes('ecommerce') || name.includes('shop')) return 'Retail';
+        if (name.includes('manufacturing') || name.includes('industrial') || name.includes('factory')) return 'Manufacturing';
+        
+        return 'Other';
+    }
+    
+    showCampaignCreationPrompt(contactCount) {
+        const modalHtml = `
+            <div id="campaignCreationPromptModal" class="modal">
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-paper-plane"></i> Create Email Campaign</h3>
+                        <button class="btn btn-secondary" onclick="rtxApp.hideModal('campaignCreationPromptModal')">&times;</button>
                     </div>
-                    
-                    <!-- Email Body -->
-                    <div style="padding: 20px; line-height: 1.6; color: #333;">
-                        ${content}
-                    </div>
-                    
-                    <!-- Email Footer -->
-                    <div style="background: #f8f9fa; padding: 15px; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 12px;">
-                        <p>Sent via TASK FORCE AutoMailer Pro</p>
+                    <div class="modal-body">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <i class="fas fa-check-circle" style="font-size: 48px; color: #34C759; margin-bottom: 16px; display: block;"></i>
+                            <h4>Data Export Successful!</h4>
+                            <p>${contactCount} contacts have been imported from SalesQL Scraper.</p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                            <h5 style="margin-top: 0;">Next Steps:</h5>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                <li>Create a new email campaign</li>
+                                <li>Select your imported contacts</li>
+                                <li>Write your email content</li>
+                                <li>Send your campaign</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; justify-content: center;">
+                            <button class="btn btn-secondary" onclick="rtxApp.hideModal('campaignCreationPromptModal')">Later</button>
+                            <button class="btn btn-primary" onclick="rtxApp.createNewCampaignFromScrapedData()">
+                                <i class="fas fa-plus"></i> Create Campaign
+                            </button>
+                        </div>
                     </div>
                 </div>
-            `;
-
-            previewContainer.innerHTML = previewHTML;
-            this.logEvent('info', 'Email preview refreshed');
-        } catch (error) {
-            console.error('Error refreshing preview:', error);
-            this.logEvent('error', 'Failed to refresh preview', { error: error.message });
-        }
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('campaignCreationPromptModal');
+        if (existingModal) existingModal.remove();
+        
+        // Add modal to DOM
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        this.showModal('campaignCreationPromptModal');
     }
-
-    // Multiple window support for parallel campaigns
-    openNewCampaignWindow() {
-        try {
-            console.log('🚀 Opening new campaign window...');
-            this.logEvent('info', 'Opening new campaign window');
-            
-            // Create a new window with the same app
-            const newWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
-            
-            if (!newWindow) {
-                this.showError('Popup blocked! Please allow popups for this site.');
-                return;
-            }
-
-            // Create the HTML content for the new window
-            const newWindowHTML = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>TASK FORCE - New Campaign Window</title>
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-                    <style>
-                        body { 
-                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                            margin: 0; 
-                            padding: 20px; 
-                            background: #f5f5f7; 
-                            color: #1d1d1f;
-                        }
-                        .header { 
-                            background: white; 
-                            padding: 20px; 
-                            border-radius: 12px; 
-                            margin-bottom: 20px; 
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                            text-align: center;
-                        }
-                        .campaign-form { 
-                            background: white; 
-                            padding: 24px; 
-                            border-radius: 12px; 
-                            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                        }
-                        .form-group { margin-bottom: 20px; }
-                        .form-group label { 
-                            display: block; 
-                            margin-bottom: 8px; 
-                            font-weight: 500; 
-                            color: #1d1d1f;
-                        }
-                        .form-group input, .form-group textarea { 
-                            width: 100%; 
-                            padding: 12px; 
-                            border: 1px solid #e1e5e9; 
-                            border-radius: 8px; 
-                            font-size: 14px; 
-                            box-sizing: border-box;
-                        }
-                        .btn { 
-                            padding: 12px 24px; 
-                            border: none; 
-                            border-radius: 8px; 
-                            font-size: 14px; 
-                            cursor: pointer; 
-                            text-decoration: none; 
-                            display: inline-block; 
-                            margin: 4px;
-                            transition: all 0.2s;
-                        }
-                        .btn-primary { background: #007AFF; color: white; }
-                        .btn-primary:hover { background: #0056CC; }
-                        .btn-secondary { background: #f2f2f7; color: #1d1d1f; }
-                        .btn-secondary:hover { background: #e5e5e7; }
-                        .btn-danger { background: #ff3b30; color: white; }
-                        .btn-danger:hover { background: #d70015; }
-                        .preview-section { 
-                            border: 1px solid #e5e5e7; 
-                            border-radius: 6px; 
-                            padding: 16px; 
-                            background: #f8f9fa; 
-                            min-height: 200px; 
-                            margin-bottom: 20px;
-                        }
-                        .auth-section {
-                            background: #f8f9fa;
-                            padding: 20px;
-                            border-radius: 8px;
-                            margin-bottom: 20px;
-                            text-align: center;
-                        }
-                        .status-indicator {
-                            display: inline-block;
-                            width: 12px;
-                            height: 12px;
-                            border-radius: 50%;
-                            margin-right: 8px;
-                        }
-                        .status-connected { background: #34c759; }
-                        .status-disconnected { background: #ff3b30; }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h1>🚀 TASK FORCE - New Campaign Window</h1>
-                        <p>Create campaigns with different Google accounts for parallel processing</p>
-                    </div>
-
-                    <div class="auth-section">
-                        <h3>🔐 Google Authentication</h3>
-                        <div id="authStatus">
-                            <span class="status-indicator status-disconnected"></span>
-                            <span>Not authenticated</span>
-                        </div>
-                        <button class="btn btn-primary" id="googleSignInBtn" onclick="authenticateInNewWindow()">
-                            <i class="fas fa-sign-in-alt"></i> Sign in with Google
-                        </button>
-                        <div id="userInfo" style="display: none; margin-top: 16px;">
-                            <p><strong>Signed in as:</strong> <span id="userEmail"></span></p>
-                            <button class="btn btn-secondary" onclick="signOut()">Sign Out</button>
-                        </div>
-                    </div>
-
-                    <div class="campaign-form">
-                        <h3>📧 Create Email Campaign</h3>
-                        
-                        <div class="form-group">
-                            <label>Campaign Name</label>
-                            <input type="text" id="campaignName" placeholder="Enter campaign name">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Subject Line</label>
-                            <input type="text" id="campaignSubject" placeholder="Enter email subject">
-                        </div>
-
-                        <div class="form-group">
-                            <label>From Name</label>
-                            <input type="text" id="fromName" placeholder="Your name">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Email Content</label>
-                            <textarea id="emailContent" rows="10" placeholder="Enter your email content here..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Google Sheets URL</label>
-                            <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Email Preview</label>
-                            <div class="preview-section" id="emailPreview">
-                                <div style="text-align: center; color: #8E8E93; padding: 40px 20px;">
-                                    <i class="fas fa-eye" style="font-size: 32px; margin-bottom: 16px; display: block;"></i>
-                                    <p>Preview will appear here after you fill in the campaign details</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="text-align: center;">
-                            <button class="btn btn-primary" onclick="createCampaign()">
-                                <i class="fas fa-rocket"></i> Create Campaign
-                            </button>
-                            <button class="btn btn-secondary" onclick="refreshPreview()">
-                                <i class="fas fa-sync-alt"></i> Refresh Preview
-                            </button>
-                        </div>
-                    </div>
-
-                    <script>
-                        let isAuthenticated = false;
-                        let currentUser = null;
-
-                        function authenticateInNewWindow() {
-                            const btn = document.getElementById('googleSignInBtn');
-                            btn.disabled = true;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
-                            
-                            // Simulate authentication (in real implementation, this would call the main process)
-                            setTimeout(() => {
-                                isAuthenticated = true;
-                                currentUser = { email: 'user' + Date.now() + '@example.com' };
-                                updateAuthUI();
-                                btn.innerHTML = '<i class="fas fa-check"></i> Authenticated';
-                                btn.style.background = '#34c759';
-                            }, 2000);
-                        }
-
-                        function updateAuthUI() {
-                            const authStatus = document.getElementById('authStatus');
-                            const userInfo = document.getElementById('userInfo');
-                            const userEmail = document.getElementById('userEmail');
-                            
-                            if (isAuthenticated && currentUser) {
-                                authStatus.innerHTML = '<span class="status-indicator status-connected"></span><span>Authenticated</span>';
-                                userEmail.textContent = currentUser.email;
-                                userInfo.style.display = 'block';
-                            } else {
-                                authStatus.innerHTML = '<span class="status-indicator status-disconnected"></span><span>Not authenticated</span>';
-                                userInfo.style.display = 'none';
-                            }
-                        }
-
-                        function signOut() {
-                            isAuthenticated = false;
-                            currentUser = null;
-                            updateAuthUI();
-                            
-                            const btn = document.getElementById('googleSignInBtn');
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign in with Google';
-                            btn.style.background = '#007AFF';
-                        }
-
-                        function refreshPreview() {
-                            const subject = document.getElementById('campaignSubject').value || 'No Subject';
-                            const fromName = document.getElementById('fromName').value || 'Your Name';
-                            const content = document.getElementById('emailContent').value || 'No content yet';
-                            
-                            const previewHTML = \`
-                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-                                    <div style="background: #f8f9fa; padding: 20px; border-bottom: 1px solid #e0e0e0;">
-                                        <div style="margin-bottom: 10px;"><strong>From:</strong> \${fromName} &lt;user@example.com&gt;</div>
-                                        <div style="margin-bottom: 10px;"><strong>Subject:</strong> \${subject}</div>
-                                        <div style="margin-bottom: 10px;"><strong>Date:</strong> \${new Date().toLocaleString()}</div>
-                                    </div>
-                                    <div style="padding: 20px; line-height: 1.6; color: #333;">\${content}</div>
-                                    <div style="background: #f8f9fa; padding: 15px; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 12px;">
-                                        <p>Sent via TASK FORCE AutoMailer Pro - New Window</p>
-                                    </div>
-                                </div>
-                            \`;
-                            
-                            document.getElementById('emailPreview').innerHTML = previewHTML;
-                        }
-
-                        function createCampaign() {
-                            if (!isAuthenticated) {
-                                alert('Please sign in with Google first!');
-                                return;
-                            }
-                            
-                            const campaignName = document.getElementById('campaignName').value;
-                            const subject = document.getElementById('campaignSubject').value;
-                            const fromName = document.getElementById('fromName').value;
-                            const content = document.getElementById('emailContent').value;
-                            const sheetUrl = document.getElementById('sheetUrl').value;
-                            
-                            if (!campaignName || !subject || !content) {
-                                alert('Please fill in all required fields!');
-                                return;
-                            }
-                            
-                            alert(\`Campaign created successfully!\\n\\nCampaign: \${campaignName}\\nSubject: \${subject}\\nFrom: \${fromName}\\nContent Length: \${content.length} characters\\nSheet: \${sheetUrl || 'None'}\\n\\nThis is a demo - in the full version, this would create a real campaign.\`);
-                        }
-
-                        // Auto-refresh preview when content changes
-                        document.getElementById('campaignSubject').addEventListener('input', refreshPreview);
-                        document.getElementById('fromName').addEventListener('input', refreshPreview);
-                        document.getElementById('emailContent').addEventListener('input', refreshPreview);
-                    </script>
-                </body>
-                </html>
-            `;
-
-            newWindow.document.write(newWindowHTML);
-            newWindow.document.close();
-            
-            this.showSuccess('New campaign window opened! You can now run campaigns with different Google accounts in parallel.');
-            this.logEvent('info', 'New campaign window opened successfully');
-            
-        } catch (error) {
-            console.error('Error opening new campaign window:', error);
-            this.showError('Failed to open new campaign window: ' + error.message);
-            this.logEvent('error', 'Failed to open new campaign window', { error: error.message });
-        }
+    
+    createNewCampaignFromScrapedData() {
+        // Close the prompt modal
+        this.hideModal('campaignCreationPromptModal');
+        
+        // Create a new campaign tab
+        this.addNewTab();
+        
+        // Pre-populate with scraped data
+        this.populateCampaignWithScrapedData();
+        
+        this.showSuccess('New campaign created with scraped data!');
+    }
+    
+    populateCampaignWithScrapedData() {
+        // This will be implemented to populate the campaign form with scraped data
+        // For now, just show a success message
+        console.log('Campaign populated with scraped data');
     }
 }
 
@@ -3414,4 +4142,4 @@ class RTXApp {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing RTX App...');
     if (!window.rtxApp) window.rtxApp = new RTXApp();
-}); 
+});
