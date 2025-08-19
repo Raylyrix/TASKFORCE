@@ -22,6 +22,14 @@ class RTXApp {
         this.selectedSheetId = null;
         this.selectedSheetTitle = null;
         this.templates = [];
+        this.currentSignature = '';
+        this.campaignAttachments = [];
+        this.currentScrapingSession = null;
+        this.scrapedData = [];
+        this.chromeExtensionInstalled = false;
+        this.chromeExtensionId = 'salesql-scraper';
+        this.previewUpdateTimeout = null;
+        this.placeholderDropdown = null;
         this.init();
     }
 
@@ -775,28 +783,25 @@ class RTXApp {
 
     setupTabEventListeners() {
         try {
-            // Add click handlers for existing tabs
-            const tabItems = document.querySelectorAll('.tab-item');
-            tabItems.forEach(tab => {
-                const tabId = tab.getAttribute('data-tab');
-                if (tabId) {
-                    tab.addEventListener('click', (e) => {
-                        if (!e.target.classList.contains('tab-close')) {
-                            this.switchTab(tabId);
-                        }
-                    });
-                }
-            });
-
-            // Add click handler for add tab button
-            const addTabBtn = document.querySelector('.add-tab-btn');
+            const addTabBtn = document.getElementById('add-tab-btn');
             if (addTabBtn) {
                 addTabBtn.addEventListener('click', () => this.addNewTab());
             }
 
+            // Set up close tab event delegation
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close-tab')) {
+                    const tabItem = e.target.closest('.tab-item');
+                    if (tabItem) {
+                        const tabId = tabItem.id.replace('tab-btn-', '');
+                        this.closeTab(tabId);
+                    }
+                }
+            });
+
             console.log('✅ Tab event listeners setup complete');
         } catch (error) {
-            console.error('Error setting up tab event listeners:', error);
+            console.error('❌ Failed to setup tab event listeners:', error);
         }
     }
 
@@ -1694,14 +1699,20 @@ class RTXApp {
     
     // Get available placeholders from sheet data
     getAvailablePlaceholders() {
-        if (!this.sheetData || !this.sheetData.headers) {
-            return [];
-        }
-        
-        return this.sheetData.headers.filter(header => 
-            header && header.trim() && 
-            !['email', 'Email', 'EMAIL'].includes(header.trim())
-        );
+        return [
+            { key: '@company', value: 'Company Name', description: 'Company name from the data' },
+            { key: '@profile', value: 'Profile Name', description: 'Profile name from the data' },
+            { key: '@email', value: 'Email Address', description: 'Email address from the data' },
+            { key: '@name', value: 'Contact Name', description: 'Contact name from the data' },
+            { key: '@title', value: 'Job Title', description: 'Job title from the data' },
+            { key: '@phone', value: 'Phone Number', description: 'Phone number from the data' },
+            { key: '@linkedin', value: 'LinkedIn Profile', description: 'LinkedIn profile URL' },
+            { key: '@industry', value: 'Industry', description: 'Industry from the data' },
+            { key: '@location', value: 'Location', description: 'Location from the data' },
+            { key: '@date', value: 'Current Date', description: 'Current date' },
+            { key: '@sender_name', value: 'Your Name', description: 'Your name from the form' },
+            { key: '@sender_email', value: 'Your Email', description: 'Your email from the form' }
+        ];
     }
     
     // Enhanced single email sending with attachments
@@ -2568,16 +2579,17 @@ class RTXApp {
 
     async saveCurrentTemplate() {
         try {
-            const name = prompt('Enter template name:');
-            if (!name || name.trim() === '') {
+            // Create custom modal for template name input
+            const templateName = await this.showTemplateNameModal();
+            if (!templateName || templateName.trim() === '') {
                 this.showWarning('Template name cannot be empty');
                 return;
             }
             
             // Check if template name already exists
-            const existingTemplate = this.templates.find(t => t.name.toLowerCase() === name.toLowerCase());
+            const existingTemplate = this.templates.find(t => t.name.toLowerCase() === templateName.toLowerCase());
             if (existingTemplate) {
-                const overwrite = confirm(`Template "${name}" already exists. Do you want to overwrite it?`);
+                const overwrite = await this.showConfirmModal(`Template "${templateName}" already exists. Do you want to overwrite it?`);
                 if (!overwrite) return;
             }
             
@@ -4135,6 +4147,652 @@ class RTXApp {
         // This will be implemented to populate the campaign form with scraped data
         // For now, just show a success message
         console.log('Campaign populated with scraped data');
+    }
+
+    // Add missing methods to fix errors
+    logEvent(level, message, meta = null) {
+        console.log(`[${level.toUpperCase()}] ${message}`, meta);
+        // Send to main process for logging
+        if (window.electronAPI?.logEvent) {
+            window.electronAPI.logEvent({ level, message, meta });
+        }
+    }
+
+    initializeLivePreview() {
+        try {
+            // Get all input elements that should trigger preview updates
+            const emailEditor = document.getElementById('emailEditor');
+            const campaignSubject = document.getElementById('campaignSubject');
+            const fromName = document.getElementById('fromName');
+            const refreshPreviewBtn = document.getElementById('refreshPreviewBtn');
+
+            if (emailEditor) {
+                emailEditor.addEventListener('input', () => this.debouncePreviewUpdate());
+                emailEditor.addEventListener('paste', () => this.debouncePreviewUpdate());
+            }
+
+            if (campaignSubject) {
+                campaignSubject.addEventListener('input', () => this.debouncePreviewUpdate());
+            }
+
+            if (fromName) {
+                fromName.addEventListener('input', () => this.debouncePreviewUpdate());
+            }
+
+            if (refreshPreviewBtn) {
+                refreshPreviewBtn.addEventListener('click', () => this.refreshEmailPreview());
+            }
+
+            console.log('✅ Live preview system initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize live preview:', error);
+        }
+    }
+
+    debouncePreviewUpdate() {
+        if (this.previewUpdateTimeout) {
+            clearTimeout(this.previewUpdateTimeout);
+        }
+        this.previewUpdateTimeout = setTimeout(() => {
+            this.refreshEmailPreview();
+        }, 200);
+    }
+
+    refreshEmailPreview() {
+        try {
+            const previewContainer = document.getElementById('emailPreview');
+            if (!previewContainer) return;
+
+            const subject = document.getElementById('campaignSubject')?.value || '';
+            const content = document.getElementById('emailEditor')?.innerHTML || '';
+            const fromName = document.getElementById('fromName')?.value || '';
+            const signature = this.currentSignature || '';
+
+            const previewHTML = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px; background: white;">
+                    <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+                        <strong>From:</strong> ${fromName || 'Your Name'}<br>
+                        <strong>Subject:</strong> ${subject || 'Email Subject'}
+                    </div>
+                    <div style="line-height: 1.6; color: #333;">
+                        ${content || '<em>Email content will appear here...</em>'}
+                    </div>
+                    ${signature ? `<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;">${signature}</div>` : ''}
+                    <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666; text-align: center;">
+                        📧 Live Preview - This is exactly how your email will appear
+                    </div>
+                </div>
+            `;
+
+            previewContainer.innerHTML = previewHTML;
+        } catch (error) {
+            console.error('❌ Failed to refresh email preview:', error);
+        }
+    }
+
+    addNewTab() {
+        try {
+            const tabContainer = document.getElementById('tab-container');
+            const tabList = document.getElementById('tab-list');
+            const tabContent = document.getElementById('tab-content');
+            
+            if (!tabContainer || !tabList || !tabContent) return;
+
+            const tabId = `tab-${Date.now()}`;
+            const tabName = `Campaign ${tabList.children.length + 1}`;
+
+            // Create new tab button
+            const newTab = document.createElement('div');
+            newTab.className = 'tab-item';
+            newTab.id = `tab-btn-${tabId}`;
+            newTab.innerHTML = `
+                <span>${tabName}</span>
+                <button class="close-tab" onclick="window.rtxApp.closeTab('${tabId}')">&times;</button>
+            `;
+            newTab.onclick = () => this.switchTab(tabId);
+            tabList.appendChild(newTab);
+
+            // Create new tab content
+            const newContent = document.createElement('div');
+            newContent.className = 'tab-panel';
+            newContent.id = `tab-panel-${tabId}`;
+            newContent.style.display = 'none';
+            
+            // Clone the main form content
+            const mainForm = document.getElementById('campaignForm');
+            if (mainForm) {
+                const clonedForm = mainForm.cloneNode(true);
+                clonedForm.id = `campaignForm-${tabId}`;
+                this.updateElementIds(clonedForm, tabId);
+                newContent.appendChild(clonedForm);
+            }
+
+            tabContent.appendChild(newContent);
+
+            // Switch to the new tab
+            this.switchTab(tabId);
+            
+            console.log('✅ New tab created:', tabName);
+        } catch (error) {
+            console.error('❌ Failed to create new tab:', error);
+        }
+    }
+
+    createTabContent(tabId, tabName) {
+        // This method creates the content for a new tab
+        return `
+            <div class="tab-panel" id="tab-panel-${tabId}" style="display: none;">
+                <h3>${tabName}</h3>
+                <div class="campaign-form">
+                    <!-- Campaign form content will be cloned here -->
+                </div>
+            </div>
+        `;
+    }
+
+    updateElementIds(element, tabId) {
+        // Update all element IDs to be unique for this tab
+        const elements = element.querySelectorAll('[id]');
+        elements.forEach(el => {
+            if (el.id) {
+                el.id = `${el.id}-${tabId}`;
+            }
+        });
+    }
+
+    switchTab(tabId) {
+        try {
+            // Hide all tab panels
+            const panels = document.querySelectorAll('.tab-panel');
+            panels.forEach(panel => panel.style.display = 'none');
+
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab-item');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show selected tab panel
+            const selectedPanel = document.getElementById(`tab-panel-${tabId}`);
+            if (selectedPanel) {
+                selectedPanel.style.display = 'block';
+            }
+
+            // Add active class to selected tab
+            const selectedTab = document.getElementById(`tab-btn-${tabId}`);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+
+            console.log('✅ Switched to tab:', tabId);
+        } catch (error) {
+            console.error('❌ Failed to switch tab:', error);
+        }
+    }
+
+    closeTab(tabId) {
+        try {
+            // Remove tab button
+            const tabBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (tabBtn) {
+                tabBtn.remove();
+            }
+
+            // Remove tab panel
+            const tabPanel = document.getElementById(`tab-panel-${tabId}`);
+            if (tabPanel) {
+                tabPanel.remove();
+            }
+
+            // If this was the active tab, switch to the first available tab
+            const remainingTabs = document.querySelectorAll('.tab-item');
+            if (remainingTabs.length > 0) {
+                const firstTabId = remainingTabs[0].id.replace('tab-btn-', '');
+                this.switchTab(firstTabId);
+            }
+
+            console.log('✅ Tab closed:', tabId);
+        } catch (error) {
+            console.error('❌ Failed to close tab:', error);
+        }
+    }
+
+    setupTabEventListeners() {
+        try {
+            const addTabBtn = document.getElementById('add-tab-btn');
+            if (addTabBtn) {
+                addTabBtn.addEventListener('click', () => this.addNewTab());
+            }
+
+            // Set up close tab event delegation
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close-tab')) {
+                    const tabItem = e.target.closest('.tab-item');
+                    if (tabItem) {
+                        const tabId = tabItem.id.replace('tab-btn-', '');
+                        this.closeTab(tabId);
+                    }
+                }
+            });
+
+            console.log('✅ Tab event listeners setup complete');
+        } catch (error) {
+            console.error('❌ Failed to setup tab event listeners:', error);
+        }
+    }
+
+    // Placeholder system methods
+    initializePlaceholderSystem() {
+        try {
+            const emailEditor = document.getElementById('emailEditor');
+            if (!emailEditor) return;
+
+            // Create placeholder dropdown
+            this.createPlaceholderDropdown();
+
+            // Add input event listener for @ symbol
+            emailEditor.addEventListener('input', (e) => this.handlePlaceholderInput(e));
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.placeholder-dropdown') && !e.target.closest('#emailEditor')) {
+                    this.hidePlaceholderDropdown();
+                }
+            });
+
+            console.log('✅ Placeholder system initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize placeholder system:', error);
+        }
+    }
+
+    createPlaceholderDropdown() {
+        try {
+            // Remove existing dropdown if any
+            const existingDropdown = document.querySelector('.placeholder-dropdown');
+            if (existingDropdown) {
+                existingDropdown.remove();
+            }
+
+            // Create dropdown container
+            const dropdown = document.createElement('div');
+            dropdown.className = 'placeholder-dropdown';
+            dropdown.style.cssText = `
+                position: absolute;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+                display: none;
+                min-width: 200px;
+            `;
+
+            // Add placeholder items
+            const placeholders = this.getAvailablePlaceholders();
+            placeholders.forEach(placeholder => {
+                const item = document.createElement('div');
+                item.className = 'placeholder-item';
+                item.style.cssText = `
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    border-bottom: 1px solid #eee;
+                    font-size: 14px;
+                `;
+                item.innerHTML = `
+                    <strong>${placeholder.key}</strong>
+                    <br><small style="color: #666;">${placeholder.description}</small>
+                `;
+                item.onclick = () => this.insertPlaceholderFromDropdown(placeholder.key);
+                
+                // Hover effects
+                item.onmouseenter = () => {
+                    item.style.backgroundColor = '#f5f5f5';
+                };
+                item.onmouseleave = () => {
+                    item.style.backgroundColor = 'white';
+                };
+                
+                dropdown.appendChild(item);
+            });
+
+            // Add to body
+            document.body.appendChild(dropdown);
+            this.placeholderDropdown = dropdown;
+            
+            console.log('✅ Placeholder dropdown created');
+        } catch (error) {
+            console.error('❌ Failed to create placeholder dropdown:', error);
+        }
+    }
+
+    handlePlaceholderInput(e) {
+        try {
+            const editor = e.target;
+            const text = editor.textContent || '';
+            const cursorPosition = this.getCursorPosition(editor);
+            
+            // Check if @ was typed
+            if (text.includes('@')) {
+                const lastAtSymbol = text.lastIndexOf('@');
+                if (lastAtSymbol <= cursorPosition) {
+                    const afterAt = text.substring(lastAtSymbol + 1, cursorPosition);
+                    
+                    // If @ is followed by text, filter dropdown
+                    if (afterAt.trim()) {
+                        this.filterPlaceholderDropdown(afterAt);
+                        this.showPlaceholderDropdown(editor, lastAtSymbol);
+                    } else {
+                        // Show all placeholders
+                        this.showPlaceholderDropdown(editor, lastAtSymbol);
+                    }
+                }
+            } else {
+                // Hide dropdown if no @ symbol
+                this.hidePlaceholderDropdown();
+            }
+        } catch (error) {
+            console.error('❌ Failed to handle placeholder input:', error);
+        }
+    }
+
+    getCursorPosition(element) {
+        try {
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(element);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+                return preCaretRange.toString().length;
+            }
+            return 0;
+        } catch (error) {
+            console.error('❌ Failed to get cursor position:', error);
+            return 0;
+        }
+    }
+
+    showPlaceholderDropdown(editor, atPosition) {
+        try {
+            if (!this.placeholderDropdown) return;
+
+            // Position dropdown near the @ symbol
+            const rect = editor.getBoundingClientRect();
+            const textBeforeAt = editor.textContent.substring(0, atPosition);
+            const tempSpan = document.createElement('span');
+            tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: pre;';
+            tempSpan.textContent = textBeforeAt;
+            document.body.appendChild(tempSpan);
+            
+            const atRect = tempSpan.getBoundingClientRect();
+            document.body.removeChild(tempSpan);
+
+            this.placeholderDropdown.style.left = `${rect.left + atRect.width}px`;
+            this.placeholderDropdown.style.top = `${rect.bottom + 5}px`;
+            this.placeholderDropdown.style.display = 'block';
+            
+            console.log('✅ Placeholder dropdown shown');
+        } catch (error) {
+            console.error('❌ Failed to show placeholder dropdown:', error);
+        }
+    }
+
+    filterPlaceholderDropdown(filterText) {
+        try {
+            if (!this.placeholderDropdown) return;
+
+            const items = this.placeholderDropdown.querySelectorAll('.placeholder-item');
+            items.forEach(item => {
+                const key = item.querySelector('strong').textContent.toLowerCase();
+                if (key.includes(filterText.toLowerCase())) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        } catch (error) {
+            console.error('❌ Failed to filter placeholder dropdown:', error);
+        }
+    }
+
+    hidePlaceholderDropdown() {
+        try {
+            if (this.placeholderDropdown) {
+                this.placeholderDropdown.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('❌ Failed to hide placeholder dropdown:', error);
+        }
+    }
+
+    insertPlaceholderFromDropdown(placeholderKey) {
+        try {
+            const editor = document.getElementById('emailEditor');
+            if (!editor) return;
+
+            // Get the placeholder value
+            const placeholder = this.getAvailablePlaceholders().find(p => p.key === placeholderKey);
+            if (!placeholder) return;
+
+            // Insert placeholder at cursor position
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(document.createTextNode(placeholder.value));
+                range.collapse(false);
+            }
+
+            // Hide dropdown
+            this.hidePlaceholderDropdown();
+
+            // Update preview
+            this.debouncePreviewUpdate();
+            
+            console.log('✅ Placeholder inserted:', placeholderKey);
+        } catch (error) {
+            console.error('❌ Failed to insert placeholder:', error);
+        }
+    }
+
+    getAvailablePlaceholders() {
+        return [
+            { key: '@company', value: 'Company Name', description: 'Company name from the data' },
+            { key: '@profile', value: 'Profile Name', description: 'Profile name from the data' },
+            { key: '@email', value: 'Email Address', description: 'Email address from the data' },
+            { key: '@name', value: 'Contact Name', description: 'Contact name from the data' },
+            { key: '@title', value: 'Job Title', description: 'Job title from the data' },
+            { key: '@phone', value: 'Phone Number', description: 'Phone number from the data' },
+            { key: '@linkedin', value: 'LinkedIn Profile', description: 'LinkedIn profile URL' },
+            { key: '@industry', value: 'Industry', description: 'Industry from the data' },
+            { key: '@location', value: 'Location', description: 'Location from the data' },
+            { key: '@date', value: 'Current Date', description: 'Current date' },
+            { key: '@sender_name', value: 'Your Name', description: 'Your name from the form' },
+            { key: '@sender_email', value: 'Your Email', description: 'Your email from the form' }
+        ];
+    }
+
+    // Modal methods for template management
+    showTemplateNameModal() {
+        return new Promise((resolve) => {
+            // Create modal container
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                max-width: 400px;
+                width: 90%;
+            `;
+
+            modalContent.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333;">Save Template</h3>
+                <p style="margin: 0 0 20px 0; color: #666;">Enter a name for your template:</p>
+                <input type="text" id="templateNameInput" placeholder="Template name" style="
+                    width: 100%;
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                    box-sizing: border-box;
+                ">
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="cancelTemplateBtn" style="
+                        padding: 10px 20px;
+                        border: 1px solid #ddd;
+                        background: white;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Cancel</button>
+                    <button id="saveTemplateBtn" style="
+                        padding: 10px 20px;
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Save</button>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Focus on input
+            const input = modal.querySelector('#templateNameInput');
+            input.focus();
+
+            // Handle Enter key
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const saveBtn = modal.querySelector('#saveTemplateBtn');
+                    saveBtn.click();
+                }
+            });
+
+            // Handle save button
+            modal.querySelector('#saveTemplateBtn').addEventListener('click', () => {
+                const name = input.value.trim();
+                if (name) {
+                    document.body.removeChild(modal);
+                    resolve(name);
+                } else {
+                    input.style.borderColor = '#dc3545';
+                    input.placeholder = 'Template name is required';
+                }
+            });
+
+            // Handle cancel button
+            modal.querySelector('#cancelTemplateBtn').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve(null);
+            });
+
+            // Handle click outside modal
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    showConfirmModal(message) {
+        return new Promise((resolve) => {
+            // Create modal container
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                max-width: 400px;
+                width: 90%;
+            `;
+
+            modalContent.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333;">Confirm Action</h3>
+                <p style="margin: 0 0 20px 0; color: #666;">${message}</p>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="cancelConfirmBtn" style="
+                        padding: 10px 20px;
+                        border: 1px solid #ddd;
+                        background: white;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Cancel</button>
+                    <button id="confirmBtn" style="
+                        padding: 10px 20px;
+                        background: #dc3545;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Confirm</button>
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Handle confirm button
+            modal.querySelector('#confirmBtn').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve(true);
+            });
+
+            // Handle cancel button
+            modal.querySelector('#cancelConfirmBtn').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve(false);
+            });
+
+            // Handle click outside modal
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    resolve(false);
+                }
+            });
+        });
     }
 }
 

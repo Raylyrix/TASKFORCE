@@ -108,6 +108,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     installChromeExtension: (params) => wrapInvoke('installChromeExtension', params),
     getExtensionPath: (extensionId) => wrapInvoke('getExtensionPath', extensionId),
     receiveScrapedData: (params) => wrapInvoke('receiveScrapedData', params),
+    logEvent: (payload) => wrapInvoke('app-log-append', payload),
 
     // Updates
     checkForUpdates: () => wrapInvoke('update-check'),
