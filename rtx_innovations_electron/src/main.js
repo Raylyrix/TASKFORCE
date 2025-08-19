@@ -1152,6 +1152,32 @@ ipcMain.handle('auth-logout', async () => {
 });
 ipcMain.handle('sendTestEmail', async (event, emailData) => sendTestEmail(emailData));
 ipcMain.handle('sendEmail', async (event, emailData) => sendEmail(emailData));
+ipcMain.handle('getSendAsList', async (event) => {
+    try {
+        logEvent('info', 'Getting send-as list from Gmail');
+        
+        if (!googleToken) {
+            throw new Error('Not authenticated with Google');
+        }
+        
+        const oauth2Client = new google.auth.OAuth2();
+        oauth2Client.setCredentials({ access_token: googleToken });
+        
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+        const response = await gmail.users.settings.sendAs.list({ userId: 'me' });
+        
+        const sendAsList = response.data.sendAs || [];
+        const emails = sendAsList.map(sendAs => sendAs.verificationStatus === 'accepted' ? sendAs.sendAsEmail : null).filter(Boolean);
+        
+        logEvent('info', 'Send-as list retrieved', { count: emails.length });
+        return emails;
+        
+    } catch (error) {
+        logEvent('error', 'Failed to get send-as list', { error: error.message });
+        console.error('Failed to get send-as list:', error);
+        return [];
+    }
+});
 ipcMain.handle('gmail-list-send-as', async () => listSendAs());
 ipcMain.handle('gmail-get-signature', async () => getPrimarySignature());
 ipcMain.handle('sheets-list-tabs', async (e, sheetId) => listSheets(sheetId));
