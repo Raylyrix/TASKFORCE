@@ -12,6 +12,7 @@ class GoogleAuthManager {
     init() {
         this.loadStoredCredentials();
         this.setupEventListeners();
+        this.checkCurrentAuth();
     }
 
     setupEventListeners() {
@@ -31,6 +32,30 @@ class GoogleAuthManager {
         const fileInput = document.getElementById('credentialsFile');
         if (fileInput) {
             fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
+
+        // Listen for authentication events from main process
+        if (window.electronAPI) {
+            window.electronAPI.onAuthSuccess((data) => {
+                this.onAuthenticationSuccess(data.email);
+            });
+
+            window.electronAPI.onAuthProgress((data) => {
+                this.showLoading(`Authentication step: ${data.step}`);
+            });
+        }
+    }
+
+    async checkCurrentAuth() {
+        try {
+            if (window.electronAPI) {
+                const authStatus = await window.electronAPI.getCurrentAuth();
+                if (authStatus.authenticated && authStatus.email) {
+                    this.onAuthenticationSuccess(authStatus.email);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check current auth:', error);
         }
     }
 
@@ -118,28 +143,20 @@ class GoogleAuthManager {
             if (window.electronAPI && window.electronAPI.authenticateGoogle) {
                 const result = await window.electronAPI.authenticateGoogle(credentials);
                 if (result.success) {
-                    this.onAuthenticationSuccess(result.userEmail);
+                    // The authentication success will be handled by the event listener
+                    // We don't need to call onAuthenticationSuccess here
+                    this.showLoading('Authentication successful! Setting up services...');
                 } else {
                     throw new Error(result.error || 'Authentication failed');
                 }
             } else {
-                // Simulate authentication for demo
-                await this.simulateAuthentication();
+                throw new Error('Google OAuth not available');
             }
         } catch (error) {
             throw error;
         } finally {
             this.hideLoading();
         }
-    }
-
-    async simulateAuthentication() {
-        // Simulate the authentication process
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // For demo purposes, use a mock email
-        const mockEmail = 'user@example.com';
-        this.onAuthenticationSuccess(mockEmail);
     }
 
     onAuthenticationSuccess(email) {
@@ -229,12 +246,12 @@ class GoogleAuthManager {
         try {
             // Initialize Gmail service
             if (window.electronAPI && window.electronAPI.initializeGmailService) {
-                await window.electronAPI.initializeGmailService(this.credentials);
+                await window.electronAPI.initializeGmailService();
             }
 
             // Initialize Sheets service
             if (window.electronAPI && window.electronAPI.initializeSheetsService) {
-                await window.electronAPI.initializeSheetsService(this.credentials);
+                await window.electronAPI.initializeSheetsService();
             }
 
             console.log('Services initialized successfully');
@@ -243,7 +260,15 @@ class GoogleAuthManager {
         }
     }
 
-    logout() {
+    async logout() {
+        try {
+            if (window.electronAPI && window.electronAPI.logout) {
+                await window.electronAPI.logout();
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+
         this.isAuthenticated = false;
         this.userEmail = null;
         this.credentials = null;

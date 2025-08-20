@@ -98,6 +98,128 @@ class SheetsManager {
         this.isConnected = true;
         this.currentSheet = sheetId;
         this.sheetData = data;
+        
+        // Detect email and name columns intelligently
+        this.detectEmailColumns();
+        
+        // Update UI
+        this.updateSheetsUI();
+        
+        this.showSuccess('Successfully connected to Google Sheets!');
+        this.logEvent('info', 'Google Sheets connected successfully');
+    }
+    
+    // Intelligent email column detection
+    detectEmailColumns() {
+        try {
+            if (!this.sheetData || !this.sheetData.headers) return;
+            
+            const headers = this.sheetData.headers;
+            this.detectedEmailColumns = [];
+            this.detectedNameColumns = [];
+            
+            // Common email column variations
+            const emailPatterns = [
+                'email', 'gmail', 'mail', 'mailid', 'email1', 'email 1', 'email-1',
+                'e-mail', 'e_mail', 'emailaddress', 'email_address', 'emailaddress1',
+                'primary_email', 'primaryemail', 'contact_email', 'contactemail',
+                'work_email', 'workemail', 'personal_email', 'personalemail'
+            ];
+            
+            // Common name column variations
+            const namePatterns = [
+                'name', 'fullname', 'full_name', 'firstname', 'first_name', 'lastname', 'last_name',
+                'first', 'last', 'given_name', 'family_name', 'display_name', 'displayname',
+                'contact_name', 'contactname', 'customer_name', 'customername'
+            ];
+            
+            headers.forEach((header, index) => {
+                const headerLower = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                // Check for email columns
+                if (emailPatterns.some(pattern => headerLower.includes(pattern))) {
+                    this.detectedEmailColumns.push({ header, index, confidence: 'high' });
+                }
+                
+                // Check for name columns
+                if (namePatterns.some(pattern => headerLower.includes(pattern))) {
+                    this.detectedNameColumns.push({ header, index, confidence: 'high' });
+                }
+            });
+            
+            // If no high-confidence matches, try fuzzy matching
+            if (this.detectedEmailColumns.length === 0) {
+                headers.forEach((header, index) => {
+                    const headerLower = header.toLowerCase();
+                    if (headerLower.includes('@') || headerLower.includes('mail')) {
+                        this.detectedEmailColumns.push({ header, index, confidence: 'medium' });
+                    }
+                });
+            }
+            
+                    this.logEvent('info', 'Email columns detected', { 
+            emailColumns: this.detectedEmailColumns.length, 
+            nameColumns: this.detectedNameColumns.length 
+        });
+        
+        // Update UI with detected columns
+        this.updateColumnDetectionUI();
+        
+    } catch (error) {
+        console.error('Error detecting email columns:', error);
+    }
+}
+
+updateColumnDetectionUI() {
+    try {
+        // Find or create the column detection info container
+        let container = document.getElementById('columnDetectionInfo');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'columnDetectionInfo';
+            // Insert after the Google Sheets connection section
+            const sheetsSection = document.querySelector('[style*="background: #f2f2f7"]');
+            if (sheetsSection) {
+                sheetsSection.parentNode.insertBefore(container, sheetsSection.nextSibling);
+            }
+        }
+        
+        let html = '<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e5e7;">';
+        html += '<h4 style="margin-bottom: 12px; color: #1d1d1f;"><i class="fas fa-search"></i> Detected Columns</h4>';
+        
+        if (this.detectedEmailColumns && this.detectedEmailColumns.length > 0) {
+            html += '<div style="margin-bottom: 12px;"><strong>📧 Email Columns:</strong><br>';
+            this.detectedEmailColumns.forEach(col => {
+                const confidenceColor = col.confidence === 'high' ? '#34c759' : '#ff9500';
+                html += `<span style="display: inline-block; background: ${confidenceColor}; color: white; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 12px;">${col.header}</span>`;
+            });
+            html += '</div>';
+        }
+        
+        if (this.detectedNameColumns && this.detectedNameColumns.length > 0) {
+            html += '<div style="margin-bottom: 12px;"><strong>👤 Name Columns:</strong><br>';
+            this.detectedNameColumns.forEach(col => {
+                const confidenceColor = col.confidence === 'high' ? '#34c759' : '#ff9500';
+                html += `<span style="display: inline-block; background: ${confidenceColor}; color: white; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 12px;">${col.header}</span>`;
+            });
+            html += '</div>';
+        }
+        
+        if ((!this.detectedEmailColumns || this.detectedEmailColumns.length === 0) && 
+            (!this.detectedNameColumns || this.detectedNameColumns.length === 0)) {
+            html += '<div style="color: #ff9500;"><i class="fas fa-exclamation-triangle"></i> No email or name columns detected. Please check your spreadsheet structure.</div>';
+        }
+        
+        html += '<div style="margin-top: 12px; font-size: 12px; color: #8E8E93;">';
+        html += '<i class="fas fa-info-circle"></i> High confidence columns are automatically mapped. Medium confidence columns may need manual verification.';
+        html += '</div></div>';
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error updating column detection UI:', error);
+    }
+}
         this.headers = data.headers || [];
         this.rows = data.rows || [];
 

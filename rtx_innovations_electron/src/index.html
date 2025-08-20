@@ -41,101 +41,6 @@
             background: #f5f5f7;
         }
         
-        /* Tabbed Interface Styles */
-        .tab-container {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e5e7;
-            padding: 0 30px;
-        }
-        
-        .tab-list {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            border-bottom: 1px solid #e5e5e7;
-        }
-        
-        .tab-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            user-select: none;
-            position: relative;
-        }
-        
-        .tab-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .tab-item.active {
-            border-bottom-color: #007AFF;
-            background: #ffffff;
-        }
-        
-        .tab-item .tab-close {
-            margin-left: 8px;
-            padding: 2px 6px;
-            border-radius: 50%;
-            background: #e5e5e7;
-            color: #8E8E93;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .tab-item .tab-close:hover {
-            background: #ff3b30;
-            color: white;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .add-tab-btn {
-            padding: 12px 16px;
-            background: #f2f2f7;
-            border: 1px dashed #c7c7cc;
-            border-radius: 8px;
-            color: #8E8E93;
-            cursor: pointer;
-            margin: 8px 0;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .add-tab-btn:hover {
-            background: #e5e5e7;
-            border-color: #8E8E93;
-            color: #1d1d1f;
-        }
-        
-        .tab-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        
-        .tab-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1d1d1f;
-        }
-        
-        .tab-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
         .header {
             background: #ffffff;
             padding: 20px 30px;
@@ -403,6 +308,73 @@
             cursor: pointer;
             color: #8E8E93;
         }
+
+        /* Authentication styles */
+        .auth-options {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .auth-option {
+            text-align: center;
+            padding: 24px;
+            border: 2px solid #f2f2f7;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-option:hover {
+            border-color: #007AFF;
+            background: #f8f9fa;
+        }
+
+        .auth-option h4 {
+            margin: 0 0 12px 0;
+            color: #1d1d1f;
+            font-size: 18px;
+        }
+
+        .auth-option p {
+            margin: 0 0 20px 0;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .auth-divider {
+            position: relative;
+            text-align: center;
+            margin: 16px 0;
+        }
+
+        .auth-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e5e5e7;
+        }
+
+        .auth-divider span {
+            background: white;
+            padding: 0 16px;
+            color: #8E8E93;
+            font-size: 14px;
+        }
+
+        .credentials-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #selectedFileName {
+            min-height: 20px;
+            font-style: italic;
+        }
         
         .empty-state {
             text-align: center;
@@ -414,11 +386,205 @@
             font-size: 48px;
             margin-bottom: 20px;
         }
+        
+        /* Tab Management Styles */
+        .tab-container {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e7;
+            padding: 0 30px;
+        }
+        
+        .tab-list {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            border-bottom: 1px solid #e5e5e7;
+        }
+        
+        .tab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            user-select: none;
+            position: relative;
+        }
+        
+        .tab-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .tab-item.active {
+            border-bottom-color: #007AFF;
+            background: #ffffff;
+        }
+        
+        .tab-item .tab-close {
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            background: #e5e5e7;
+            color: #8E8E93;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-item .tab-close:hover {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .add-tab-btn {
+            padding: 12px 16px;
+            background: #f2f2f7;
+            border: 1px dashed #c7c7cc;
+            border-radius: 8px;
+            color: #8E8E93;
+            cursor: pointer;
+            margin: 8px 0;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .add-tab-btn:hover {
+            background: #e5e5e7;
+            border-color: #8E8E93;
+            color: #1d1d1f;
+        }
+        
+        .tab-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .tab-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .tab-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        /* Dark Theme Support */
+        body.theme-dark {
+            background: #1d1d1f;
+            color: #f5f5f7;
+        }
+        
+        body.theme-dark .header,
+        body.theme-dark .tab-container {
+            background: #2c2c2e;
+            border-color: #3a3a3c;
+        }
+        
+        body.theme-dark .mailer-interface {
+            background: #2c2c2e;
+            color: #f5f5f7;
+        }
+        
+        body.theme-dark .form-group label {
+            color: #f5f5f7;
+        }
+        
+        body.theme-dark .form-group input,
+        body.theme-dark .form-group textarea,
+        body.theme-dark .form-group select {
+            background: #3a3a3c;
+            border-color: #48484a;
+            color: #f5f5f7;
+        }
+        
+        body.theme-dark .btn-secondary {
+            background: #3a3a3c;
+            color: #f5f5f7;
+            border-color: #48484a;
+        }
+        
+        body.theme-dark .btn-secondary:hover {
+            background: #48484a;
+        }
+        
+        /* Enhanced Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-success {
+            background: #34C759;
+            border-left: 4px solid #28a745;
+        }
+        
+        .notification-error {
+            background: #FF3B30;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .notification-warning {
+            background: #FF9500;
+            border-left: 4px solid #fd7e14;
+        }
+        
+        .notification-info {
+            background: #007AFF;
+            border-left: 4px solid #0056CC;
+        }
+        
+        .notification:hover {
+            transform: translateX(0);
+        }
+        
+        .notification .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        
+        .notification .close-btn:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
 	<div class="app-container" style="display:block; height:auto; min-height:100vh;">
-		<!-- Tab Management - Above Navbar -->
+				<!-- Tab Management - Above Navbar -->
 		<div class="tab-container" style="position: sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid #e5e5e7; padding:8px 16px;">
 			<div style="display:flex; align-items:center; justify-content:space-between;">
 				<ul class="tab-list" id="tabList" style="display:flex; list-style:none; margin:0; padding:0; gap:8px;">
@@ -449,9 +615,8 @@
                 <button class="btn btn-secondary" id="loginBtn"><i class="fas fa-sign-in-alt"></i>Login</button>
 				<button class="btn btn-secondary" id="importSheetBtn"><i class="fas fa-file-import"></i>Import</button>
 				<button class="btn btn-secondary" id="togglePreviewBtn"><i class="fas fa-table"></i>Preview</button>
-										        <button class="btn btn-secondary" id="logsBtn"><i class="fas fa-list"></i>Logs</button>
-        <button class="btn btn-secondary" id="salesqlScraperBtn"><i class="fas fa-database"></i>SalesQL Scraper</button>
-        <button class="btn btn-secondary" id="themeToggle"><i class="fas fa-moon"></i>Theme</button>
+				<button class="btn btn-secondary" id="logsBtn"><i class="fas fa-list"></i>Logs</button>
+				<button class="btn btn-secondary" id="themeToggle"><i class="fas fa-moon"></i>Theme</button>
 				<button class="btn btn-secondary" id="helpToolbarBtn"><i class="fas fa-circle-question"></i>Help</button>
 				<div id="helpDropdown" style="display:none; position:absolute; right:0; top:100%; margin-top:8px; background:#ffffff; border:1px solid #e5e5e7; border-radius:8px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); overflow:hidden; min-width:220px;">
 					<button class="btn btn-secondary" id="helpCheckBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Check for Updates</button>
@@ -463,11 +628,10 @@
             </div>
             
 		<div class="main-content" style="width:100%;">
-			
 			<div class="content-area" style="padding:16px;">
 				<!-- Tab 1 Content -->
 				<div id="tab1" class="tab-content active">
-					<div class="mailer-interface" style="max-width:unset; width:100%;">
+				<div class="mailer-interface" style="max-width:unset; width:100%;">
 						<div class="tab-header">
 							<h2 class="tab-title">Email Campaign Manager</h2>
 							<div class="tab-actions">
@@ -476,6 +640,13 @@
 								<button class="btn btn-secondary" id="logsBtn1"><i class="fas fa-list"></i>Logs</button>
 							</div>
 						</div>
+					<h2 style="margin-bottom: 16px; color: #1d1d1f;">Email Campaign Manager</h2>
+					<div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+						<!-- These buttons now live in the top bar, keeping here for keyboard access if needed -->
+						<button class="btn btn-secondary" id="importSheetBtn" style="display:none;"><i class="fas fa-file-import"></i>Import Spreadsheet</button>
+						<button class="btn btn-secondary" id="togglePreviewBtn" style="display:none;"><i class="fas fa-table"></i>Toggle Data Preview</button>
+						<button class="btn btn-secondary" id="logsBtn" style="display:none;"><i class="fas fa-list"></i>Logs</button>
+            </div>
             
 					<!-- Account and From -->
 					<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -489,6 +660,27 @@
 							<div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
 								<input type="text" id="fromOverride" placeholder="Or type a custom From email" style="flex:1;">
 								<small style="color:#8E8E93;">Use a verified alias for best deliverability</small>
+                    </div>
+                </div>
+            </div>
+
+					<!-- Google OAuth Authentication -->
+					<div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+						<h3 style="margin-bottom: 10px;"><i class="fas fa-shield-alt"></i> Google Authentication</h3>
+						<p style="margin-bottom: 12px; color: #666;">Connect your Google account to access Gmail and Google Sheets:</p>
+						<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+							<button id="googleLoginBtn" class="btn btn-primary">
+								<i class="fab fa-google"></i> Sign in with Google
+							</button>
+							<div style="display: flex; align-items: center; gap: 8px;">
+								<span style="color: #666;">or</span>
+								<div style="display: flex; flex-direction: column; gap: 4px;">
+									<input type="file" id="credentialsFile" accept=".json" style="display: none;">
+									<button id="uploadCredentialsBtn" class="btn btn-secondary">
+										<i class="fas fa-upload"></i> Upload Credentials
+									</button>
+									<small style="color: #8E8E93; font-size: 11px;">Upload your Google API credentials JSON file</small>
+								</div>
                     </div>
                 </div>
             </div>
@@ -551,7 +743,7 @@
 									<small>Click "Refresh Preview" to update the preview with current content</small>
 								</div>
 							</div>
-						</div>
+                            </div>
 						<div class="form-group">
 							<label>Subject Line</label>
 							<div style="display: flex; gap: 8px; align-items: center;">
@@ -560,7 +752,7 @@
 									<i class="fas fa-tags"></i> Placeholders
 								</button>
 							</div>
-                        </div>
+                            </div>
 						<div class="form-group">
 							<label>From Name</label>
 							<input type="text" id="fromName" placeholder="Your name">
@@ -600,7 +792,7 @@
                                             <option value="Georgia, serif">Georgia</option>
                                             <option value="Verdana, sans-serif">Verdana</option>
                                             <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-                                        </select>
+									</select>
                                         <select id="fontSize" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:60px;">
                                             <option value="1">8pt</option>
                                             <option value="2">10pt</option>
@@ -609,8 +801,8 @@
                                             <option value="5">16pt</option>
                                             <option value="6">18pt</option>
                                             <option value="7">24pt</option>
-                                        </select>
-                                    </div>
+									</select>
+							</div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
                                         <button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="execCommand('bold')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
@@ -651,38 +843,37 @@
                                     </div>
                                 </div>
 
-                                <!-- Editor Content Area -->
-                                <div id="emailEditor" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Click any column chip or cell to insert placeholders like ((Name)), ((Company)), etc."></div>
+                                                                 <!-- Editor Content Area -->
+                                 <div id="emailEditor" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Type @ to see available placeholders"></div>
+                                 
+                                 <!-- Placeholder Dropdown -->
+                                 <div id="placeholderDropdown" style="display:none; position:absolute; background:white; border:1px solid #e5e5e7; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); max-height:200px; overflow-y:auto; z-index:1000; min-width:200px;">
+                                     <div style="padding:8px 12px; background:#f8f9fa; border-bottom:1px solid #e5e5e7; font-weight:600; color:#1d1d1f;">
+                                         <i class="fas fa-tags"></i> Available Placeholders
+                                     </div>
+                                     <div id="placeholderList" style="padding:8px 0;">
+                                         <!-- Placeholders will be populated here -->
+                                     </div>
+                                 </div>
 
-                                						<!-- Enhanced Attachments Section -->
-						<div class="form-group" style="margin-top: 16px;">
-							<label style="display: flex; align-items: center; gap: 8px;">
-								<span>📎 Attachments (Required by Default)</span>
-								<label style="font-size: 12px; font-weight: normal; color: #8E8E93; margin-left: auto;">
-									<input type="checkbox" id="sendWithoutAttachments" style="margin-right: 4px;">
-									Send without attachments
-								</label>
-							</label>
-							<div id="campaignAttachments" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa; min-height: 80px;">
-								<div style="text-align: center; color: #8E8E93;">
-									<i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
-									<p>No attachments selected</p>
-									<small style="font-size: 11px; color: #c7c7cc;">Attachments are required by default</small>
-								</div>
-							</div>
-							<div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
-								<button type="button" class="btn btn-primary" id="addCampaignAttachmentBtn">
-									<i class="fas fa-plus"></i> Add Attachment
-								</button>
-								<button type="button" class="btn btn-secondary" id="removeAllCampaignAttachmentsBtn">
-									<i class="fas fa-trash"></i> Remove All
-								</button>
-								<div style="margin-left: auto; font-size: 12px; color: #8E8E93;">
-									<i class="fas fa-info-circle"></i> 
-									<span id="attachmentStatus">Required</span>
-								</div>
-							</div>
-						</div>
+                                <!-- Attachments Section -->
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label>Attachments</label>
+                                    <div id="campaignAttachments" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa; min-height: 80px;">
+                                        <div style="text-align: center; color: #8E8E93;">
+                                            <i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                                            <p>No attachments selected</p>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                        <button type="button" class="btn btn-secondary" id="addCampaignAttachmentBtn">
+                                            <i class="fas fa-plus"></i> Add Attachment
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" id="removeAllCampaignAttachmentsBtn">
+                                            <i class="fas fa-trash"></i> Remove All
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <!-- Editor Footer -->
                                 <div style="background:#f8f9fa; border-top:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#5f6368;">
@@ -709,7 +900,34 @@
 							</label>
 							<button class="btn btn-secondary" id="previewEmailBtn"><i class="fas fa-eye"></i>Preview</button>
                             </div>
-
+						<div class="form-group">
+							<label style="display: flex; align-items: center; gap: 8px;">
+								<span>📎 Attachments (Required by Default)</span>
+								<label style="font-size: 12px; font-weight: normal; color: #8E8E93; margin-left: auto;">
+									<input type="checkbox" id="sendWithoutAttachments" style="margin-right: 4px;">
+									Send without attachments
+								</label>
+							</label>
+							<div id="campaignAttachments" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa; min-height: 80px;">
+								<div style="text-align: center; color: #8E8E93;">
+									<i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
+									<p>No attachments selected</p>
+									<small style="font-size: 11px; color: #c7c7cc;">Attachments are required by default</small>
+							</div>
+							</div>
+							<div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+								<button type="button" class="btn btn-primary" id="addCampaignAttachmentBtn">
+									<i class="fas fa-plus"></i> Add Attachment
+								</button>
+								<button type="button" class="btn btn-secondary" id="removeAllCampaignAttachmentsBtn">
+									<i class="fas fa-trash"></i> Remove All
+								</button>
+								<div style="margin-left: auto; font-size: 12px; color: #8E8E93;">
+									<i class="fas fa-info-circle"></i> 
+									<span id="attachmentStatus">Required</span>
+								</div>
+							</div>
+						</div>
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
 							<div class="form-group">
 								<label>Batch Size</label>
@@ -794,9 +1012,6 @@
                         </div>
                     </div>
                 </div>
-				</div><!-- End tab1 content -->
-			</div><!-- End content-area -->
-		</div><!-- End main-content -->
 
 	<!-- Login Modal -->
 	<div class="modal" id="loginModal">
@@ -850,6 +1065,41 @@
 		<div class="loading-content">
 			<i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #007AFF; margin-bottom: 15px;"></i>
 			<p id="loadingMessage">Loading...</p>
+                    </div>
+                        </div>
+
+	<!-- Authentication Modal -->
+	<div id="authModal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3><i class="fas fa-shield-alt"></i> Google Authentication</h3>
+				<button class="modal-close" onclick="document.getElementById('authModal').style.display='none'">&times;"></button>
+			</div>
+			<div class="modal-body">
+				<div class="auth-options">
+					<div class="auth-option">
+						<h4><i class="fab fa-google"></i> Sign in with Google</h4>
+						<p>Use your Google account to access Gmail and Google Sheets</p>
+						<button id="modalGoogleLoginBtn" class="btn btn-primary">
+							<i class="fab fa-google"></i> Continue with Google
+						</button>
+					</div>
+					<div class="auth-divider">
+						<span>or</span>
+					</div>
+					<div class="auth-option">
+						<h4><i class="fab fa-key"></i> Upload Credentials</h4>
+						<p>Upload your Google API credentials JSON file</p>
+						<div class="credentials-upload">
+							<input type="file" id="modalCredentialsFile" accept=".json" style="display: none;">
+							<button id="modalUploadCredentialsBtn" class="btn btn-secondary">
+								<i class="fas fa-upload"></i> Choose File
+							</button>
+							<div id="selectedFileName" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
+						</div>
+					</div>
+				</div>
+			</div>
                     </div>
                         </div>
                         
@@ -1036,92 +1286,7 @@
 		</div>
 	</div>
 
-	<!-- SalesQL Scraper Modal -->
-	<div id="salesqlScraperModal" class="modal">
-		<div class="modal-content" style="max-width: 90%; width: 1200px; height: 80vh;">
-			<div class="modal-header">
-				<h3><i class="fas fa-database"></i> SalesQL Scraper</h3>
-				<button class="btn btn-secondary" id="closeSalesqlModal">&times;</button>
-			</div>
-			<div class="modal-body" style="height: calc(80vh - 120px); overflow-y: auto;">
-				<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%;">
-					<!-- Left Panel: Scraper Controls -->
-					<div style="border: 1px solid #e5e5e7; border-radius: 8px; padding: 16px; background: #f8f9fa;">
-						<h4 style="margin-bottom: 16px;">Scraper Controls</h4>
-						
-						<div class="form-group" style="margin-bottom: 16px;">
-							<label>Google Sheets URL (Optional)</label>
-							<input type="text" id="salesqlSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." style="width: 100%;">
-							<small style="color: #8E8E93;">Leave empty to use built-in interface</small>
-						</div>
-						
-						<div class="form-group" style="margin-bottom: 16px;">
-							<label>Scraping Delay (seconds)</label>
-							<input type="number" id="scrapingDelay" value="4" min="1" max="10" style="width: 100px;">
-						</div>
-						
-						<div class="form-group" style="margin-bottom: 16px;">
-							<label>File Name</label>
-							<input type="text" id="scrapingFileName" placeholder="salesql_data" style="width: 100%;">
-						</div>
-						
-						                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                            <button class="btn btn-primary" id="startScrapingBtn">
-                                <i class="fas fa-play"></i> Start Scraping
-                            </button>
-                            <button class="btn btn-secondary" id="stopScrapingBtn" disabled>
-                                <i class="fas fa-stop"></i> Stop
-                            </button>
-                            <button class="btn btn-secondary" id="exportScrapedDataBtn" disabled>
-                                <i class="fas fa-download"></i> Export CSV
-                            </button>
-                        </div>
-                        
-                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                            <button class="btn btn-secondary" onclick="rtxApp.exportToCSVEnhanced()" id="enhancedExportBtn" disabled>
-                                <i class="fas fa-file-csv"></i> Enhanced CSV
-                            </button>
-                            <button class="btn btn-secondary" onclick="rtxApp.exportToGoogleSheetsEnhanced()" id="enhancedSheetsBtn" disabled>
-                                <i class="fas fa-table"></i> Enhanced Sheets
-                            </button>
-                            <button class="btn btn-secondary" onclick="rtxApp.exportToTaskforceEnhanced()" id="taskforceBtn" disabled>
-                                <i class="fas fa-paper-plane"></i> To Taskforce
-                            </button>
-                        </div>
-						
-						<div id="scrapingStatus" style="padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #e5e5e7;">
-							<strong>Status:</strong> <span id="scrapingStatusText">Ready to scrape</span>
-						</div>
-						
-						<div id="scrapingProgress" style="display: none; margin-top: 16px;">
-							<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-								<span>Progress</span>
-								<span id="scrapingProgressText">0/0</span>
-							</div>
-							<div style="width: 100%; height: 8px; background: #e5e5e7; border-radius: 4px; overflow: hidden;">
-								<div id="scrapingProgressBar" style="height: 100%; background: #007AFF; width: 0%; transition: width 0.3s;"></div>
-							</div>
-						</div>
-						
-						<!-- Instructions Container -->
-						<div id="scraperInstructions" style="margin-top: 16px;"></div>
-					</div>
-					
-					<!-- Right Panel: Data Display -->
-					<div style="border: 1px solid #e5e5e7; border-radius: 8px; padding: 16px; background: #fff;">
-						<h4 style="margin-bottom: 16px;">Scraped Data</h4>
-						
-						<div id="scrapedDataContainer" style="height: calc(100% - 60px); overflow-y: auto;">
-							<div style="text-align: center; color: #8E8E93; margin-top: 40px;">
-								<i class="fas fa-database" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-								<p>No data scraped yet. Start scraping to see results here.</p>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+
 
 	<!-- Email Sending Progress Modal -->
 	<div id="emailProgressModal" class="modal">
@@ -1533,6 +1698,348 @@
 			initEnhancedEditor();
 			startWordCount();
 		});
+		
+		// Enhanced Placeholder System with @ dropdown
+		(function() {
+			const editor = document.getElementById('emailEditor');
+			const dropdown = document.getElementById('placeholderDropdown');
+			const placeholderList = document.getElementById('placeholderList');
+			let currentPlaceholders = [];
+			
+			if (editor && dropdown) {
+				editor.addEventListener('input', function(e) {
+					const text = editor.textContent || '';
+					const cursorPosition = getCaretPosition(editor);
+					const beforeCursor = text.substring(0, cursorPosition);
+					
+					// Check if user typed @
+					if (beforeCursor.endsWith('@')) {
+						showPlaceholderDropdown();
+					} else if (beforeCursor.includes('@') && !beforeCursor.endsWith('@')) {
+						// User typed something after @, hide dropdown
+						hidePlaceholderDropdown();
+					}
+				});
+				
+				// Hide dropdown when clicking outside
+				document.addEventListener('click', function(e) {
+					if (!editor.contains(e.target) && !dropdown.contains(e.target)) {
+						hidePlaceholderDropdown();
+					}
+				});
+			}
+			
+			function showPlaceholderDropdown() {
+				if (currentPlaceholders.length === 0) {
+					// Populate with sample placeholders (in real app, these come from Google Sheets)
+					currentPlaceholders = ['Name', 'Email', 'Company', 'Position', 'Phone', 'Address', 'City', 'State', 'Country'];
+				}
+				
+				placeholderList.innerHTML = currentPlaceholders.map(placeholder => 
+					`<div class="placeholder-item" onclick="insertPlaceholder('${placeholder}')" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f0f0f0; transition:background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'">
+						<i class="fas fa-tag" style="color:#007AFF; margin-right:8px;"></i>
+						${placeholder}
+					</div>`
+				).join('');
+				
+				// Position dropdown near cursor
+				const selection = window.getSelection();
+				if (selection.rangeCount > 0) {
+					const range = selection.getRangeAt(0);
+					const rect = range.getBoundingClientRect();
+					dropdown.style.left = rect.left + 'px';
+					dropdown.style.top = (rect.bottom + 5) + 'px';
+				}
+				
+				dropdown.style.display = 'block';
+			}
+			
+			function hidePlaceholderDropdown() {
+				dropdown.style.display = 'none';
+			}
+			
+			window.insertPlaceholder = function(placeholder) {
+				const selection = window.getSelection();
+				if (selection.rangeCount > 0) {
+					const range = selection.getRangeAt(0);
+					// Remove the @ symbol
+					const text = editor.textContent || '';
+					const cursorPos = getCaretPosition(editor);
+					const beforeAt = text.substring(0, cursorPos - 1);
+					const afterAt = text.substring(cursorPos);
+					
+					editor.textContent = beforeAt + `((${placeholder}))` + afterAt;
+					
+					// Set cursor after placeholder
+					const newPos = beforeAt.length + `((${placeholder}))`.length;
+					setCaretPosition(editor, newPos);
+				}
+				hidePlaceholderDropdown();
+			};
+			
+			function getCaretPosition(element) {
+				const selection = window.getSelection();
+				if (selection.rangeCount > 0) {
+					const range = selection.getRangeAt(0);
+					const preCaretRange = range.cloneRange();
+					preCaretRange.selectNodeContents(element);
+					preCaretRange.setEnd(range.endContainer, range.endOffset);
+					return preCaretRange.toString().length;
+				}
+				return 0;
+			}
+			
+			function setCaretPosition(element, position) {
+				const range = document.createRange();
+				const selection = window.getSelection();
+				const textNode = element.firstChild || element;
+				range.setStart(textNode, Math.min(position, textNode.length));
+				range.collapse(true);
+				selection.removeAllRanges();
+				selection.addRange(range);
+			}
+		})();
+
+		// Authentication Modal Setup
+		(function() {
+			const authModal = document.getElementById('authModal');
+			const modalGoogleLoginBtn = document.getElementById('modalGoogleLoginBtn');
+			const modalUploadCredentialsBtn = document.getElementById('modalUploadCredentialsBtn');
+			const modalCredentialsFile = document.getElementById('modalCredentialsFile');
+			const selectedFileName = document.getElementById('selectedFileName');
+
+			// Show auth modal when login button is clicked
+			if (modalGoogleLoginBtn) {
+				modalGoogleLoginBtn.addEventListener('click', async () => {
+					try {
+						// Use default credentials for Google OAuth
+						const result = await window.electronAPI.authenticateGoogle({});
+						if (result.success) {
+							authModal.style.display = 'none';
+							showSuccess('Authentication successful! Setting up services...');
+						} else {
+							showError('Authentication failed: ' + result.error);
+						}
+					} catch (error) {
+						showError('Authentication error: ' + error.message);
+					}
+				});
+			}
+
+			// Handle credentials file selection
+			if (modalUploadCredentialsBtn) {
+				modalUploadCredentialsBtn.addEventListener('click', () => {
+					modalCredentialsFile.click();
+				});
+			}
+
+			// Handle file selection
+			if (modalCredentialsFile) {
+				modalCredentialsFile.addEventListener('change', async (e) => {
+					const file = e.target.files[0];
+					if (file) {
+						selectedFileName.textContent = `Selected: ${file.name}`;
+						
+						try {
+							const credentials = await readCredentialsFile(file);
+							const result = await window.electronAPI.authenticateGoogle(credentials);
+							if (result.success) {
+								authModal.style.display = 'none';
+								showSuccess('Credentials uploaded successfully! Setting up services...');
+							} else {
+								showError('Authentication failed: ' + result.error);
+							}
+						} catch (error) {
+							showError('Failed to process credentials: ' + error.message);
+						}
+					}
+				});
+			}
+
+			// Helper function to read credentials file
+			function readCredentialsFile(file) {
+				return new Promise((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onload = (e) => {
+						try {
+							const credentials = JSON.parse(e.target.result);
+							resolve(credentials);
+						} catch (error) {
+							reject(new Error('Invalid JSON file'));
+						}
+					};
+					reader.onerror = () => reject(new Error('Failed to read file'));
+					reader.readAsText(file);
+				});
+			}
+		})();
+		
+		// Enhanced Theme Toggle
+		(function() {
+			const themeToggle = document.getElementById('themeToggle');
+			const body = document.body;
+			
+			// Load saved theme
+			const savedTheme = localStorage.getItem('theme') || 'light';
+			body.classList.add(`theme-${savedTheme}`);
+			updateThemeIcon(savedTheme);
+			
+			themeToggle.addEventListener('click', function() {
+				const currentTheme = body.classList.contains('theme-dark') ? 'dark' : 'light';
+				const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+				
+				body.classList.remove(`theme-${currentTheme}`);
+				body.classList.add(`theme-${newTheme}`);
+				
+				localStorage.setItem('theme', newTheme);
+				updateThemeIcon(newTheme);
+				
+				// Show notification
+				showNotification(`Switched to ${newTheme} theme`, 'info');
+			});
+			
+			function updateThemeIcon(theme) {
+				const icon = themeToggle.querySelector('i');
+				if (icon) {
+					icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+				}
+			}
+		})();
+		
+		// Enhanced Notification System
+		window.showNotification = function(message, type = 'info', duration = 10000) {
+			const notification = document.createElement('div');
+			notification.className = `notification notification-${type}`;
+			notification.innerHTML = `
+				${message}
+				<button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
+			`;
+			
+			document.body.appendChild(notification);
+			
+			// Show notification
+			setTimeout(() => notification.classList.add('show'), 100);
+			
+			// Auto-hide after duration (unless hovered)
+			let hideTimeout = setTimeout(() => {
+				if (notification.parentElement) {
+					notification.classList.remove('show');
+					setTimeout(() => notification.remove(), 300);
+				}
+			}, duration);
+			
+			// Pause auto-hide on hover
+			notification.addEventListener('mouseenter', () => {
+				clearTimeout(hideTimeout);
+			});
+			
+			notification.addEventListener('mouseleave', () => {
+				hideTimeout = setTimeout(() => {
+					if (notification.parentElement) {
+						notification.classList.remove('show');
+						setTimeout(() => notification.remove(), 300);
+					}
+				}, 10000); // 10 seconds after leaving
+			});
+		};
+
+		// Notification helper functions for the app
+		window.showSuccess = function(message) {
+			window.showNotification(message, 'success', 5000);
+		};
+
+		window.showError = function(message) {
+			window.showNotification(message, 'error', 8000);
+		};
+
+		window.showWarning = function(message) {
+			window.showNotification(message, 'warning', 6000);
+		};
+
+		window.showInfo = function(message) {
+			window.showNotification(message, 'info', 4000);
+		};
+
+		// Main App Initialization
+		document.addEventListener('DOMContentLoaded', function() {
+			// Initialize theme
+			initializeTheme();
+			
+			// Setup placeholder system
+			setupPlaceholderSystem();
+			
+			// Setup authentication modal
+			setupAuthenticationModal();
+			
+			// Setup event listeners
+			setupEventListeners();
+			
+			// Initialize tab system
+			initializeTabSystem();
+		});
+
+		// Helper functions for app initialization
+		function initializeTheme() {
+			const savedTheme = localStorage.getItem('theme') || 'light';
+			document.body.classList.add(`theme-${savedTheme}`);
+			updateThemeIcon(savedTheme);
+		}
+
+		function setupPlaceholderSystem() {
+			// Placeholder system is already initialized in the IIFE above
+		}
+
+		function setupEventListeners() {
+			// Connect main authentication buttons to show modal
+			const googleLoginBtn = document.getElementById('googleLoginBtn');
+			const uploadCredentialsBtn = document.getElementById('uploadCredentialsBtn');
+			const credentialsFile = document.getElementById('credentialsFile');
+
+			if (googleLoginBtn) {
+				googleLoginBtn.addEventListener('click', () => {
+					document.getElementById('authModal').style.display = 'block';
+				});
+			}
+
+			if (uploadCredentialsBtn) {
+				uploadCredentialsBtn.addEventListener('click', () => {
+					credentialsFile.click();
+				});
+			}
+
+			if (credentialsFile) {
+				credentialsFile.addEventListener('change', async (e) => {
+					const file = e.target.files[0];
+					if (file) {
+						try {
+							const credentials = await readCredentialsFile(file);
+							const result = await window.electronAPI.authenticateGoogle(credentials);
+							if (result.success) {
+								showSuccess('Credentials uploaded successfully! Setting up services...');
+							} else {
+								showError('Authentication failed: ' + result.error);
+							}
+						} catch (error) {
+							showError('Failed to process credentials: ' + error.message);
+						}
+					}
+				});
+			}
+		}
+
+		function initializeTabSystem() {
+			// Tab system is already initialized in the IIFE above
+		}
+
+		function updateThemeIcon(theme) {
+			const themeToggle = document.getElementById('themeToggle');
+			if (themeToggle) {
+				const icon = themeToggle.querySelector('i');
+				if (icon) {
+					icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+				}
+			}
+		}
 	</script>
 </body>
 </html> 
