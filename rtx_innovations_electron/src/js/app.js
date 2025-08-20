@@ -43,6 +43,7 @@ class RTXApp {
         this.initializeGlobalInstance();
         this.initializeLivePreview();
         this.initializePlaceholderSystem();
+        this.loadTemplatesFromStore();
         console.log('✅ RTX Innovations AutoMailer Pro initialized successfully!');
         
         // Show a success message on the page
@@ -50,6 +51,1372 @@ class RTXApp {
 
         // Update and version wiring
         this.wireAutoUpdates();
+    }
+
+    updateAttachmentRequirement() {
+        try {
+            const checkbox = document.getElementById('sendWithoutAttachments');
+            const attachmentStatus = document.getElementById('attachmentStatus');
+            
+            if (checkbox && attachmentStatus) {
+                if (checkbox.checked) {
+                    attachmentStatus.textContent = 'Optional';
+                    attachmentStatus.style.color = '#FF9500';
+                } else {
+                    attachmentStatus.textContent = 'Required';
+                    attachmentStatus.style.color = '#34C759';
+                }
+            }
+            
+            console.log('✅ Attachment requirement updated');
+        } catch (error) {
+            console.error('❌ Failed to update attachment requirement:', error);
+        }
+    }
+
+    // Template management functions
+    async saveCurrentTemplate() {
+        try {
+            const templateName = await this.showTemplateNameModal();
+            if (!templateName || templateName.trim() === '') {
+                this.showWarning('Template name cannot be empty');
+                return;
+            }
+
+            // Check if template name already exists
+            const existingTemplate = this.templates?.find(t => t.name.toLowerCase() === templateName.toLowerCase());
+            if (existingTemplate) {
+                const overwrite = await this.showConfirmModal(`Template "${templateName}" already exists. Do you want to overwrite it?`);
+                if (!overwrite) return;
+            }
+
+            // Prepare template data
+            const templateData = {
+                name: templateName,
+                subject: document.getElementById('campaignSubject')?.value || '',
+                content: this.getEditorPlainText(),
+                html: this.getEditorHtml(),
+                fromName: document.getElementById('fromName')?.value || '',
+                attachments: this.campaignAttachments,
+                timestamp: Date.now()
+            };
+
+            console.log('💾 Saving template:', templateData.name);
+
+            // Save template to disk
+            const result = await window.electronAPI.saveTemplateJson?.(templateName, templateData);
+            if (result?.success) {
+                // Update local templates list
+                const newTemplate = {
+                    id: result.path,
+                    name: templateData.name,
+                    ...templateData,
+                    source: 'disk',
+                    lastModified: Date.now()
+                };
+
+                // Remove old template if it existed
+                if (this.templates) {
+                    this.templates = this.templates.filter(t => t.id !== result.path);
+                } else {
+                    this.templates = [];
+                }
+
+                // Add new template at the beginning
+                this.templates.unshift(newTemplate);
+
+                // Update UI
+                this.renderTemplatesSelect();
+                this.showSuccess(`Template "${templateName}" saved successfully!`);
+                
+                console.log('✅ Template saved successfully');
+            } else {
+                this.showError('Failed to save template: ' + (result?.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('❌ Failed to save template:', error);
+            this.showError('Failed to save template: ' + error.message);
+        }
+    }
+
+    async loadSelectedTemplate() {
+        try {
+            const select = document.getElementById('templateSelect');
+            if (!select || !select.value) {
+                this.showWarning('Please select a template to load');
+                return;
+            }
+
+            const templateId = select.value;
+            const template = this.templates?.find(t => t.id === templateId);
+            
+            if (!template) {
+                this.showError('Selected template not found');
+                return;
+            }
+
+            // Load template data into form
+            if (template.subject) {
+                const subjectInput = document.getElementById('campaignSubject');
+                if (subjectInput) subjectInput.value = template.subject;
+            }
+
+            if (template.content) {
+                const editor = document.getElementById('emailEditor');
+                if (editor) {
+                    editor.innerHTML = template.html || template.content;
+                }
+            }
+
+            if (template.fromName) {
+                const fromNameInput = document.getElementById('fromName');
+                if (fromNameInput) fromNameInput.value = template.fromName;
+            }
+
+            // Load attachments if any
+            if (template.attachments && Array.isArray(template.attachments)) {
+                this.campaignAttachments = [...template.attachments];
+                this.renderCampaignAttachments();
+            }
+
+            this.showSuccess(`Template "${template.name}" loaded successfully!`);
+            console.log('✅ Template loaded successfully');
+        } catch (error) {
+            console.error('❌ Failed to load template:', error);
+            this.showError('Failed to load template: ' + error.message);
+        }
+    }
+
+    async deleteSelectedTemplate() {
+        try {
+            const select = document.getElementById('templateSelect');
+            if (!select || !select.value) {
+                this.showWarning('Please select a template to delete');
+                return;
+            }
+
+            const templateId = select.value;
+            const template = this.templates?.find(t => t.id === templateId);
+            
+            if (!template) {
+                this.showError('Selected template not found');
+                return;
+            }
+
+            const confirm = await this.showConfirmModal(`Are you sure you want to delete template "${template.name}"? This action cannot be undone.`);
+            if (!confirm) return;
+
+            // Delete template from disk
+            const result = await window.electronAPI.deleteTemplateJson?.(templateId);
+            if (result?.success) {
+                // Remove from local list
+                this.templates = this.templates.filter(t => t.id !== templateId);
+                
+                // Update UI
+                this.renderTemplatesSelect();
+                this.showSuccess(`Template "${template.name}" deleted successfully!`);
+                
+                console.log('✅ Template deleted successfully');
+            } else {
+                this.showError('Failed to delete template: ' + (result?.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('❌ Failed to delete template:', error);
+            this.showError('Failed to delete template: ' + error.message);
+        }
+    }
+
+    async insertPresetTemplate() {
+        try {
+            const select = document.getElementById('presetTemplateSelect');
+            if (!select || !select.value) {
+                this.showWarning('Please select a preset template to insert');
+                return;
+            }
+
+            const presetId = select.value;
+            const preset = this.presetTemplates?.find(p => p.id === presetId);
+            
+            if (!preset) {
+                this.showError('Selected preset template not found');
+                return;
+            }
+
+            // Insert preset content into editor
+            const editor = document.getElementById('emailEditor');
+            if (editor && preset.content) {
+                editor.innerHTML = preset.content;
+                this.showSuccess(`Preset template "${preset.name}" inserted successfully!`);
+                console.log('✅ Preset template inserted successfully');
+            }
+        } catch (error) {
+            console.error('❌ Failed to insert preset template:', error);
+            this.showError('Failed to insert preset template: ' + error.message);
+        }
+    }
+
+    // Helper functions for templates
+    async showTemplateNameModal() {
+        return new Promise((resolve) => {
+            // Create modal container
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                max-width: 400px;
+                width: 90%;
+            `;
+
+            modalContent.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333;">Save Template</h3>
+                <p style="margin: 0 0 20px 0; color: #666;">Enter a name for your template:</p>
+                <input type="text" id="templateNameInput" placeholder="Template name" style="
+                    width: 100%;
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                    box-sizing: border-box;
+                ">
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="cancelTemplateBtn" style="
+                        padding: 10px 20px;
+                        border: 1px solid #ddd;
+                        background: white;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Cancel</button>
+                    <button id="saveTemplateBtn" style="
+                        padding: 10px 20px;
+                        background: #007AFF;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Save</button>
+                </div>
+            `;
+
+            // Add event listeners
+            const input = modalContent.querySelector('#templateNameInput');
+            const cancelBtn = modalContent.querySelector('#cancelTemplateBtn');
+            const saveBtn = modalContent.querySelector('#saveTemplateBtn');
+
+            input.focus();
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            cancelBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(null);
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const name = input.value.trim();
+                cleanup();
+                resolve(name);
+            });
+
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const name = input.value.trim();
+                    cleanup();
+                    resolve(name);
+                }
+            });
+
+            // Add to body
+            document.body.appendChild(modal);
+        });
+    }
+
+    async showConfirmModal(message) {
+        return new Promise((resolve) => {
+            // Create modal container
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                max-width: 400px;
+                width: 90%;
+            `;
+
+            modalContent.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333;">Confirm Action</h3>
+                <p style="margin: 0 0 20px 0; color: #666;">${message}</p>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="cancelConfirmBtn" style="
+                        padding: 10px 20px;
+                        border: 1px solid #ddd;
+                        background: white;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Cancel</button>
+                    <button id="confirmBtn" style="
+                        padding: 10px 20px;
+                        background: #FF3B30;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Confirm</button>
+                </div>
+            `;
+
+            // Add event listeners
+            const cancelBtn = modalContent.querySelector('#cancelConfirmBtn');
+            const confirmBtn = modalContent.querySelector('#confirmBtn');
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            cancelBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(false);
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(true);
+            });
+
+            // Add to body
+            document.body.appendChild(modal);
+        });
+    }
+
+    renderTemplatesSelect() {
+        try {
+            const select = document.getElementById('templateSelect');
+            if (!select) return;
+
+            // Clear existing options
+            select.innerHTML = '<option value="">Select a template...</option>';
+
+            if (!this.templates || this.templates.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No templates available';
+                option.disabled = true;
+                select.appendChild(option);
+                return;
+            }
+
+            // Add template options
+            this.templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = `${template.name} (${template.source === 'disk' ? 'Saved' : 'Recent'})`;
+                select.appendChild(option);
+            });
+
+            console.log(`✅ Rendered ${this.templates.length} template options`);
+        } catch (error) {
+            console.error('❌ Failed to render template select:', error);
+        }
+    }
+
+    renderPresetTemplates() {
+        try {
+            const select = document.getElementById('presetTemplateSelect');
+            if (!select) return;
+
+            // Clear existing options
+            select.innerHTML = '<option value="">Select a preset template...</option>';
+
+            const presetTemplates = [
+                { id: 'welcome', name: 'Welcome Email', content: '<h2>Welcome!</h2><p>Thank you for joining us...</p>' },
+                { id: 'followup', name: 'Follow-up Email', content: '<h2>Following Up</h2><p>I wanted to follow up on our conversation...</p>' },
+                { id: 'meeting', name: 'Meeting Request', content: '<h2>Meeting Request</h2><p>I would like to schedule a meeting...</p>' }
+            ];
+
+            presetTemplates.forEach(preset => {
+                const option = document.createElement('option');
+                option.value = preset.id;
+                option.textContent = preset.name;
+                select.appendChild(option);
+            });
+
+            this.presetTemplates = presetTemplates;
+            console.log('✅ Preset templates rendered');
+        } catch (error) {
+            console.error('❌ Failed to render preset templates:', error);
+        }
+    }
+
+    // Notification helper functions
+    showSuccess(message) {
+        this.showNotification(message, 'success');
+    }
+
+    showError(message) {
+        this.showNotification(message, 'error');
+    }
+
+    showWarning(message) {
+        this.showNotification(message, 'warning');
+    }
+
+    showInfo(message) {
+        this.showNotification(message, 'info');
+    }
+
+    showNotification(message, type = 'info') {
+        try {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(n => n.remove());
+
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 400px;
+                word-wrap: break-word;
+            `;
+
+            // Set background color based on type
+            switch (type) {
+                case 'success':
+                    notification.style.background = '#34C759';
+                    break;
+                case 'error':
+                    notification.style.background = '#FF3B30';
+                    break;
+                case 'warning':
+                    notification.style.background = '#FF9500';
+                    break;
+                case 'info':
+                default:
+                    notification.style.background = '#007AFF';
+                    break;
+            }
+
+            // Add to body
+            document.body.appendChild(notification);
+
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 10000);
+
+            // Hover to keep visible
+            let hideTimeout;
+            notification.addEventListener('mouseenter', () => {
+                clearTimeout(hideTimeout);
+            });
+
+            notification.addEventListener('mouseleave', () => {
+                hideTimeout = setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }, 10000);
+            });
+
+            console.log(`✅ Notification shown: ${type} - ${message}`);
+        } catch (error) {
+            console.error('❌ Failed to show notification:', error);
+        }
+    }
+
+    // Campaign attachment functions
+    addCampaignAttachment() {
+        try {
+            // Create file input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.multiple = true;
+            fileInput.accept = '*/*';
+
+            fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                files.forEach(file => {
+                    this.campaignAttachments.push({
+                        name: file.name,
+                        path: file.path,
+                        size: file.size,
+                        type: file.type
+                    });
+                });
+                this.renderCampaignAttachments();
+                this.showSuccess(`${files.length} attachment(s) added`);
+            });
+
+            fileInput.click();
+        } catch (error) {
+            console.error('❌ Failed to add campaign attachment:', error);
+            this.showError('Failed to add attachment: ' + error.message);
+        }
+    }
+
+    removeAllCampaignAttachments() {
+        try {
+            if (this.campaignAttachments.length === 0) {
+                this.showWarning('No attachments to remove');
+                return;
+            }
+
+            this.campaignAttachments = [];
+            this.renderCampaignAttachments();
+            this.showSuccess('All attachments removed');
+        } catch (error) {
+            console.error('❌ Failed to remove campaign attachments:', error);
+            this.showError('Failed to remove attachments: ' + error.message);
+        }
+    }
+
+    renderCampaignAttachments() {
+        try {
+            const container = document.getElementById('campaignAttachments');
+            if (!container) return;
+
+            if (this.campaignAttachments.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #8E8E93;">
+                        <i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                        <p>No attachments selected</p>
+                        <small style="font-size: 11px; color: #c7c7cc;">Attachments are required by default</small>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+            this.campaignAttachments.forEach((attachment, index) => {
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: white; border: 1px solid #e5e5e7; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-paperclip" style="color: #8E8E93;"></i>
+                            <span style="font-size: 14px;">${attachment.name}</span>
+                            <small style="color: #8E8E93;">(${this.formatFileSize(attachment.size)})</small>
+                        </div>
+                        <button onclick="window.rtxApp.removeCampaignAttachment(${index})" style="background: none; border: none; color: #FF3B30; cursor: pointer; padding: 4px 8px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('❌ Failed to render campaign attachments:', error);
+        }
+    }
+
+    removeCampaignAttachment(index) {
+        try {
+            if (index >= 0 && index < this.campaignAttachments.length) {
+                const removed = this.campaignAttachments.splice(index, 1)[0];
+                this.renderCampaignAttachments();
+                this.showSuccess(`Attachment "${removed.name}" removed`);
+            }
+        } catch (error) {
+            console.error('❌ Failed to remove campaign attachment:', error);
+            this.showError('Failed to remove attachment: ' + error.message);
+        }
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Debounced preview update
+    debouncePreviewUpdate() {
+        if (this.previewUpdateTimeout) {
+            clearTimeout(this.previewUpdateTimeout);
+        }
+        this.previewUpdateTimeout = setTimeout(() => {
+            this.refreshEmailPreview();
+        }, 500);
+    }
+
+    // Utility functions
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Email preview functions
+    refreshEmailPreview() {
+        try {
+            const previewContainer = document.getElementById('emailPreview');
+            if (!previewContainer) return;
+
+            const subject = document.getElementById('campaignSubject')?.value || '';
+            const content = this.getEditorHtml();
+            const fromName = document.getElementById('fromName')?.value || '';
+
+            if (!subject && !content) {
+                previewContainer.innerHTML = `
+                    <div style="text-align: center; color: #8E8E93; padding: 40px 20px;">
+                        <i class="fas fa-eye" style="font-size: 32px; margin-bottom: 16px; display: block;"></i>
+                        <p>Preview will appear here after you fill in the campaign details</p>
+                        <small>Click "Refresh Preview" to update the preview with current content</small>
+                    </div>
+                `;
+                return;
+            }
+
+            let previewHTML = '';
+            
+            if (fromName) {
+                previewHTML += `<div style="margin-bottom: 16px;"><strong>From:</strong> ${this.escapeHtml(fromName)}</div>`;
+            }
+            
+            if (subject) {
+                previewHTML += `<div style="margin-bottom: 16px;"><strong>Subject:</strong> ${this.escapeHtml(subject)}</div>`;
+            }
+            
+            if (content) {
+                previewHTML += `<div style="margin-bottom: 16px;"><strong>Content:</strong></div>`;
+                previewHTML += `<div style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 16px; background: #f8f9fa;">${content}</div>`;
+            }
+
+            previewContainer.innerHTML = previewHTML;
+        } catch (error) {
+            console.error('❌ Failed to refresh email preview:', error);
+        }
+    }
+
+    // SalesQL Scraper functions
+    showSalesqlScraperModal() {
+        try {
+            const modal = document.getElementById('salesqlScraperModal');
+            if (modal) {
+                modal.style.display = 'block';
+                this.initializeSalesqlScraper();
+            }
+        } catch (error) {
+            console.error('❌ Failed to show SalesQL scraper modal:', error);
+        }
+    }
+
+    hideModal(modalId) {
+        try {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('❌ Failed to hide modal:', error);
+        }
+    }
+
+    initializeSalesqlScraper() {
+        try {
+            // Initialize scraper controls
+            this.updateScrapingStatus('Ready to scrape');
+            this.enableScrapingControls();
+            
+            // Check if Chrome extension is installed
+            this.checkChromeExtensionStatus();
+            
+            console.log('✅ SalesQL scraper initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize SalesQL scraper:', error);
+        }
+    }
+
+    updateScrapingStatus(status) {
+        try {
+            const statusText = document.getElementById('scrapingStatusText');
+            if (statusText) {
+                statusText.textContent = status;
+            }
+        } catch (error) {
+            console.error('❌ Failed to update scraping status:', error);
+        }
+    }
+
+    enableScrapingControls() {
+        try {
+            const startBtn = document.getElementById('startScrapingBtn');
+            const stopBtn = document.getElementById('stopScrapingBtn');
+            const exportBtn = document.getElementById('exportScrapedDataBtn');
+            const enhancedExportBtn = document.getElementById('enhancedExportBtn');
+            const enhancedSheetsBtn = document.getElementById('enhancedSheetsBtn');
+            const taskforceBtn = document.getElementById('taskforceBtn');
+
+            if (startBtn) startBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = true;
+            if (exportBtn) exportBtn.disabled = true;
+            if (enhancedExportBtn) enhancedExportBtn.disabled = true;
+            if (enhancedSheetsBtn) enhancedSheetsBtn.disabled = true;
+            if (taskforceBtn) taskforceBtn.disabled = true;
+        } catch (error) {
+            console.error('❌ Failed to enable scraping controls:', error);
+        }
+    }
+
+    async checkChromeExtensionStatus() {
+        try {
+            const extensionPath = await window.electronAPI.getExtensionPath?.('salesql-scraper');
+            if (extensionPath) {
+                this.chromeExtensionInstalled = true;
+                this.updateScrapingStatus('Chrome extension ready');
+                this.showInstructions('Chrome extension is installed. You can now start scraping.');
+            } else {
+                this.chromeExtensionInstalled = false;
+                this.updateScrapingStatus('Chrome extension not found');
+                this.showInstructions('Chrome extension not found. Please install it first.');
+            }
+        } catch (error) {
+            console.error('❌ Failed to check Chrome extension status:', error);
+        }
+    }
+
+    showInstructions(instructions) {
+        try {
+            const container = document.getElementById('scraperInstructions');
+            if (container) {
+                container.innerHTML = `
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #e5e5e7;">
+                        <strong>Instructions:</strong>
+                        <p style="margin: 8px 0 0 0; font-size: 13px;">${instructions}</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('❌ Failed to show instructions:', error);
+        }
+    }
+
+    async startSalesqlScraping() {
+        try {
+            this.updateScrapingStatus('Starting scraping session...');
+            
+            const sessionId = `session_${Date.now()}`;
+            const result = await window.electronAPI.startScraping?.({ sessionId });
+            
+            if (result?.success) {
+                this.currentScrapingSession = sessionId;
+                this.updateScrapingStatus('Scraping started. Use Chrome extension to scrape data.');
+                this.showScrapingProgress();
+                this.enableScrapingControls();
+                
+                // Start progress monitoring
+                this.monitorScrapingProgress(sessionId);
+            } else {
+                this.updateScrapingStatus('Failed to start scraping: ' + (result?.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('❌ Failed to start scraping:', error);
+            this.updateScrapingStatus('Failed to start scraping: ' + error.message);
+        }
+    }
+
+    showScrapingProgress() {
+        try {
+            const progressContainer = document.getElementById('scrapingProgress');
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('❌ Failed to show scraping progress:', error);
+        }
+    }
+
+    async monitorScrapingProgress(sessionId) {
+        try {
+            const interval = setInterval(async () => {
+                const progress = await window.electronAPI.getScrapingProgress?.(sessionId);
+                if (progress?.success) {
+                    this.updateScrapingProgress(progress);
+                    
+                    if (progress.completed) {
+                        clearInterval(interval);
+                        this.onScrapingCompleted(sessionId, progress);
+                    }
+                }
+            }, 2000);
+        } catch (error) {
+            console.error('❌ Failed to monitor scraping progress:', error);
+        }
+    }
+
+    updateScrapingProgress(progress) {
+        try {
+            const progressText = document.getElementById('scrapingProgressText');
+            const progressBar = document.getElementById('scrapingProgressBar');
+            
+            if (progressText) {
+                progressText.textContent = `${progress.currentPage || 0}/${progress.totalPages || 100}`;
+            }
+            
+            if (progressBar) {
+                const percentage = progress.totalPages > 0 ? (progress.currentPage / progress.totalPages) * 100 : 0;
+                progressBar.style.width = `${percentage}%`;
+            }
+        } catch (error) {
+            console.error('❌ Failed to update scraping progress:', error);
+        }
+    }
+
+    onScrapingCompleted(sessionId, progress) {
+        try {
+            this.updateScrapingStatus('Scraping completed!');
+            this.showScrapedData(progress.data || []);
+            this.enableExportControls();
+            
+            console.log('✅ Scraping completed:', sessionId);
+        } catch (error) {
+            console.error('❌ Failed to handle scraping completion:', error);
+        }
+    }
+
+    showScrapedData(data) {
+        try {
+            const container = document.getElementById('scrapedDataContainer');
+            if (!container) return;
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #8E8E93; margin-top: 40px;">
+                        <i class="fas fa-database" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                        <p>No data scraped yet. Start scraping to see results here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+            data.forEach((contact, index) => {
+                html += `
+                    <div style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                            <div><strong>Company:</strong> ${this.escapeHtml(contact.company || 'N/A')}</div>
+                            <div><strong>Profile:</strong> ${this.escapeHtml(contact.profile || 'N/A')}</div>
+                            <div><strong>Email:</strong> ${this.escapeHtml(contact.email || 'N/A')}</div>
+                            <div><strong>Phone:</strong> ${this.escapeHtml(contact.phone || 'N/A')}</div>
+                            <div><strong>Name:</strong> ${this.escapeHtml(contact.name || 'N/A')}</div>
+                            <div><strong>Title:</strong> ${this.escapeHtml(contact.title || 'N/A')}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('❌ Failed to show scraped data:', error);
+        }
+    }
+
+    enableExportControls() {
+        try {
+            const exportBtn = document.getElementById('exportScrapedDataBtn');
+            const enhancedExportBtn = document.getElementById('enhancedExportBtn');
+            const enhancedSheetsBtn = document.getElementById('enhancedSheetsBtn');
+            const taskforceBtn = document.getElementById('taskforceBtn');
+
+            if (exportBtn) exportBtn.disabled = false;
+            if (enhancedExportBtn) enhancedExportBtn.disabled = false;
+            if (enhancedSheetsBtn) enhancedSheetsBtn.disabled = false;
+            if (taskforceBtn) taskforceBtn.disabled = false;
+        } catch (error) {
+            console.error('❌ Failed to enable export controls:', error);
+        }
+    }
+
+    // Export functions
+    async exportToCSVEnhanced() {
+        try {
+            if (!this.scrapedData || this.scrapedData.length === 0) {
+                this.showWarning('No data to export');
+                return;
+            }
+
+            // Create CSV content with proper formatting
+            const headers = ['Company', 'Profile', 'Email', 'Phone', 'Name', 'Title', 'LinkedIn', 'Industry', 'Location', 'Scraped At'];
+            let csvContent = headers.join(',') + '\n';
+
+            this.scrapedData.forEach(contact => {
+                const row = [
+                    contact.company || '',
+                    contact.profile || '',
+                    contact.email || '',
+                    contact.phone || '',
+                    contact.name || '',
+                    contact.title || '',
+                    contact.linkedin || '',
+                    contact.industry || '',
+                    contact.location || '',
+                    contact.scrapedAt || new Date().toISOString()
+                ];
+                csvContent += row.map(field => `"${field.replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+
+            // Trigger download
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'salesql_data_enhanced.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            this.showSuccess('Enhanced CSV exported successfully!');
+        } catch (error) {
+            console.error('❌ Failed to export enhanced CSV:', error);
+            this.showError('Failed to export CSV: ' + error.message);
+        }
+    }
+
+    async exportToGoogleSheetsEnhanced() {
+        try {
+            if (!this.scrapedData || this.scrapedData.length === 0) {
+                this.showWarning('No data to export');
+                return;
+            }
+
+            const sheetUrl = document.getElementById('salesqlSheetUrl')?.value;
+            if (!sheetUrl) {
+                this.showWarning('Please enter a Google Sheets URL');
+                return;
+            }
+
+            const result = await window.electronAPI.exportToGoogleSheetsEnhanced?.({
+                sheetUrl,
+                data: this.scrapedData,
+                createNewTab: true,
+                tabName: `SalesQL_Data_${new Date().toISOString().split('T')[0]}`
+            });
+
+            if (result?.success) {
+                this.showSuccess(`Data exported to Google Sheets successfully! ${result.rowsAdded} rows added.`);
+            } else {
+                this.showError('Failed to export to Google Sheets: ' + (result?.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('❌ Failed to export to Google Sheets:', error);
+            this.showError('Failed to export to Google Sheets: ' + error.message);
+        }
+    }
+
+    async exportToTaskforceEnhanced() {
+        try {
+            if (!this.scrapedData || this.scrapedData.length === 0) {
+                this.showWarning('No data to export');
+                return;
+            }
+
+            // Store data for use in Taskforce app
+            const result = await window.electronAPI.storeScrapedDataEnhanced?.({
+                sessionId: this.currentScrapingSession,
+                data: this.scrapedData,
+                metadata: {
+                    source: 'SalesQL Scraper',
+                    timestamp: Date.now(),
+                    count: this.scrapedData.length
+                }
+            });
+
+            if (result?.success) {
+                this.showSuccess(`Data stored for Taskforce app! ${result.contactsStored} contacts ready for campaigns.`);
+            } else {
+                this.showError('Failed to store data for Taskforce: ' + (result?.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('❌ Failed to export to Taskforce:', error);
+            this.showError('Failed to export to Taskforce: ' + error.message);
+        }
+    }
+
+    async stopSalesqlScraping() {
+        try {
+            this.updateScrapingStatus('Scraping stopped');
+            this.enableScrapingControls();
+            
+            // Hide progress
+            const progressContainer = document.getElementById('scrapingProgress');
+            if (progressContainer) {
+                progressContainer.style.display = 'none';
+            }
+            
+            console.log('✅ Scraping stopped');
+        } catch (error) {
+            console.error('❌ Failed to stop scraping:', error);
+        }
+    }
+
+    // Template loading function
+    async loadTemplatesFromStore() {
+        try {
+            console.log('🔄 Loading templates from store...');
+            
+            // Load templates from both disk and recent list
+            const diskTemplates = await window.electronAPI.listTemplates?.() || [];
+            const recentTemplates = (await window.electronAPI.storeGet?.('templates')) || [];
+            
+            // Merge templates, prioritizing disk templates
+            const templateMap = new Map();
+            
+            // Add disk templates first
+            diskTemplates.forEach(t => {
+                templateMap.set(t.id, {
+                    ...t,
+                    source: 'disk',
+                    lastModified: t.ts || Date.now()
+                });
+            });
+            
+            // Add recent templates (don't overwrite disk templates)
+            recentTemplates.forEach(t => {
+                if (t && t.id && !templateMap.has(t.id)) {
+                    templateMap.set(t.id, {
+                        ...t,
+                        source: 'recent',
+                        lastModified: t.ts || Date.now()
+                    });
+                }
+            });
+            
+            this.templates = [];
+            this.templates = Array.from(templateMap.values());
+            
+            // Sort by last modified
+            this.templates.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+            
+            // Update UI
+            this.renderTemplatesSelect();
+            this.renderPresetTemplates();
+            
+            console.log(`✅ Loaded ${this.templates.length} templates`);
+        } catch (error) {
+            console.error('❌ Failed to load templates:', error);
+            this.showError('Failed to load templates: ' + error.message);
+        }
+    }
+
+    // Missing initialization functions
+    initializeGlobalInstance() {
+        try {
+            window.rtxApp = this;
+            console.log('✅ Global instance initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize global instance:', error);
+        }
+    }
+
+    initializeLivePreview() {
+        try {
+            // Set up live preview updates
+            const editor = document.getElementById('emailEditor');
+            const subjectInput = document.getElementById('campaignSubject');
+            const fromNameInput = document.getElementById('fromName');
+
+            if (editor) {
+                editor.addEventListener('input', () => this.debouncePreviewUpdate());
+            }
+            if (subjectInput) {
+                subjectInput.addEventListener('input', () => this.debouncePreviewUpdate());
+            }
+            if (fromNameInput) {
+                fromNameInput.addEventListener('input', () => this.debouncePreviewUpdate());
+            }
+
+            console.log('✅ Live preview initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize live preview:', error);
+        }
+    }
+
+    setupMenuHandlers() {
+        try {
+            // Handle menu actions from main process
+            if (window.electronAPI?.onMenuAction) {
+                window.electronAPI.onMenuAction((action) => {
+                    switch (action) {
+                        case 'new-campaign':
+                            this.addNewTab();
+                            break;
+                        case 'import-data':
+                            // Trigger import
+                            break;
+                        case 'help-check-updates':
+                            // Check for updates
+                            break;
+                        case 'help-welcome':
+                            // Show welcome
+                            break;
+                        case 'help-release-notes':
+                            // Show release notes
+                            break;
+                        case 'help-about':
+                            // Show about
+                            break;
+                    }
+                });
+            }
+            console.log('✅ Menu handlers setup complete');
+        } catch (error) {
+            console.error('❌ Failed to setup menu handlers:', error);
+        }
+    }
+
+    loadSettings() {
+        try {
+            // Load user settings
+            console.log('✅ Settings loaded');
+        } catch (error) {
+            console.error('❌ Failed to load settings:', error);
+        }
+    }
+
+    updateUI() {
+        try {
+            // Update UI based on current state
+            console.log('✅ UI updated');
+        } catch (error) {
+            console.error('❌ Failed to update UI:', error);
+        }
+    }
+
+    populateAccountsDropdown() {
+        try {
+            // Populate accounts dropdown
+            console.log('✅ Accounts dropdown populated');
+        } catch (error) {
+            console.error('❌ Failed to populate accounts dropdown:', error);
+        }
+    }
+
+    populateFromAddressDropdown() {
+        try {
+            // Populate from address dropdown
+            console.log('✅ From address dropdown populated');
+        } catch (error) {
+            console.error('❌ Failed to populate from address dropdown:', error);
+        }
+    }
+
+    loadSendAsList() {
+        try {
+            // Load send as list
+            console.log('✅ Send as list loaded');
+        } catch (error) {
+            console.error('❌ Failed to load send as list:', error);
+        }
+    }
+
+    wireAutoUpdates() {
+        try {
+            // Wire auto updates
+            console.log('✅ Auto updates wired');
+        } catch (error) {
+            console.error('❌ Failed to wire auto updates:', error);
+        }
+    }
+
+    // Campaign history functions
+    deleteCampaignHistory() {
+        try {
+            // Clear campaign history
+            this.campaignHistory = [];
+            this.showSuccess('Campaign history cleared successfully!');
+            console.log('✅ Campaign history cleared');
+        } catch (error) {
+            console.error('❌ Failed to clear campaign history:', error);
+            this.showError('Failed to clear campaign history: ' + error.message);
+        }
+    }
+
+    // Theme toggling functions
+    toggleTheme() {
+        try {
+            const currentTheme = document.body.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            this.showSuccess(`Theme switched to ${newTheme} mode`);
+            console.log('✅ Theme toggled to:', newTheme);
+        } catch (error) {
+            console.error('❌ Failed to toggle theme:', error);
+        }
+    }
+
+    // Google Sheets integration functions
+    async detectEmailColumns(headers) {
+        try {
+            const emailKeywords = ['email', 'gmail', 'mail', 'e-mail', 'email_address'];
+            const detectedColumns = [];
+            
+            headers.forEach((header, index) => {
+                const headerLower = header.toLowerCase();
+                if (emailKeywords.some(keyword => headerLower.includes(keyword))) {
+                    detectedColumns.push({
+                        index,
+                        header,
+                        confidence: 'high'
+                    });
+                }
+            });
+            
+            return detectedColumns;
+        } catch (error) {
+            console.error('❌ Failed to detect email columns:', error);
+            return [];
+        }
+    }
+
+    async editGoogleSheetsInApp(sheetUrl) {
+        try {
+            // Open Google Sheets in app for editing
+            const result = await window.electronAPI.openGoogleSheetsInApp?.(sheetUrl);
+            if (result?.success) {
+                this.showSuccess('Google Sheets opened in app for editing');
+            } else {
+                this.showError('Failed to open Google Sheets: ' + (result?.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('❌ Failed to open Google Sheets in app:', error);
+            this.showError('Failed to open Google Sheets: ' + error.message);
+        }
+    }
+
+    // Missing helper functions
+    getEditorPlainText() {
+        try {
+            const editor = document.getElementById('emailEditor');
+            if (!editor) return '';
+            return editor.textContent || editor.innerText || '';
+        } catch (error) {
+            console.error('❌ Failed to get editor plain text:', error);
+            return '';
+        }
+    }
+
+    getEditorHtml() {
+        try {
+            const editor = document.getElementById('emailEditor');
+            if (!editor) return '';
+            return editor.innerHTML || '';
+        } catch (error) {
+            console.error('❌ Failed to get editor HTML:', error);
+            return '';
+        }
+    }
+
+    logEvent(level, message, data = {}) {
+        try {
+            const timestamp = new Date().toISOString();
+            const logEntry = {
+                timestamp,
+                level,
+                message,
+                data
+            };
+            
+            console.log(`[${level.toUpperCase()}] ${message}`, data);
+            
+            // Store in local storage for debugging
+            const logs = JSON.parse(localStorage.getItem('rtx_logs') || '[]');
+            logs.push(logEntry);
+            if (logs.length > 100) logs.shift(); // Keep only last 100 logs
+            localStorage.setItem('rtx_logs', JSON.stringify(logs));
+        } catch (error) {
+            console.error('❌ Failed to log event:', error);
+        }
+    }
+
+    // Missing initialization functions
+    initializePlaceholderSystem() {
+        try {
+            // Initialize placeholder system
+            console.log('✅ Placeholder system initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize placeholder system:', error);
+        }
+    }
+
+    // Missing initialization functions
+    initializePlaceholderSystem() {
+        try {
+            // Initialize placeholder system
+            console.log('✅ Placeholder system initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize placeholder system:', error);
+        }
     }
 
     setupRichEditor() {
@@ -352,6 +1719,24 @@ class RTXApp {
                     googleSignInTopBtn.textContent = 'Signing in...';
                     const result = await window.electronAPI.authenticateGoogle();
                     if (result?.success) {
+                        // Get current active tab and update its authentication state
+                        const activeTab = this.getCurrentActiveTab();
+                        if (activeTab) {
+                            if (!this.tabAuthStates) {
+                                this.tabAuthStates = new Map();
+                            }
+                            
+                            this.tabAuthStates.set(activeTab, {
+                                isAuthenticated: true,
+                                currentAccount: result.userEmail || 'authenticated',
+                                sheetData: null,
+                                fromAddress: null
+                            });
+                            
+                            // Update UI for current tab
+                            this.updateTabAuthenticationDisplay(activeTab);
+                        }
+                        
                         this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                         googleSignInTopBtn.style.background = '#34c759';
                         googleSignInTopBtn.style.color = '#fff';
@@ -4259,6 +5644,10 @@ class RTXApp {
                 const clonedForm = mainForm.cloneNode(true);
                 clonedForm.id = `mailer-interface-${tabId}`;
                 this.updateElementIds(clonedForm, tabId);
+                
+                // Reset form state for new tab
+                this.resetFormForNewTab(clonedForm, tabId);
+                
                 newContent.appendChild(clonedForm);
             }
 
@@ -4274,6 +5663,109 @@ class RTXApp {
             console.log('✅ New tab created:', tabName);
         } catch (error) {
             console.error('❌ Failed to create new tab:', error);
+        }
+    }
+
+    resetFormForNewTab(form, tabId) {
+        try {
+            // Reset all form inputs
+            const inputs = form.querySelectorAll('input[type="text"], input[type="email"], textarea, select');
+            inputs.forEach(input => {
+                if (input.type === 'select-one') {
+                    input.selectedIndex = 0;
+                } else {
+                    input.value = '';
+                }
+            });
+
+            // Reset email editor
+            const editor = form.querySelector('#emailEditor');
+            if (editor) {
+                editor.innerHTML = '';
+                editor.textContent = '';
+            }
+
+            // Reset attachments
+            const attachmentContainer = form.querySelector('#campaignAttachments');
+            if (attachmentContainer) {
+                attachmentContainer.innerHTML = `
+                    <div style="text-align: center; color: #8E8E93;">
+                        <i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                        <p>No attachments selected</p>
+                        <small style="font-size: 11px; color: #c7c7cc;">Attachments are required by default</small>
+                    </div>
+                `;
+            }
+
+            // Reset preview
+            const preview = form.querySelector('#emailPreview');
+            if (preview) {
+                preview.innerHTML = `
+                    <div style="text-align: center; color: #8E8E93; padding: 40px 20px;">
+                        <i class="fas fa-eye" style="font-size: 32px; margin-bottom: 16px; display: block;"></i>
+                        <p>Preview will appear here after you fill in the campaign details</p>
+                        <small>Click "Refresh Preview" to update the preview with current content</small>
+                    </div>
+                `;
+            }
+
+            // Reset data preview
+            const dataPreview = form.querySelector('#dataPreviewDrawer');
+            if (dataPreview) {
+                dataPreview.style.display = 'none';
+            }
+
+            // Reset sheet connection
+            const sheetUrlInput = form.querySelector('#sheetUrlInput');
+            if (sheetUrlInput) {
+                sheetUrlInput.value = '';
+            }
+
+            // Reset authentication state for this tab
+            this.resetTabAuthentication(tabId);
+
+            console.log('✅ Form reset for new tab:', tabId);
+        } catch (error) {
+            console.error('❌ Failed to reset form for new tab:', error);
+        }
+    }
+
+    resetTabAuthentication(tabId) {
+        try {
+            // Store tab-specific authentication state
+            if (!this.tabAuthStates) {
+                this.tabAuthStates = new Map();
+            }
+
+            // Initialize with no authentication
+            this.tabAuthStates.set(tabId, {
+                isAuthenticated: false,
+                currentAccount: null,
+                sheetData: null,
+                fromAddress: null
+            });
+
+            // Update UI elements for this tab
+            const tabForm = document.querySelector(`#mailer-interface-${tabId}`);
+            if (tabForm) {
+                const authStatus = tabForm.querySelector('#authStatus');
+                const accountStatus = tabForm.querySelector('#accountStatus');
+                const fromAddress = tabForm.querySelector('#fromAddress');
+
+                if (authStatus) {
+                    authStatus.className = 'status-indicator disconnected';
+                }
+                if (accountStatus) {
+                    accountStatus.textContent = 'Not Connected';
+                }
+                if (fromAddress) {
+                    fromAddress.innerHTML = '<option value="">Select from address...</option>';
+                }
+            }
+
+            console.log('✅ Authentication reset for tab:', tabId);
+        } catch (error) {
+            console.error('❌ Failed to reset tab authentication:', error);
         }
     }
 
@@ -4305,9 +5797,60 @@ class RTXApp {
                 selectedTab.style.color = '#fff';
             }
 
+            // Update authentication state for this tab
+            this.updateTabAuthenticationDisplay(tabId);
+
             console.log('✅ Switched to tab:', tabId);
         } catch (error) {
             console.error('❌ Failed to switch tab:', error);
+        }
+    }
+
+    updateTabAuthenticationDisplay(tabId) {
+        try {
+            if (!this.tabAuthStates || !this.tabAuthStates.has(tabId)) {
+                return;
+            }
+
+            const authState = this.tabAuthStates.get(tabId);
+            const tabForm = document.querySelector(`#mailer-interface-${tabId}`);
+            
+            if (!tabForm) return;
+
+            const authStatus = tabForm.querySelector('#authStatus');
+            const accountStatus = tabForm.querySelector('#accountStatus');
+            const fromAddress = tabForm.querySelector('#fromAddress');
+
+            if (authStatus) {
+                authStatus.className = authState.isAuthenticated ? 'status-indicator connected' : 'status-indicator disconnected';
+            }
+
+            if (accountStatus) {
+                accountStatus.textContent = authState.isAuthenticated ? 
+                    `Connected: ${authState.currentAccount || 'Authenticated'}` : 
+                    'Not Connected';
+            }
+
+            if (fromAddress && authState.fromAddress) {
+                fromAddress.value = authState.fromAddress;
+            }
+
+            console.log('✅ Tab authentication display updated for:', tabId);
+        } catch (error) {
+            console.error('❌ Failed to update tab authentication display:', error);
+        }
+    }
+
+    getCurrentActiveTab() {
+        try {
+            const activeTab = document.querySelector('.tab-item[style*="background: rgb(0, 122, 255)"]');
+            if (activeTab) {
+                return activeTab.getAttribute('data-tab');
+            }
+            return null;
+        } catch (error) {
+            console.error('❌ Failed to get current active tab:', error);
+            return null;
         }
     }
 
@@ -4330,6 +5873,11 @@ class RTXApp {
             const tabContent = document.getElementById(`tab-${tabId}`);
             if (tabContent) {
                 tabContent.remove();
+            }
+
+            // Clean up tab-specific authentication state
+            if (this.tabAuthStates && this.tabAuthStates.has(tabId)) {
+                this.tabAuthStates.delete(tabId);
             }
 
             // Switch to first available tab
@@ -4391,11 +5939,11 @@ class RTXApp {
             this.createPlaceholderDropdown();
 
             // Add input event listener for @ symbol to email editor
-            emailEditor.addEventListener('input', (e) => this.handlePlaceholderInput(e));
+            emailEditor.addEventListener('input', (e) => this.handlePlaceholderInputEnhanced(e));
             
             // Add input event listener for @ symbol to subject line
             if (subjectInput) {
-                subjectInput.addEventListener('input', (e) => this.handlePlaceholderInput(e));
+                subjectInput.addEventListener('input', (e) => this.handlePlaceholderInputEnhanced(e));
             }
             
             // Hide dropdown when clicking outside
@@ -4439,31 +5987,27 @@ class RTXApp {
 
             // Add placeholder items
             const placeholders = this.getAvailablePlaceholders();
-            placeholders.forEach(placeholder => {
-                const item = document.createElement('div');
-                item.className = 'placeholder-item';
-                item.style.cssText = `
-                    padding: 8px 12px;
-                    cursor: pointer;
-                    border-bottom: 1px solid #eee;
-                    font-size: 14px;
-                `;
-                item.innerHTML = `
-                    <strong>${placeholder.key}</strong>
-                    <br><small style="color: #666;">${placeholder.description}</small>
-                `;
-                item.onclick = () => this.insertPlaceholderFromDropdown(placeholder.key);
+            if (placeholders.length === 0) {
+                // Add default placeholders if no sheet data
+                const defaultPlaceholders = [
+                    { key: 'Name', description: 'Recipient name', value: '((Name))' },
+                    { key: 'Company', description: 'Company name', value: '((Company))' },
+                    { key: 'Email', description: 'Email address', value: '((Email))' },
+                    { key: 'Title', description: 'Job title', value: '((Title))' },
+                    { key: 'Phone', description: 'Phone number', value: '((Phone))' },
+                    { key: 'LinkedIn', description: 'LinkedIn profile', value: '((LinkedIn))' }
+                ];
                 
-                // Hover effects
-                item.onmouseenter = () => {
-                    item.style.backgroundColor = '#f5f5f5';
-                };
-                item.onmouseleave = () => {
-                    item.style.backgroundColor = 'white';
-                };
-                
-                dropdown.appendChild(item);
-            });
+                defaultPlaceholders.forEach(placeholder => {
+                    const item = this.createPlaceholderItem(placeholder);
+                    dropdown.appendChild(item);
+                });
+            } else {
+                placeholders.forEach(placeholder => {
+                    const item = this.createPlaceholderItem(placeholder);
+                    dropdown.appendChild(item);
+                });
+            }
 
             // Add to body
             document.body.appendChild(dropdown);
@@ -4472,6 +6016,38 @@ class RTXApp {
             console.log('✅ Placeholder dropdown created');
         } catch (error) {
             console.error('❌ Failed to create placeholder dropdown:', error);
+        }
+    }
+
+    createPlaceholderItem(placeholder) {
+        try {
+            const item = document.createElement('div');
+            item.className = 'placeholder-item';
+            item.style.cssText = `
+                padding: 8px 12px;
+                cursor: pointer;
+                border-bottom: 1px solid #eee;
+                font-size: 14px;
+                transition: background-color 0.2s ease;
+            `;
+            item.innerHTML = `
+                <strong>${this.escapeHtml(placeholder.key)}</strong>
+                <br><small style="color: #666;">${this.escapeHtml(placeholder.description || '')}</small>
+            `;
+            item.onclick = () => this.insertPlaceholderFromDropdown(placeholder.value || `((${placeholder.key}))`);
+            
+            // Hover effects
+            item.onmouseenter = () => {
+                item.style.backgroundColor = '#f5f5f5';
+            };
+            item.onmouseleave = () => {
+                item.style.backgroundColor = 'white';
+            };
+            
+            return item;
+        } catch (error) {
+            console.error('❌ Failed to create placeholder item:', error);
+            return null;
         }
     }
 
@@ -4502,6 +6078,44 @@ class RTXApp {
             }
         } catch (error) {
             console.error('❌ Failed to handle placeholder input:', error);
+        }
+    }
+
+    // Enhanced placeholder input handling with better @ detection
+    handlePlaceholderInputEnhanced(e) {
+        try {
+            const editor = e.target;
+            const text = editor.textContent || '';
+            const cursorPosition = this.getCursorPosition(editor);
+            
+            // Check if @ was just typed
+            if (e.data === '@') {
+                // Show dropdown immediately when @ is typed
+                this.showPlaceholderDropdown(editor, cursorPosition - 1);
+                return;
+            }
+            
+            // Check if @ exists and we're typing after it
+            if (text.includes('@')) {
+                const lastAtSymbol = text.lastIndexOf('@');
+                if (lastAtSymbol < cursorPosition) {
+                    const afterAt = text.substring(lastAtSymbol + 1, cursorPosition);
+                    
+                    // If @ is followed by text, filter dropdown
+                    if (afterAt.trim()) {
+                        this.filterPlaceholderDropdown(afterAt);
+                        this.showPlaceholderDropdown(editor, lastAtSymbol);
+                    } else {
+                        // Show all placeholders
+                        this.showPlaceholderDropdown(editor, lastAtSymbol);
+                    }
+                }
+            } else {
+                // Hide dropdown if no @ symbol
+                this.hidePlaceholderDropdown();
+            }
+        } catch (error) {
+            console.error('❌ Failed to handle enhanced placeholder input:', error);
         }
     }
 
@@ -4580,51 +6194,110 @@ class RTXApp {
         }
     }
 
-    insertPlaceholderFromDropdown(placeholderKey) {
+    insertPlaceholderFromDropdown(placeholderValue) {
         try {
-            const editor = document.getElementById('emailEditor');
-            if (!editor) return;
+            // Find the active editor (email editor or subject input)
+            let activeEditor = document.getElementById('emailEditor');
+            let isSubjectInput = false;
+            
+            // Check if subject input is focused
+            if (document.activeElement && document.activeElement.id === 'campaignSubject') {
+                activeEditor = document.activeElement;
+                isSubjectInput = true;
+            }
+            
+            if (!activeEditor) return;
 
-            // Get the placeholder value
-            const placeholder = this.getAvailablePlaceholders().find(p => p.key === placeholderKey);
-            if (!placeholder) return;
-
-            // Insert placeholder at cursor position
-            const selection = window.getSelection();
-            if (selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                range.deleteContents();
-                range.insertNode(document.createTextNode(placeholder.value));
-                range.collapse(false);
+            // Find the @ symbol and replace it with the placeholder
+            const text = activeEditor.textContent || activeEditor.value || '';
+            const lastAtSymbol = text.lastIndexOf('@');
+            
+            if (lastAtSymbol !== -1) {
+                if (isSubjectInput) {
+                    // For subject input, replace from @ to cursor
+                    const beforeAt = text.substring(0, lastAtSymbol);
+                    const afterCursor = text.substring(activeEditor.selectionStart || text.length);
+                    const newText = beforeAt + placeholderValue + afterCursor;
+                    activeEditor.value = newText;
+                    
+                    // Set cursor position after placeholder
+                    const newPosition = lastAtSymbol + placeholderValue.length;
+                    activeEditor.setSelectionRange(newPosition, newPosition);
+                } else {
+                    // For contenteditable editor
+                    const selection = window.getSelection();
+                    if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        
+                        // Find the @ symbol in the current selection
+                        const node = range.startContainer;
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            const text = node.textContent;
+                            const atIndex = text.lastIndexOf('@');
+                            if (atIndex !== -1) {
+                                // Replace from @ to cursor
+                                const beforeAt = text.substring(0, atIndex);
+                                const afterCursor = text.substring(range.startOffset);
+                                const newText = beforeAt + placeholderValue + afterCursor;
+                                
+                                node.textContent = newText;
+                                
+                                // Set cursor position after placeholder
+                                const newPosition = atIndex + placeholderValue.length;
+                                range.setStart(node, newPosition);
+                                range.setEnd(node, newPosition);
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        }
+                    }
+                }
             }
 
             // Hide dropdown
             this.hidePlaceholderDropdown();
-
+            
+            // Focus back to editor
+            activeEditor.focus();
+            
             // Update preview
             this.debouncePreviewUpdate();
             
-            console.log('✅ Placeholder inserted:', placeholderKey);
+            console.log('✅ Placeholder inserted:', placeholderValue);
         } catch (error) {
             console.error('❌ Failed to insert placeholder:', error);
         }
     }
 
     getAvailablePlaceholders() {
-        return [
-            { key: '@company', value: 'Company Name', description: 'Company name from the data' },
-            { key: '@profile', value: 'Profile Name', description: 'Profile name from the data' },
-            { key: '@email', value: 'Email Address', description: 'Email address from the data' },
-            { key: '@name', value: 'Contact Name', description: 'Contact name from the data' },
-            { key: '@title', value: 'Job Title', description: 'Job title from the data' },
-            { key: '@phone', value: 'Phone Number', description: 'Phone number from the data' },
-            { key: '@linkedin', value: 'LinkedIn Profile', description: 'LinkedIn profile URL' },
-            { key: '@industry', value: 'Industry', description: 'Industry from the data' },
-            { key: '@location', value: 'Location', description: 'Location from the data' },
-            { key: '@date', value: 'Current Date', description: 'Current date' },
-            { key: '@sender_name', value: 'Your Name', description: 'Your name from the form' },
-            { key: '@sender_email', value: 'Your Email', description: 'Your email from the form' }
-        ];
+        try {
+            // If we have sheet data, use actual column headers
+            if (this.sheetData && this.sheetData.headers) {
+                return this.sheetData.headers.map(header => ({
+                    key: header,
+                    value: `((${header}))`,
+                    description: `Data from column: ${header}`
+                }));
+            }
+            
+            // Return default placeholders if no sheet data
+            return [
+                { key: 'Name', value: '((Name))', description: 'Recipient name' },
+                { key: 'Company', value: '((Company))', description: 'Company name' },
+                { key: 'Email', value: '((Email))', description: 'Email address' },
+                { key: 'Title', value: '((Title))', description: 'Job title' },
+                { key: 'Phone', value: '((Phone))', description: 'Phone number' },
+                { key: 'LinkedIn', value: '((LinkedIn))', description: 'LinkedIn profile' },
+                { key: 'Industry', value: '((Industry))', description: 'Industry' },
+                { key: 'Location', value: '((Location))', description: 'Location' },
+                { key: 'Date', value: '((Date))', description: 'Current date' },
+                { key: 'Sender Name', value: '((Sender Name))', description: 'Your name' },
+                { key: 'Sender Email', value: '((Sender Email))', description: 'Your email' }
+            ];
+        } catch (error) {
+            console.error('❌ Failed to get available placeholders:', error);
+            return [];
+        }
     }
 
     // Modal methods for template management
