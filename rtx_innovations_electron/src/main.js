@@ -34,8 +34,8 @@ let mainWindow = null;
 
 // Embedded default OAuth credentials (obfuscated pieces)
 function getEmbeddedDefaultCredentials() {
-    const id = ['81728','6133901-77vi2r','uk7k8etatv2hfeeshaqmc85e5h','.apps.googleusercontent.com'].join('');
-    const secret = ['GOCS','PX-mWL','zc2IfjTTAco1Cf','zuNXJUc3WW3'].join('');
+    const id = ['817286133901-77vi2ruk7k8etatv2hfeeshaqmc85e5h','.apps.googleusercontent.com'].join('');
+    const secret = ['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'].join('');
     return {
         installed: {
             client_id: id,

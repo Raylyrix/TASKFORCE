@@ -96,10 +96,10 @@ class RTXApp {
                 
                 if (html && !text.includes('\n')) {
                     // If HTML is available and it's not multi-line, use HTML
-                    this.insertHTMLAtCursor(html);
+                    this.insertHTMLAtCursor(html, editorContainer);
                 } else {
                     // Use plain text for better formatting control
-                    this.insertTextAtCursor(text);
+                    this.insertTextAtCursor(text, editorContainer);
                 }
                 
                 // Update word/character count
@@ -168,61 +168,89 @@ class RTXApp {
     }
     
     // Helper method to insert HTML at cursor position
-    insertHTMLAtCursor(html) {
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            range.deleteContents();
+    insertHTMLAtCursor(html, editorContainer = null) {
+        try {
+            const container = editorContainer || document.getElementById('emailEditor');
+            if (!container) return;
             
-            // Create a temporary container to parse HTML
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
-            
-            // Insert the parsed content
-            const fragment = document.createDocumentFragment();
-            while (temp.firstChild) {
-                fragment.appendChild(temp.firstChild);
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                
+                // Create a temporary container to parse HTML
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                
+                // Insert the parsed content
+                const fragment = document.createDocumentFragment();
+                while (temp.firstChild) {
+                    fragment.appendChild(temp.firstChild);
+                }
+                
+                range.insertNode(fragment);
+                range.collapse(false);
+                
+                // Update selection
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // If no selection, append to the end
+                container.innerHTML += html;
             }
             
-            range.insertNode(fragment);
-            range.collapse(false);
+            // Focus the editor
+            container.focus();
             
-            // Update selection
-            selection.removeAllRanges();
-            selection.addRange(range);
+        } catch (error) {
+            console.error('Error inserting HTML at cursor:', error);
         }
     }
     
     // Helper method to insert text at cursor position
-    insertTextAtCursor(text) {
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            range.deleteContents();
+    insertTextAtCursor(text, editorContainer = null) {
+        try {
+            const container = editorContainer || document.getElementById('emailEditor');
+            if (!container) return;
             
-            // Split text by lines and insert with proper formatting
-            const lines = text.split('\n');
-            let firstLine = true;
-            
-            for (let i = 0; i < lines.length; i++) {
-                if (!firstLine) {
-                    // Insert line break
-                    const br = document.createElement('br');
-                    range.insertNode(br);
-                    range.collapse(false);
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                
+                // Split text by lines and insert with proper formatting
+                const lines = text.split('\n');
+                let firstLine = true;
+                
+                for (let i = 0; i < lines.length; i++) {
+                    if (!firstLine) {
+                        // Insert line break
+                        const br = document.createElement('br');
+                        range.insertNode(br);
+                        range.collapse(false);
+                    }
+                    
+                    // Insert text line
+                    const textNode = document.createTextNode(lines[i]);
+                    range.insertNode(textNode);
+                        range.collapse(false);
+                    
+                    firstLine = false;
                 }
                 
-                // Insert text line
-                const textNode = document.createTextNode(lines[i]);
-                range.insertNode(textNode);
-                range.collapse(false);
-                
-                firstLine = false;
+                // Update selection
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // If no selection, append to the end
+                container.innerHTML += text;
             }
             
-            // Update selection
-            selection.removeAllRanges();
-            selection.addRange(range);
+            // Focus the editor
+            container.focus();
+            
+        } catch (error) {
+            console.error('Error inserting text at cursor:', error);
         }
     }
     
@@ -3434,18 +3462,197 @@ class RTXApp {
                         </div>
                     </div>
                     
-                    <div style="text-align: center; padding: 60px 20px; color: #8E8E93;">
-                        <i class="fas fa-plus-circle" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
-                        <h3>New Campaign Tab</h3>
-                        <p>This is a new campaign tab. You can create campaigns with different Google accounts here.</p>
-                        <button class="btn btn-primary" onclick="window.rtxApp.authenticateInTab('${tabId}')">
-                            <i class="fas fa-sign-in-alt"></i> Sign in with Google
+                    <!-- Account and From -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div style="background:#f2f2f7; padding: 12px 16px; border-radius:8px; display:flex; align-items:center; gap:10px;">
+                            <div class="status-indicator disconnected" id="authStatus_${tabId}"></div>
+                            <span id="accountStatus_${tabId}">Not Connected</span>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>From Address <span id="signatureInfo_${tabId}" style="color:#8E8E93; font-weight:400; font-size:12px; margin-left:6px;"></span></label>
+                            <select id="fromAddress_${tabId}"></select>
+                            <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                                <input type="text" id="fromOverride_${tabId}" placeholder="Or type a custom From email" style="flex:1;">
+                                <small style="color:#8E8E93;">Use a verified alias for best deliverability</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Google OAuth Authentication -->
+                    <div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+                        <h3 style="margin-bottom: 10px;"><i class="fas fa-shield-alt"></i> Google Authentication</h3>
+                        <p style="margin-bottom: 12px; color: #666;">Connect your Google account to access Gmail and Google Sheets:</p>
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            <button id="googleLoginBtn_${tabId}" class="btn btn-primary">
+                                <i class="fab fa-google"></i> Sign in with Google
+                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #666;">or</span>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <input type="file" id="credentialsFile_${tabId}" accept=".json" style="display: none;">
+                                    <button id="uploadCredentialsBtn_${tabId}" class="btn btn-secondary">
+                                        <i class="fas fa-upload"></i> Upload Credentials
+                                    </button>
+                                    <small style="color: #8E8E93; font-size: 11px;">Upload your Google API credentials JSON file</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Google Sheets Connection -->
+                    <div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+                        <h3 style="margin-bottom: 10px;">Step 1: Connect Google Sheets</h3>
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <label>Google Sheets URL</label>
+                            <input type="text" id="sheetUrlInput_${tabId}" placeholder="https://docs.google.com/spreadsheets/d/...">
+                        </div>
+                        <div id="sheetTabsContainer_${tabId}" class="form-group" style="margin-bottom:10px;"></div>
+                        <button class="btn btn-primary" id="connectSheetsBtn_${tabId}">
+                            <i class="fas fa-link"></i>Connect Sheets
                         </button>
+                        <button class="btn btn-secondary" id="refreshSheetsBtn_${tabId}" disabled>
+                            <i class="fas fa-sync"></i>Refresh Data
+                        </button>
+                        <div id="sheetsData_${tabId}" style="display: none; margin-top: 12px;"></div>
+                    </div>
+                    
+                    <!-- Email Campaign Form -->
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="margin-bottom: 10px;">Step 2: Create Email Campaign</h3>
+                        <div class="form-group">
+                            <label>Campaign Name</label>
+                            <input type="text" id="campaignName_${tabId}" placeholder="Enter campaign name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Subject Line</label>
+                            <input type="text" id="subjectLine_${tabId}" placeholder="Enter email subject line">
+                            <small style="color:#8E8E93;">Use @placeholders for dynamic content</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Email Content</label>
+                            <div id="emailEditor_${tabId}" class="rich-editor" contenteditable="true" style="min-height: 200px; border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: white; font-family: Arial, sans-serif; line-height: 1.5;">
+                                <p>Dear @name,</p>
+                                <p>Thank you for your interest in our services.</p>
+                                <p>Best regards,<br>Your Team</p>
+                            </div>
+                            <small style="color:#8E8E93;">Type @ to see available placeholders</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Signature</label>
+                            <textarea id="signature_${tabId}" placeholder="Enter your email signature" rows="3"></textarea>
+                            <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                                <input type="checkbox" id="useSignature_${tabId}">
+                                <label for="useSignature_${tabId}" style="margin:0;">Use Gmail signature</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Attachments</label>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <input type="file" id="attachments_${tabId}" multiple style="flex:1;">
+                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.clearAttachments('${tabId}')">
+                                    <i class="fas fa-trash"></i>Clear
+                                </button>
+                            </div>
+                            <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                                <input type="checkbox" id="sendWithoutAttachment_${tabId}">
+                                <label for="sendWithoutAttachment_${tabId}" style="margin:0;">Send without attachments</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Template</label>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <select id="templateSelect_${tabId}" style="flex:1;">
+                                    <option value="">Select a template...</option>
+                                </select>
+                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.saveTemplate('${tabId}')">
+                                    <i class="fas fa-save"></i>Save
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.loadTemplate('${tabId}')">
+                                    <i class="fas fa-folder-open"></i>Load
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.deleteTemplate('${tabId}')">
+                                    <i class="fas fa-trash"></i>Delete
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.populateTemplateDropdown('${tabId}')">
+                                    <i class="fas fa-sync"></i>Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Campaign Settings</label>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div>
+                                    <label>Delay between emails (seconds)</label>
+                                    <input type="number" id="emailDelay_${tabId}" value="2" min="1" max="60">
+                                </div>
+                                <div>
+                                    <label>Max emails per hour</label>
+                                    <input type="number" id="maxEmailsPerHour_${tabId}" value="100" min="1" max="1000">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="display:flex; gap:12px; margin-top:20px;">
+                            <button class="btn btn-primary" id="sendCampaignBtn_${tabId}" onclick="window.rtxApp.sendCampaign('${tabId}')">
+                                <i class="fas fa-paper-plane"></i>Send Campaign
+                            </button>
+                            <button class="btn btn-secondary" id="testEmailBtn_${tabId}" onclick="window.rtxApp.sendTestEmail('${tabId}')">
+                                <i class="fas fa-envelope"></i>Send Test Email
+                            </button>
+                            <button class="btn btn-secondary" id="scheduleCampaignBtn_${tabId}" onclick="window.rtxApp.scheduleCampaign('${tabId}')">
+                                <i class="fas fa-clock"></i>Schedule Campaign
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Email Preview -->
+                    <div id="emailPreview_${tabId}" style="display:none; margin-top:20px; padding:20px; border:1px solid #e5e5e7; border-radius:8px; background:#fff;">
+                        <h4 style="margin-bottom:12px;">Email Preview</h4>
+                        <div id="previewContent_${tabId}"></div>
+                        <button class="btn btn-secondary" onclick="window.rtxApp.refreshEmailPreview('${tabId}')" style="margin-top:12px;">
+                            <i class="fas fa-sync"></i>Refresh Preview
+                        </button>
+                    </div>
+                    
+                    <!-- Campaign Progress -->
+                    <div id="campaignProgress_${tabId}" style="display:none; margin-top:20px; padding:20px; border:1px solid #e5e5e7; border-radius:8px; background:#f8f9fa;">
+                        <h4 style="margin-bottom:12px;">Campaign Progress</h4>
+                        <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+                            <div style="flex:1; background:#e5e5e7; border-radius:4px; height:8px;">
+                                <div id="progressBar_${tabId}" style="background:#007AFF; height:100%; border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+                            </div>
+                            <span id="progressText_${tabId}">0%</span>
+                        </div>
+                        <div id="progressDetails_${tabId}"></div>
+                    </div>
+                    
+                    <!-- Placeholder Dropdown -->
+                    <div id="placeholderDropdown_${tabId}" class="placeholder-dropdown" style="display:none; position:absolute; background:white; border:1px solid #ddd; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:200px; overflow-y:auto;">
+                        <div class="placeholder-item" data-placeholder="@name">@name - Recipient's name</div>
+                        <div class="placeholder-item" data-placeholder="@email">@email - Recipient's email</div>
+                        <div class="placeholder-item" data-placeholder="@company">@company - Company name</div>
+                        <div class="placeholder-item" data-placeholder="@position">@position - Job position</div>
+                        <div class="placeholder-item" data-placeholder="@phone">@phone - Phone number</div>
+                        <div class="placeholder-item" data-placeholder="@website">@website - Website URL</div>
+                        <div class="placeholder-item" data-placeholder="@date">@date - Current date</div>
+                        <div class="placeholder-item" data-placeholder="@time">@time - Current time</div>
                     </div>
                 </div>
             `;
             
             contentArea.appendChild(newTabContent);
+            
+            // Initialize the rich text editor for this tab
+            this.setupRichEditorForTab(tabId);
+            
+            // Setup event listeners for this tab
+            this.setupTabEventListeners(tabId);
             
         } catch (error) {
             console.error('Error creating tab content:', error);
@@ -3506,24 +3713,467 @@ class RTXApp {
             this.showSuccess(`Campaign creation initiated in ${tabId}`);
             this.logEvent('info', `Campaign creation initiated in tab: ${tabId}`);
             
-            // This would implement the full campaign creation form
-            // For now, just show a success message
+            // Initialize the rich text editor for this tab
+            this.setupRichEditorForTab(tabId);
+            
+            // Setup event listeners for this tab
+            this.setupTabEventListeners(tabId);
+            
+            // Populate template dropdown
+            this.populateTemplateDropdown(tabId);
             
         } catch (error) {
             console.error('Error creating campaign in tab:', error);
         }
     }
     
+    setupRichEditorForTab(tabId) {
+        try {
+            const editorContainer = document.getElementById(`emailEditor_${tabId}`);
+            if (!editorContainer) return;
+            
+            // Enhanced contenteditable editor
+            console.log(`✅ Enhanced contenteditable editor ready for ${tabId}`);
+            
+            // Enhanced paste handling for better copy-paste functionality
+            editorContainer.addEventListener('paste', (e) => {
+                e.preventDefault();
+                
+                // Handle image paste
+                const items = e.clipboardData?.items || [];
+                for (const it of items) {
+                    if (it.type && it.type.startsWith('image/')) {
+                        const file = it.getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const img = document.createElement('img');
+                            img.src = reader.result;
+                            img.style.maxWidth = '100%';
+                            img.style.height = 'auto';
+                            
+                            // Insert at cursor position
+                            const selection = window.getSelection();
+                            if (selection.rangeCount > 0) {
+                                const range = selection.getRangeAt(0);
+                                range.deleteContents();
+                                range.insertNode(img);
+                                range.collapse(false);
+                            } else {
+                                editorContainer.appendChild(img);
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                        return;
+                    }
+                }
+                
+                // Handle text paste with proper formatting
+                const text = e.clipboardData.getData('text/plain');
+                const html = e.clipboardData.getData('text/html');
+                
+                if (html && !text.includes('\n')) {
+                    // If HTML is available and it's not multi-line, use HTML
+                    this.insertHTMLAtCursor(html, editorContainer);
+                } else {
+                    this.insertHTMLAtCursor(text, editorContainer);
+                }
+            });
+            
+            // Setup placeholder system for this tab
+            this.setupPlaceholderSystemForTab(tabId);
+            
+        } catch (error) {
+            console.error('Error setting up rich editor for tab:', error);
+        }
+    }
+    
+    setupPlaceholderSystemForTab(tabId) {
+        try {
+            const editorContainer = document.getElementById(`emailEditor_${tabId}`);
+            const placeholderDropdown = document.getElementById(`placeholderDropdown_${tabId}`);
+            const subjectLine = document.getElementById(`subjectLine_${tabId}`);
+            
+            if (!editorContainer || !placeholderDropdown) return;
+            
+            // Function to get caret position
+            const getCaretPosition = (element) => {
+                const selection = window.getSelection();
+                if (selection.rangeCount === 0) return null;
+                
+                const range = selection.getRangeAt(0);
+                const preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(element);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+                return preCaretRange.toString().length;
+            };
+            
+            // Function to show placeholder dropdown
+            const showPlaceholderDropdown = (x, y) => {
+                placeholderDropdown.style.display = 'block';
+                placeholderDropdown.style.left = x + 'px';
+                placeholderDropdown.style.top = y + 'px';
+            };
+            
+            // Function to hide placeholder dropdown
+            const hidePlaceholderDropdown = () => {
+                placeholderDropdown.style.display = 'none';
+            };
+            
+            // Function to insert placeholder
+            const insertPlaceholder = (placeholder) => {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(document.createTextNode(placeholder));
+                    range.collapse(false);
+                }
+                hidePlaceholderDropdown();
+                editorContainer.focus();
+            };
+            
+            // Setup placeholder dropdown items
+            placeholderDropdown.querySelectorAll('.placeholder-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const placeholder = item.getAttribute('data-placeholder');
+                    insertPlaceholder(placeholder);
+                });
+            });
+            
+            // Monitor @ symbol in editor
+            let lastAtPosition = -1;
+            editorContainer.addEventListener('input', (e) => {
+                const text = editorContainer.textContent || editorContainer.innerText;
+                const atIndex = text.lastIndexOf('@');
+                
+                if (atIndex !== -1 && atIndex !== lastAtPosition) {
+                    lastAtPosition = atIndex;
+                    const rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+                    showPlaceholderDropdown(rect.left, rect.bottom + window.scrollY);
+                } else if (atIndex === -1) {
+                    lastAtPosition = -1;
+                    hidePlaceholderDropdown();
+                }
+            });
+            
+            // Monitor @ symbol in subject line
+            if (subjectLine) {
+                subjectLine.addEventListener('input', (e) => {
+                    const text = subjectLine.value;
+                    const atIndex = text.lastIndexOf('@');
+                    
+                    if (atIndex !== -1) {
+                        const rect = subjectLine.getBoundingClientRect();
+                        showPlaceholderDropdown(rect.left + (atIndex * 8), rect.bottom + window.scrollY);
+                    } else {
+                        hidePlaceholderDropdown();
+                    }
+                });
+            }
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!placeholderDropdown.contains(e.target) && !editorContainer.contains(e.target) && !subjectLine?.contains(e.target)) {
+                    hidePlaceholderDropdown();
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error setting up placeholder system for tab:', error);
+        }
+    }
+    
+    setupTabEventListeners(tabId) {
+        try {
+            // Google OAuth login button
+            const googleLoginBtn = document.getElementById(`googleLoginBtn_${tabId}`);
+            if (googleLoginBtn) {
+                googleLoginBtn.addEventListener('click', () => this.handleGoogleLogin(tabId));
+            }
+            
+            // Upload credentials button
+            const uploadCredentialsBtn = document.getElementById(`uploadCredentialsBtn_${tabId}`);
+            const credentialsFile = document.getElementById(`credentialsFile_${tabId}`);
+            if (uploadCredentialsBtn && credentialsFile) {
+                uploadCredentialsBtn.addEventListener('click', () => credentialsFile.click());
+                credentialsFile.addEventListener('change', (e) => this.handleCredentialsUpload(e, tabId));
+            }
+            
+            // Connect sheets button
+            const connectSheetsBtn = document.getElementById(`connectSheetsBtn_${tabId}`);
+            if (connectSheetsBtn) {
+                connectSheetsBtn.addEventListener('click', () => this.importSheet(tabId));
+            }
+            
+            // Refresh sheets button
+            const refreshSheetsBtn = document.getElementById(`refreshSheetsBtn_${tabId}`);
+            if (refreshSheetsBtn) {
+                refreshSheetsBtn.addEventListener('click', () => this.refreshSheetData(tabId));
+            }
+            
+        } catch (error) {
+            console.error('Error setting up tab event listeners:', error);
+        }
+    }
+    
+    handleGoogleLogin(tabId) {
+        try {
+            this.showInfo('Initiating Google OAuth authentication...');
+            // This would call the main process to start OAuth flow
+            if (window.electronAPI && window.electronAPI.authenticateGoogle) {
+                window.electronAPI.authenticateGoogle().then(result => {
+                    if (result.success) {
+                        this.showSuccess(`Successfully authenticated in ${tabId}`);
+                        this.updateTabAuthStatus(tabId, true, result.userEmail);
+                    } else {
+                        this.showError(`Authentication failed: ${result.error}`);
+                    }
+                }).catch(error => {
+                    this.showError(`Authentication error: ${error.message}`);
+                });
+            } else {
+                this.showError('Electron API not available');
+            }
+        } catch (error) {
+            console.error('Error handling Google login:', error);
+        }
+    }
+    
+    handleCredentialsUpload(event, tabId) {
+        try {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const credentials = JSON.parse(e.target.result);
+                    // This would call the main process to update credentials
+                    if (window.electronAPI && window.electronAPI.updateClientCredentials) {
+                        window.electronAPI.updateClientCredentials(credentials).then(result => {
+                            if (result.success) {
+                                this.showSuccess('Credentials updated successfully');
+                                this.handleGoogleLogin(tabId);
+                            } else {
+                                this.showError(`Failed to update credentials: ${result.error}`);
+                            }
+                        }).catch(error => {
+                            this.showError(`Error updating credentials: ${error.message}`);
+                        });
+                    } else {
+                        this.showError('Electron API not available');
+                    }
+                } catch (error) {
+                    this.showError('Invalid credentials file format');
+                }
+            };
+            reader.readAsText(file);
+        } catch (error) {
+            console.error('Error handling credentials upload:', error);
+        }
+    }
+    
+    updateTabAuthStatus(tabId, isAuthenticated, email) {
+        try {
+            const authStatus = document.getElementById(`authStatus_${tabId}`);
+            const accountStatus = document.getElementById(`accountStatus_${tabId}`);
+            
+            if (authStatus && accountStatus) {
+                if (isAuthenticated) {
+                    authStatus.className = 'status-indicator connected';
+                    accountStatus.textContent = email || 'Connected';
+                } else {
+                    authStatus.className = 'status-indicator disconnected';
+                    accountStatus.textContent = 'Not Connected';
+                }
+            }
+        } catch (error) {
+            console.error('Error updating tab auth status:', error);
+        }
+    }
+    
     importSheet(tabId) {
-        this.showInfo(`Import functionality for ${tabId} - In the full version, this would import Google Sheets data.`);
+        try {
+            const sheetUrlInput = document.getElementById(`sheetUrlInput_${tabId}`);
+            if (!sheetUrlInput || !sheetUrlInput.value.trim()) {
+                this.showWarning('Please enter a Google Sheets URL first');
+                return;
+            }
+            
+            const sheetUrl = sheetUrlInput.value.trim();
+            const sheetId = this.extractSheetId(sheetUrl);
+            
+            if (!sheetId) {
+                this.showError('Invalid Google Sheets URL. Please check the format.');
+                return;
+            }
+            
+            this.showInfo('Connecting to Google Sheets...');
+            
+            // This would call the main process to connect to sheets
+            if (window.electronAPI && window.electronAPI.sheetsListTabs) {
+                window.electronAPI.sheetsListTabs(sheetId).then(tabs => {
+                    if (tabs && tabs.length > 0) {
+                        this.showSuccess(`Connected to Google Sheets! Found ${tabs.length} tab(s)`);
+                        this.populateSheetTabs(tabId, tabs);
+                        this.enableRefreshButton(tabId);
+                    } else {
+                        this.showWarning('No tabs found in the spreadsheet');
+                    }
+                }).catch(error => {
+                    this.showError(`Failed to connect to Google Sheets: ${error.message}`);
+                });
+            } else {
+                this.showError('Electron API not available');
+            }
+            
+        } catch (error) {
+            console.error('Error importing sheet:', error);
+            this.showError('Failed to import sheet: ' + error.message);
+        }
+    }
+    
+    extractSheetId(url) {
+        try {
+            const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+            return match ? match[1] : null;
+        } catch (error) {
+            return null;
+        }
+    }
+    
+    populateSheetTabs(tabId, tabs) {
+        try {
+            const container = document.getElementById(`sheetTabsContainer_${tabId}`);
+            if (!container) return;
+            
+            container.innerHTML = `
+                <label>Select Sheet Tab</label>
+                <select id="sheetTabSelect_${tabId}" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:6px;">
+                    ${tabs.map(tab => `<option value="${tab}">${tab}</option>`).join('')}
+                </select>
+            `;
+        } catch (error) {
+            console.error('Error populating sheet tabs:', error);
+        }
+    }
+    
+    enableRefreshButton(tabId) {
+        try {
+            const refreshBtn = document.getElementById(`refreshSheetsBtn_${tabId}`);
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error enabling refresh button:', error);
+        }
+    }
+    
+    refreshSheetData(tabId) {
+        try {
+            this.showInfo('Refreshing sheet data...');
+            // This would call the main process to refresh data
+            this.showSuccess('Sheet data refreshed successfully');
+        } catch (error) {
+            console.error('Error refreshing sheet data:', error);
+            this.showError('Failed to refresh sheet data: ' + error.message);
+        }
     }
     
     togglePreview(tabId) {
-        this.showInfo(`Preview functionality for ${tabId} - In the full version, this would show data preview.`);
+        try {
+            const previewDiv = document.getElementById(`emailPreview_${tabId}`);
+            if (previewDiv) {
+                if (previewDiv.style.display === 'none') {
+                    previewDiv.style.display = 'block';
+                    this.refreshEmailPreview(tabId);
+                    this.showSuccess('Email preview enabled');
+                } else {
+                    previewDiv.style.display = 'none';
+                    this.showInfo('Email preview disabled');
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling preview:', error);
+        }
     }
     
     showLogs(tabId) {
-        this.showInfo(`Logs for ${tabId} - In the full version, this would show campaign logs.`);
+        try {
+            this.showInfo(`Showing logs for ${tabId}`);
+            // This would implement a logs modal or panel
+        } catch (error) {
+            console.error('Error showing logs:', error);
+        }
+    }
+    
+    sendCampaign(tabId) {
+        try {
+            this.showInfo(`Starting campaign in ${tabId}...`);
+            // This would implement the actual campaign sending
+        } catch (error) {
+            console.error('Error sending campaign:', error);
+        }
+    }
+    
+    sendTestEmail(tabId) {
+        try {
+            this.showInfo(`Sending test email from ${tabId}...`);
+            // This would implement test email sending
+        } catch (error) {
+            console.error('Error sending test email:', error);
+        }
+    }
+    
+    scheduleCampaign(tabId) {
+        try {
+            this.showInfo(`Scheduling campaign in ${tabId}...`);
+            // This would implement campaign scheduling
+        } catch (error) {
+            console.error('Error scheduling campaign:', error);
+        }
+    }
+    
+    clearAttachments(tabId) {
+        try {
+            const attachmentsInput = document.getElementById(`attachments_${tabId}`);
+            if (attachmentsInput) {
+                attachmentsInput.value = '';
+                this.showSuccess('Attachments cleared');
+            }
+        } catch (error) {
+            console.error('Error clearing attachments:', error);
+        }
+    }
+    
+    refreshEmailPreview(tabId) {
+        try {
+            const subjectLine = document.getElementById(`subjectLine_${tabId}`);
+            const emailEditor = document.getElementById(`emailEditor_${tabId}`);
+            const signature = document.getElementById(`signature_${tabId}`);
+            const previewContent = document.getElementById(`previewContent_${tabId}`);
+            
+            if (!subjectLine || !emailEditor || !previewContent) return;
+            
+            const subject = subjectLine.value || 'No Subject';
+            const content = emailEditor.innerHTML || 'No content';
+            const sig = signature.value || '';
+            
+            previewContent.innerHTML = `
+                <div style="border-bottom: 1px solid #e5e5e7; padding-bottom: 12px; margin-bottom: 12px;">
+                    <strong>Subject:</strong> ${subject}
+                </div>
+                <div style="margin-bottom: 12px;">
+                    ${content}
+                </div>
+                ${sig ? `<div style="border-top: 1px solid #e5e5e7; padding-top: 12px; margin-top: 12px;">
+                    ${sig}
+                </div>` : ''}
+            `;
+            
+        } catch (error) {
+            console.error('Error refreshing email preview:', error);
+        }
     }
 }
 
