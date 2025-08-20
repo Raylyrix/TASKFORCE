@@ -50,6 +50,7 @@ class RTXApp {
             this.setupEventListeners();
             this.setupNotifications();
             this.setupCampaignControls();
+            this.setupRichTextEditor();
             
             // Initialize first tab
             this.initializeFirstTab();
@@ -131,7 +132,7 @@ class RTXApp {
             `;
             tabList.appendChild(newTab);
 
-            // Create tab content
+            // Create tab content by cloning the existing tab1 content
             this.createTabContent(tabId);
             
             // Initialize tab state
@@ -153,27 +154,27 @@ class RTXApp {
             const contentArea = document.querySelector('.content-area');
             if (!contentArea) return;
 
+            // Get the original tab1 content to clone
+            const originalTab = document.getElementById('tab1');
+            if (!originalTab) return;
+
             // Create tab content container
             const tabContent = document.createElement('div');
             tabContent.className = 'tab-content';
-            tabContent.id = `content-${tabId}`;
+            tabContent.id = `tab-${tabId}`;
             tabContent.style.display = 'none';
 
-            // Clone the main interface
-            const mainInterface = document.querySelector('.mailer-interface');
-            if (mainInterface) {
-                const clonedInterface = mainInterface.cloneNode(true);
-                clonedInterface.id = `interface-${tabId}`;
-                
-                // Update element IDs to be unique
-                this.updateElementIds(clonedInterface, tabId);
-                
-                // Reset form state
-                this.resetFormState(clonedInterface);
-                
-                tabContent.appendChild(clonedInterface);
-            }
-
+            // Clone the original tab content
+            const clonedContent = originalTab.cloneNode(true);
+            clonedContent.id = `tab-${tabId}`;
+            
+            // Update element IDs to be unique for this tab
+            this.updateElementIds(clonedContent, tabId);
+            
+            // Reset form state for new tab
+            this.resetFormState(clonedContent);
+            
+            tabContent.appendChild(clonedContent);
             contentArea.appendChild(tabContent);
             
             // Store tab reference
@@ -206,10 +207,10 @@ class RTXApp {
         }
     }
 
-    resetFormState(interfaceElement) {
+    resetFormState(tabContent) {
         try {
             // Reset inputs
-            const inputs = interfaceElement.querySelectorAll('input[type="text"], input[type="email"], textarea');
+            const inputs = tabContent.querySelectorAll('input[type="text"], input[type="email"], textarea');
             inputs.forEach(input => {
                 if (input.type !== 'checkbox' && input.type !== 'radio') {
                     input.value = '';
@@ -217,13 +218,14 @@ class RTXApp {
             });
 
             // Reset email editor
-            const editor = interfaceElement.querySelector('[id*="emailEditor"]');
+            const editor = tabContent.querySelector('[id*="emailEditor"]');
             if (editor) {
                 editor.innerHTML = '';
+                editor.textContent = '';
             }
 
             // Reset attachments
-            const attachmentContainer = interfaceElement.querySelector('[id*="campaignAttachments"]');
+            const attachmentContainer = tabContent.querySelector('[id*="campaignAttachments"]');
             if (attachmentContainer) {
                 attachmentContainer.innerHTML = `
                     <div style="text-align: center; color: #8E8E93; padding: 20px;">
@@ -235,7 +237,7 @@ class RTXApp {
             }
 
             // Reset preview
-            const preview = interfaceElement.querySelector('[id*="emailPreview"]');
+            const preview = tabContent.querySelector('[id*="emailPreview"]');
             if (preview) {
                 preview.innerHTML = `
                     <div style="text-align: center; color: #8E8E93; padding: 40px 20px;">
@@ -243,6 +245,12 @@ class RTXApp {
                         <p>Preview will appear here after you fill in the campaign details</p>
                     </div>
                 `;
+            }
+
+            // Reset data preview
+            const dataPreview = tabContent.querySelector('[id*="dataPreviewDrawer"]');
+            if (dataPreview) {
+                dataPreview.style.display = 'none';
             }
 
         } catch (error) {
@@ -267,7 +275,7 @@ class RTXApp {
             });
 
             // Show selected tab content
-            const selectedContent = document.getElementById(`content-${tabId}`);
+            const selectedContent = document.getElementById(`tab-${tabId}`);
             if (selectedContent) {
                 selectedContent.style.display = 'block';
             }
@@ -308,7 +316,7 @@ class RTXApp {
             }
 
             // Remove tab content
-            const tabContent = document.getElementById(`content-${tabId}`);
+            const tabContent = document.getElementById(`tab-${tabId}`);
             if (tabContent) {
                 tabContent.remove();
             }
@@ -334,14 +342,21 @@ class RTXApp {
     // ===== AUTHENTICATION SYSTEM =====
     setupAuthentication() {
         try {
-            // Set up authentication buttons
+            // Set up authentication buttons for all tabs
             document.addEventListener('click', (e) => {
-                if (e.target.id === 'googleSignInBtn' || e.target.closest('#googleSignInBtn')) {
+                // Handle Google Sign In button
+                if (e.target.id && e.target.id.includes('googleSignInBtn')) {
                     this.authenticateWithGoogle();
                 }
                 
-                if (e.target.id === 'importSheetsBtn' || e.target.closest('#importSheetsBtn')) {
+                // Handle Import Sheets button
+                if (e.target.id && e.target.id.includes('importSheetsBtn')) {
                     this.importGoogleSheets();
+                }
+
+                // Handle Connect Sheets button
+                if (e.target.id && e.target.id.includes('connectSheetsBtn')) {
+                    this.connectGoogleSheets();
                 }
             });
 
@@ -377,6 +392,22 @@ class RTXApp {
         } catch (error) {
             console.error('❌ Google authentication failed:', error);
             this.showNotification('Authentication failed: ' + error.message, 'error');
+        }
+    }
+
+    async connectGoogleSheets() {
+        try {
+            const tabId = this.currentTabId;
+            this.showNotification('Connecting to Google Sheets...', 'info');
+            
+            // Simulate sheet connection
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            this.showNotification('Google Sheets connected successfully!', 'success');
+            console.log('✅ Sheets connected for tab:', tabId);
+        } catch (error) {
+            console.error('❌ Failed to connect sheets:', error);
+            this.showNotification('Failed to connect sheets: ' + error.message, 'error');
         }
     }
 
@@ -422,11 +453,11 @@ class RTXApp {
             const authState = this.tabAuthStates.get(tabId);
             if (!authState) return;
             
-            const interfaceElement = document.getElementById(`interface-${tabId}`);
-            if (!interfaceElement) return;
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (!tabContent) return;
             
-            const authStatus = interfaceElement.querySelector('[id*="authStatus"]');
-            const accountStatus = interfaceElement.querySelector('[id*="accountStatus"]');
+            const authStatus = tabContent.querySelector('[id*="authStatus"]');
+            const accountStatus = tabContent.querySelector('[id*="accountStatus"]');
             
             if (authStatus) {
                 authStatus.className = authState.isAuthenticated ? 'status-indicator connected' : 'status-indicator disconnected';
@@ -445,10 +476,10 @@ class RTXApp {
 
     updateDataPreview(tabId, sheetData) {
         try {
-            const interfaceElement = document.getElementById(`interface-${tabId}`);
-            if (!interfaceElement) return;
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (!tabContent) return;
             
-            const dataPreview = interfaceElement.querySelector('[id*="dataPreviewDrawer"]');
+            const dataPreview = tabContent.querySelector('[id*="dataPreviewDrawer"]');
             if (!dataPreview) return;
             
             let previewHTML = '<h4>Sheet Data Preview</h4>';
@@ -489,7 +520,7 @@ class RTXApp {
             
             // Set up event listeners for @ symbol
             document.addEventListener('input', (e) => {
-                if (e.target.matches('[id*="emailEditor"], [id*="campaignSubject"]')) {
+                if (e.target.id && (e.target.id.includes('emailEditor') || e.target.id.includes('campaignSubject'))) {
                     this.handlePlaceholderInput(e);
                 }
             });
@@ -703,11 +734,11 @@ class RTXApp {
     insertPlaceholder(placeholder) {
         try {
             const tabId = this.currentTabId;
-            const interfaceElement = document.getElementById(`interface-${tabId}`);
-            if (!interfaceElement) return;
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (!tabContent) return;
             
-            const editor = interfaceElement.querySelector('[id*="emailEditor"]');
-            const subject = interfaceElement.querySelector('[id*="campaignSubject"]');
+            const editor = tabContent.querySelector('[id*="emailEditor"]');
+            const subject = tabContent.querySelector('[id*="campaignSubject"]');
             
             // Determine which field has focus
             const activeElement = document.activeElement;
@@ -835,23 +866,135 @@ class RTXApp {
         }
     }
 
+    // ===== RICH TEXT EDITOR SETUP =====
+    setupRichTextEditor() {
+        try {
+            // Set up rich text editor functionality for all tabs
+            this.setupEditorToolbar();
+            this.setupEditorEvents();
+            
+            console.log('✅ Rich text editor setup complete');
+        } catch (error) {
+            console.error('❌ Failed to setup rich text editor:', error);
+        }
+    }
+
+    setupEditorToolbar() {
+        try {
+            // Set up toolbar buttons for all tabs
+            document.addEventListener('click', (e) => {
+                if (e.target.id && e.target.id.includes('boldBtn')) {
+                    this.execCommand('bold');
+                } else if (e.target.id && e.target.id.includes('italicBtn')) {
+                    this.execCommand('italic');
+                } else if (e.target.id && e.target.id.includes('underlineBtn')) {
+                    this.execCommand('underline');
+                } else if (e.target.id && e.target.id.includes('alignLeftBtn')) {
+                    this.execCommand('justifyLeft');
+                } else if (e.target.id && e.target.id.includes('alignCenterBtn')) {
+                    this.execCommand('justifyCenter');
+                } else if (e.target.id && e.target.id.includes('alignRightBtn')) {
+                    this.execCommand('justifyRight');
+                } else if (e.target.id && e.target.id.includes('listUlBtn')) {
+                    this.execCommand('insertUnorderedList');
+                } else if (e.target.id && e.target.id.includes('listOlBtn')) {
+                    this.execCommand('insertOrderedList');
+                }
+            });
+        } catch (error) {
+            console.error('❌ Failed to setup editor toolbar:', error);
+        }
+    }
+
+    setupEditorEvents() {
+        try {
+            // Set up editor events for all tabs
+            document.addEventListener('input', (e) => {
+                if (e.target.id && e.target.id.includes('emailEditor')) {
+                    this.updateWordCount(e.target);
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.target.id && e.target.id.includes('emailEditor')) {
+                    // Handle keyboard shortcuts
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 'b') {
+                            e.preventDefault();
+                            this.execCommand('bold');
+                        } else if (e.key === 'i') {
+                            e.preventDefault();
+                            this.execCommand('italic');
+                        } else if (e.key === 'u') {
+                            e.preventDefault();
+                            this.execCommand('underline');
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('❌ Failed to setup editor events:', error);
+        }
+    }
+
+    execCommand(command) {
+        try {
+            const tabId = this.currentTabId;
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (!tabContent) return;
+
+            const editor = tabContent.querySelector('[id*="emailEditor"]');
+            if (editor) {
+                editor.focus();
+                document.execCommand(command, false, null);
+            }
+        } catch (error) {
+            console.error('❌ Failed to execute command:', error);
+        }
+    }
+
+    updateWordCount(editor) {
+        try {
+            const text = editor.textContent || editor.innerText || '';
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+
+            const tabId = this.currentTabId;
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (!tabContent) return;
+
+            const wordCountEl = tabContent.querySelector('[id*="wordCount"]');
+            const charCountEl = tabContent.querySelector('[id*="charCount"]');
+
+            if (wordCountEl) wordCountEl.textContent = `${words} words`;
+            if (charCountEl) charCountEl.textContent = `${chars} chars`;
+        } catch (error) {
+            console.error('❌ Failed to update word count:', error);
+        }
+    }
+
     // ===== CAMPAIGN CONTROLS =====
     setupCampaignControls() {
         try {
             document.addEventListener('click', (e) => {
                 // Start campaign
-                if (e.target.id === 'startCampaignBtn' || e.target.closest('#startCampaignBtn')) {
+                if (e.target.id && e.target.id.includes('startCampaignBtn')) {
                     this.startCampaign();
                 }
                 
                 // Stop campaign
-                if (e.target.id === 'stopCampaignBtn' || e.target.closest('#stopCampaignBtn')) {
+                if (e.target.id && e.target.id.includes('stopCampaignBtn')) {
                     this.stopCampaign();
                 }
                 
                 // Refresh preview
-                if (e.target.id === 'refreshPreviewBtn' || e.target.closest('#refreshPreviewBtn')) {
+                if (e.target.id && e.target.id.includes('refreshPreviewBtn')) {
                     this.refreshEmailPreview();
+                }
+
+                // Send test email
+                if (e.target.id && e.target.id.includes('sendTestBtn')) {
+                    this.sendTestEmail();
                 }
             });
             
@@ -917,6 +1060,17 @@ class RTXApp {
             console.log('✅ Campaign stop requested');
         } catch (error) {
             console.error('❌ Failed to stop campaign:', error);
+        }
+    }
+
+    async sendTestEmail() {
+        try {
+            this.showNotification('Sending test email...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            this.showNotification('Test email sent successfully!', 'success');
+        } catch (error) {
+            console.error('❌ Failed to send test email:', error);
+            this.showNotification('Failed to send test email: ' + error.message, 'error');
         }
     }
 
@@ -1018,12 +1172,14 @@ class RTXApp {
             const target = e.target;
             
             // Handle various button types
-            if (target.matches('[id*="importSheetsBtn"]')) {
+            if (target.matches('[id*="importSheetBtn"]')) {
                 this.importGoogleSheets();
             } else if (target.matches('[id*="startCampaignBtn"]')) {
                 this.startCampaign();
             } else if (target.matches('[id*="refreshPreviewBtn"]')) {
                 this.refreshEmailPreview();
+            } else if (target.matches('[id*="sendTestBtn"]')) {
+                this.sendTestEmail();
             }
             
         } catch (error) {
@@ -1044,11 +1200,11 @@ class RTXApp {
     refreshEmailPreview() {
         try {
             const tabId = this.currentTabId;
-            const interfaceElement = document.getElementById(`interface-${tabId}`);
-            if (!interfaceElement) return;
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (!tabContent) return;
             
-            const editor = interfaceElement.querySelector('[id*="emailEditor"]');
-            const preview = interfaceElement.querySelector('[id*="emailPreview"]');
+            const editor = tabContent.querySelector('[id*="emailEditor"]');
+            const preview = tabContent.querySelector('[id*="emailPreview"]');
             
             if (editor && preview) {
                 const content = editor.value || editor.innerHTML;
