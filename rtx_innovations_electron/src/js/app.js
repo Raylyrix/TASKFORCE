@@ -9,27 +9,19 @@ console.log('🚀 app.js is loading...');
 // RTX Innovations - AutoMailer Pro
 class RTXApp {
     constructor() {
-        console.log('🚀 RTXApp constructor called');
+        // Initialize properties
         this.isAuthenticated = false;
-        this.currentAccount = null;
         this.sheetData = null;
-        this.rowStatus = new Map();
-        this.sendAsList = [];
-        this.selectedFrom = null;
-        this.gmailSignature = '';
-        this.useSignature = false;
-        this.attachmentsPaths = [];
-        this.selectedSheetId = null;
-        this.selectedSheetTitle = null;
-        this.templates = [];
         this.currentSignature = '';
         this.campaignAttachments = [];
         this.currentScrapingSession = null;
         this.scrapedData = [];
         this.chromeExtensionInstalled = false;
-        this.chromeExtensionId = 'salesql-scraper';
+        this.chromeExtensionId = 'salesql-scraper'; // Fixed extension ID
         this.previewUpdateTimeout = null;
         this.placeholderDropdown = null;
+        
+        // Initialize the app
         this.init();
     }
 
@@ -392,7 +384,14 @@ class RTXApp {
         // Subject line placeholders button
         const subjectPlaceholdersBtn = document.getElementById('subjectPlaceholdersBtn');
         if (subjectPlaceholdersBtn) {
-            subjectPlaceholdersBtn.addEventListener('click', () => this.showSubjectPlaceholdersModal());
+            subjectPlaceholdersBtn.addEventListener('click', () => {
+                const subjectInput = document.getElementById('campaignSubject');
+                if (subjectInput) {
+                    subjectInput.focus();
+                    // Show placeholder dropdown at the end of subject input
+                    this.showPlaceholderDropdown(subjectInput, subjectInput.value.length);
+                }
+            });
         }
 
         // Campaign attachment buttons
@@ -3866,30 +3865,25 @@ class RTXApp {
         try {
             this.showInfo('Installing Chrome extension from app assets...');
             
-            // Check if extension exists in app assets
-            const extensionPath = await window.electronAPI?.getExtensionPath?.(this.chromeExtensionId);
+            // Install extension using the main process
+            const result = await window.electronAPI?.installChromeExtension?.({
+                extensionId: this.chromeExtensionId
+            });
             
-            if (extensionPath) {
-                // Install extension to Chrome
-                const result = await window.electronAPI?.installChromeExtension?.({
-                    extensionPath: extensionPath,
-                    extensionId: this.chromeExtensionId
-                });
+            if (result && result.success) {
+                this.showSuccess('Chrome extension installed successfully! Please restart Chrome to activate it.');
+                this.chromeExtensionInstalled = true;
+                this.updateChromeExtensionStatus();
                 
-                if (result && result.success) {
-                    this.showSuccess('Chrome extension installed successfully!');
-                    this.chromeExtensionInstalled = true;
-                    this.updateChromeExtensionStatus();
-                } else {
-                    throw new Error(result?.error || 'Installation failed');
-                }
+                // Show instructions for using the extension
+                this.showExtensionInstructions();
             } else {
-                // Show manual installation instructions
-                this.showManualExtensionInstallModal();
+                throw new Error(result?.error || 'Installation failed');
             }
         } catch (error) {
             console.error('Extension installation failed:', error);
             this.showError('Failed to install extension: ' + error.message);
+            // Fallback to manual installation
             this.showManualExtensionInstallModal();
         }
     }
@@ -4232,42 +4226,47 @@ class RTXApp {
 
     addNewTab() {
         try {
-            const tabContainer = document.getElementById('tab-container');
-            const tabList = document.getElementById('tab-list');
-            const tabContent = document.getElementById('tab-content');
-            
-            if (!tabContainer || !tabList || !tabContent) return;
+            const tabList = document.getElementById('tabList');
+            if (!tabList) {
+                console.error('❌ Tab list not found');
+                return;
+            }
 
             const tabId = `tab-${Date.now()}`;
             const tabName = `Campaign ${tabList.children.length + 1}`;
 
             // Create new tab button
-            const newTab = document.createElement('div');
+            const newTab = document.createElement('li');
             newTab.className = 'tab-item';
-            newTab.id = `tab-btn-${tabId}`;
+            newTab.setAttribute('data-tab', tabId);
+            newTab.style.cssText = 'padding:8px 16px; background:#e5e5e7; color:#2c2c2e; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:8px;';
             newTab.innerHTML = `
-                <span>${tabName}</span>
-                <button class="close-tab" onclick="window.rtxApp.closeTab('${tabId}')">&times;</button>
+                ${tabName}
+                <span class="tab-close" onclick="window.rtxApp.closeTab('${tabId}')" style="cursor:pointer; font-weight:bold;">&times;</span>
             `;
             newTab.onclick = () => this.switchTab(tabId);
             tabList.appendChild(newTab);
 
             // Create new tab content
             const newContent = document.createElement('div');
-            newContent.className = 'tab-panel';
-            newContent.id = `tab-panel-${tabId}`;
+            newContent.className = 'tab-content';
+            newContent.id = `tab-${tabId}`;
             newContent.style.display = 'none';
             
             // Clone the main form content
-            const mainForm = document.getElementById('campaignForm');
+            const mainForm = document.querySelector('.mailer-interface');
             if (mainForm) {
                 const clonedForm = mainForm.cloneNode(true);
-                clonedForm.id = `campaignForm-${tabId}`;
+                clonedForm.id = `mailer-interface-${tabId}`;
                 this.updateElementIds(clonedForm, tabId);
                 newContent.appendChild(clonedForm);
             }
 
-            tabContent.appendChild(newContent);
+            // Add to content area
+            const contentArea = document.querySelector('.content-area');
+            if (contentArea) {
+                contentArea.appendChild(newContent);
+            }
 
             // Switch to the new tab
             this.switchTab(tabId);
@@ -4278,48 +4277,32 @@ class RTXApp {
         }
     }
 
-    createTabContent(tabId, tabName) {
-        // This method creates the content for a new tab
-        return `
-            <div class="tab-panel" id="tab-panel-${tabId}" style="display: none;">
-                <h3>${tabName}</h3>
-                <div class="campaign-form">
-                    <!-- Campaign form content will be cloned here -->
-                </div>
-            </div>
-        `;
-    }
-
-    updateElementIds(element, tabId) {
-        // Update all element IDs to be unique for this tab
-        const elements = element.querySelectorAll('[id]');
-        elements.forEach(el => {
-            if (el.id) {
-                el.id = `${el.id}-${tabId}`;
-            }
-        });
-    }
-
     switchTab(tabId) {
         try {
-            // Hide all tab panels
-            const panels = document.querySelectorAll('.tab-panel');
-            panels.forEach(panel => panel.style.display = 'none');
+            // Hide all tab content
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.style.display = 'none';
+            });
 
             // Remove active class from all tabs
             const tabs = document.querySelectorAll('.tab-item');
-            tabs.forEach(tab => tab.classList.remove('active'));
+            tabs.forEach(tab => {
+                tab.style.background = '#e5e5e7';
+                tab.style.color = '#2c2c2e';
+            });
 
-            // Show selected tab panel
-            const selectedPanel = document.getElementById(`tab-panel-${tabId}`);
-            if (selectedPanel) {
-                selectedPanel.style.display = 'block';
+            // Show selected tab content
+            const selectedContent = document.getElementById(`tab-${tabId}`);
+            if (selectedContent) {
+                selectedContent.style.display = 'block';
             }
 
             // Add active class to selected tab
-            const selectedTab = document.getElementById(`tab-btn-${tabId}`);
+            const selectedTab = document.querySelector(`[data-tab="${tabId}"]`);
             if (selectedTab) {
-                selectedTab.classList.add('active');
+                selectedTab.style.background = '#007AFF';
+                selectedTab.style.color = '#fff';
             }
 
             console.log('✅ Switched to tab:', tabId);
@@ -4330,22 +4313,29 @@ class RTXApp {
 
     closeTab(tabId) {
         try {
+            // Don't close the last tab
+            const tabList = document.getElementById('tabList');
+            if (tabList.children.length <= 1) {
+                this.showError('Cannot close the last tab');
+                return;
+            }
+
             // Remove tab button
-            const tabBtn = document.getElementById(`tab-btn-${tabId}`);
-            if (tabBtn) {
-                tabBtn.remove();
+            const tabButton = document.querySelector(`[data-tab="${tabId}"]`);
+            if (tabButton) {
+                tabButton.remove();
             }
 
-            // Remove tab panel
-            const tabPanel = document.getElementById(`tab-panel-${tabId}`);
-            if (tabPanel) {
-                tabPanel.remove();
+            // Remove tab content
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (tabContent) {
+                tabContent.remove();
             }
 
-            // If this was the active tab, switch to the first available tab
-            const remainingTabs = document.querySelectorAll('.tab-item');
-            if (remainingTabs.length > 0) {
-                const firstTabId = remainingTabs[0].id.replace('tab-btn-', '');
+            // Switch to first available tab
+            const firstTab = tabList.querySelector('.tab-item');
+            if (firstTab) {
+                const firstTabId = firstTab.getAttribute('data-tab');
                 this.switchTab(firstTabId);
             }
 
@@ -4353,6 +4343,16 @@ class RTXApp {
         } catch (error) {
             console.error('❌ Failed to close tab:', error);
         }
+    }
+
+    updateElementIds(element, tabId) {
+        // Update all element IDs to be unique for this tab
+        const elements = element.querySelectorAll('[id]');
+        elements.forEach(el => {
+            if (el.id) {
+                el.id = `${el.id}-${tabId}`;
+            }
+        });
     }
 
     setupTabEventListeners() {
@@ -4383,22 +4383,31 @@ class RTXApp {
     initializePlaceholderSystem() {
         try {
             const emailEditor = document.getElementById('emailEditor');
+            const subjectInput = document.getElementById('campaignSubject');
+            
             if (!emailEditor) return;
 
             // Create placeholder dropdown
             this.createPlaceholderDropdown();
 
-            // Add input event listener for @ symbol
+            // Add input event listener for @ symbol to email editor
             emailEditor.addEventListener('input', (e) => this.handlePlaceholderInput(e));
+            
+            // Add input event listener for @ symbol to subject line
+            if (subjectInput) {
+                subjectInput.addEventListener('input', (e) => this.handlePlaceholderInput(e));
+            }
             
             // Hide dropdown when clicking outside
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('.placeholder-dropdown') && !e.target.closest('#emailEditor')) {
+                if (!e.target.closest('.placeholder-dropdown') && 
+                    !e.target.closest('#emailEditor') && 
+                    !e.target.closest('#campaignSubject')) {
                     this.hidePlaceholderDropdown();
                 }
             });
 
-            console.log('✅ Placeholder system initialized');
+            console.log('✅ Placeholder system initialized for editor and subject line');
         } catch (error) {
             console.error('❌ Failed to initialize placeholder system:', error);
         }
@@ -4517,22 +4526,27 @@ class RTXApp {
         try {
             if (!this.placeholderDropdown) return;
 
-            // Position dropdown near the @ symbol
+            // Position dropdown relative to the editor element
             const rect = editor.getBoundingClientRect();
+            
+            // Calculate position based on text content before @ symbol
             const textBeforeAt = editor.textContent.substring(0, atPosition);
             const tempSpan = document.createElement('span');
-            tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: pre;';
+            tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: pre; font-family: inherit; font-size: inherit;';
             tempSpan.textContent = textBeforeAt;
             document.body.appendChild(tempSpan);
             
             const atRect = tempSpan.getBoundingClientRect();
             document.body.removeChild(tempSpan);
 
+            // Position dropdown below the @ symbol in the editor
+            this.placeholderDropdown.style.position = 'fixed';
             this.placeholderDropdown.style.left = `${rect.left + atRect.width}px`;
             this.placeholderDropdown.style.top = `${rect.bottom + 5}px`;
+            this.placeholderDropdown.style.zIndex = '10000';
             this.placeholderDropdown.style.display = 'block';
             
-            console.log('✅ Placeholder dropdown shown');
+            console.log('✅ Placeholder dropdown shown at editor position');
         } catch (error) {
             console.error('❌ Failed to show placeholder dropdown:', error);
         }

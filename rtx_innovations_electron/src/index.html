@@ -418,6 +418,22 @@
 </head>
 <body>
 	<div class="app-container" style="display:block; height:auto; min-height:100vh;">
+		<!-- Tab Management - Above Navbar -->
+		<div class="tab-container" style="position: sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid #e5e5e7; padding:8px 16px;">
+			<div style="display:flex; align-items:center; justify-content:space-between;">
+				<ul class="tab-list" id="tabList" style="display:flex; list-style:none; margin:0; padding:0; gap:8px;">
+					<li class="tab-item active" data-tab="tab1" style="padding:8px 16px; background:#007AFF; color:#fff; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:8px;">
+						Campaign 1
+						<span class="tab-close" onclick="window.rtxApp.closeTab('tab1')" style="cursor:pointer; font-weight:bold;">&times;</span>
+					</li>
+				</ul>
+				<div class="add-tab-btn" onclick="window.rtxApp.addNewTab()" style="padding:8px 16px; background:#34C759; color:#fff; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:8px;">
+					<i class="fas fa-plus"></i>
+					Add New Campaign Tab
+				</div>
+			</div>
+		</div>
+		
 		<!-- Top Navigation Bar -->
 		<div class="header" style="position: sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #e5e5e7; display:flex; align-items:center; justify-content:space-between; padding:10px 16px;">
 			<div style="display:flex; align-items:center; gap:12px;">
@@ -447,19 +463,6 @@
             </div>
             
 		<div class="main-content" style="width:100%;">
-			<!-- Tabbed Interface -->
-			<div class="tab-container">
-				<ul class="tab-list" id="tabList">
-					<li class="tab-item active" data-tab="tab1">
-						Campaign 1
-						<span class="tab-close" onclick="window.rtxApp.closeTab('tab1')">&times;</span>
-					</li>
-				</ul>
-				<div class="add-tab-btn" onclick="window.rtxApp.addNewTab()">
-					<i class="fas fa-plus"></i>
-					Add New Campaign Tab
-				</div>
-			</div>
 			
 			<div class="content-area" style="padding:16px;">
 				<!-- Tab 1 Content -->

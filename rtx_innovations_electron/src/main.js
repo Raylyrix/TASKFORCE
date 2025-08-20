@@ -1845,7 +1845,6 @@ ipcMain.handle('checkExtensionPath', async (e, extensionId) => {
 ipcMain.handle('installChromeExtension', async (e, params) => {
     try {
         logEvent('info', 'Installing Chrome extension', { 
-            extensionPath: params.extensionPath, 
             extensionId: params.extensionId 
         });
         
