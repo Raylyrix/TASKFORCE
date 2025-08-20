@@ -1,6 +1,6 @@
 {
   "name": "task-force-mailer",
-  "version": "1.6.23",
+  "version": "1.6.24",
   "description": "TASK FORCE – Mass mailer with Google Sheets integration",
   "main": "src/main.js",
   "homepage": "./",
