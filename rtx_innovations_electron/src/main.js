@@ -381,6 +381,19 @@ function buildOAuthClient(norm, redirectUriOverride) {
 	return new google.auth.OAuth2(norm.client_id, norm.client_secret, redirect);
 }
 
+// Function to validate OAuth token
+async function validateToken(oauth2Client) {
+	try {
+		// Try to make a simple API call to validate the token
+		const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+		await gmail.users.getProfile({ userId: 'me' });
+		return true;
+	} catch (error) {
+		logEvent('info', 'Token validation failed', { error: error.message });
+		return false;
+	}
+}
+
 async function ensureServices() {
 	if (!oauth2Client) {
 		const token = store.get('googleToken');
@@ -410,45 +423,77 @@ async function authenticateGoogle(credentialsData) {
 			if (!def) throw new Error('Default OAuth credentials not configured');
 			norm = normalizeCredentials(def);
 		}
+		
+		// Validate credentials before proceeding
+		if (!norm.client_id || !norm.client_secret) {
+			throw new Error('Invalid credentials: missing client_id or client_secret');
+		}
+		
 		store.set('googleCreds', norm);
 
+		// Check for existing valid token first
 		const existing = store.get('googleToken');
-		if (existing) {
-			oauth2Client = buildOAuthClient(norm);
-			oauth2Client.setCredentials(existing);
-			// Instant attach without waiting for profile
+		if (existing && existing.access_token) {
+			// Validate existing token
 			try {
-				if (mainWindow && mainWindow.webContents) {
-					mainWindow.webContents.send('auth-success', { email: 'authenticated' });
-					try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {}
-				}
-			} catch (_) {}
-			// Background: ensure services and resolve profile with timeout
-			;(async () => {
-				try {
-					await ensureServices();
-					let emailAddr = 'authenticated';
+				oauth2Client = buildOAuthClient(norm);
+				oauth2Client.setCredentials(existing);
+				
+				// Quick token validation
+				const isValid = await validateToken(oauth2Client);
+				if (isValid) {
+					// Token is still valid, use it immediately
 					try {
-						const p = await Promise.race([
-							gmailService.users.getProfile({ userId: 'me' }),
-							new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-						]);
-						if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
-						saveAccountEntry(emailAddr, norm, existing);
-						try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
-						try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr }); } catch (_) {}
-						logEvent('info', 'Authenticated and token stored', { email: emailAddr });
+						if (mainWindow && mainWindow.webContents) {
+							mainWindow.webContents.send('auth-success', { email: 'authenticated' });
+						}
 					} catch (_) {}
-				} catch (_) {}
-			})();
-			return { success: true, userEmail: 'authenticated' };
+					
+					// Background: ensure services and resolve profile
+					;(async () => {
+						try {
+							await ensureServices();
+							let emailAddr = 'authenticated';
+							try {
+								const p = await Promise.race([
+									gmailService.users.getProfile({ userId: 'me' }),
+									new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+								]);
+								if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
+								saveAccountEntry(emailAddr, norm, existing);
+								try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
+								try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr }); } catch (_) {}
+								logEvent('info', 'Authenticated with existing token', { email: emailAddr });
+							} catch (_) {}
+						} catch (_) {}
+					})();
+					
+					return { success: true, userEmail: 'authenticated', message: 'Using existing token' };
+				}
+			} catch (error) {
+				logEvent('info', 'Existing token invalid, proceeding with new auth', { error: error.message });
+				// Token is invalid, continue with new authentication
+			}
 		}
+
+		// Build OAuth client for new authentication
+		oauth2Client = buildOAuthClient(norm);
 
 		const { shell } = require('electron');
 
 		const token = await new Promise((resolve, reject) => {
 			let settled = false;
 			let server;
+			let authTimeout;
+
+			// Set authentication timeout
+			authTimeout = setTimeout(() => {
+				if (!settled) {
+					settled = true;
+					try { if (server) server.close(); } catch (_) {}
+					reject(new Error('Authentication timeout - please try again'));
+				}
+			}, 300000); // 5 minutes timeout
 
 			const startServer = (host, port, pathName) => {
 				server = http.createServer(async (req, res) => {
@@ -458,20 +503,30 @@ async function authenticateGoogle(credentialsData) {
 						// Accept any path as long as code exists
 						const code = reqUrl.searchParams.get('code');
 						if (!code) { res.writeHead(400); res.end('Missing code'); return; }
+                        
+						// Clear timeout since we got the code
+						clearTimeout(authTimeout);
+                        
                         const { tokens } = await oauth2Client.getToken(code);
                         oauth2Client.setCredentials(tokens);
+                        
                         try {
                             if (mainWindow && mainWindow.webContents) {
                                 mainWindow.webContents.send('auth-progress', { step: 'token-received' });
-                                try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {}
                             }
                         } catch (_) {}
+                        
                         res.writeHead(200, { 'Content-Type': 'text/html' });
-                        res.end('<html><body><h2>Authentication successful. You can close this window and return to the app.</h2><script>setTimeout(()=>{window.close()},500);</script></body></html>');
+                        res.end('<html><body><h2>Authentication successful! You can close this window and return to the app.</h2><script>setTimeout(()=>{window.close()},1000);</script></body></html>');
 						settled = true;
 						server.close(() => resolve(tokens));
 					} catch (err) {
-						if (!settled) { settled = true; try { server.close(); } catch (_) {} reject(err); }
+						if (!settled) { 
+							settled = true; 
+							clearTimeout(authTimeout);
+							try { server.close(); } catch (_) {} 
+							reject(err); 
+						}
 					}
 				});
 
@@ -479,7 +534,20 @@ async function authenticateGoogle(credentialsData) {
 				const tryListen = (h, p) => server.listen(p, h, async () => {
 					try {
 						oauth2Client = buildOAuthClient(norm, `http://${h}:${server.address().port}${pathName}`);
-						const authUrl = oauth2Client.generateAuthUrl({ access_type: 'offline', scope: SCOPES, prompt: 'consent' });
+						const authUrl = oauth2Client.generateAuthUrl({ 
+							access_type: 'offline', 
+							scope: SCOPES, 
+							prompt: 'consent',
+							response_type: 'code'
+						});
+						
+						// Send progress update
+						try {
+							if (mainWindow && mainWindow.webContents) {
+								mainWindow.webContents.send('auth-progress', { step: 'opening-browser' });
+							}
+						} catch (_) {}
+						
 						await shell.openExternal(authUrl);
 					} catch (openErr) {
 						try { server.close(); } catch (_) {}

@@ -3730,13 +3730,22 @@ class RTXApp {
     setupRichEditorForTab(tabId) {
         try {
             const editorContainer = document.getElementById(`emailEditor_${tabId}`);
-            if (!editorContainer) return;
+            if (!editorContainer) {
+                console.error(`Editor container not found for tab: ${tabId}`);
+                return;
+            }
+            
+            console.log(`✅ Setting up rich text editor for ${tabId}`);
+            
+            // Clear any existing event listeners
+            const newEditorContainer = editorContainer.cloneNode(true);
+            editorContainer.parentNode.replaceChild(newEditorContainer, editorContainer);
             
             // Enhanced contenteditable editor
             console.log(`✅ Enhanced contenteditable editor ready for ${tabId}`);
             
             // Enhanced paste handling for better copy-paste functionality
-            editorContainer.addEventListener('paste', (e) => {
+            newEditorContainer.addEventListener('paste', (e) => {
                 e.preventDefault();
                 
                 // Handle image paste
@@ -3759,7 +3768,7 @@ class RTXApp {
                                 range.insertNode(img);
                                 range.collapse(false);
                             } else {
-                                editorContainer.appendChild(img);
+                                newEditorContainer.appendChild(img);
                             }
                         };
                         reader.readAsDataURL(file);
@@ -3773,17 +3782,48 @@ class RTXApp {
                 
                 if (html && !text.includes('\n')) {
                     // If HTML is available and it's not multi-line, use HTML
-                    this.insertHTMLAtCursor(html, editorContainer);
+                    this.insertHTMLAtCursor(html, newEditorContainer);
                 } else {
-                    this.insertHTMLAtCursor(text, editorContainer);
+                    this.insertHTMLAtCursor(text, newEditorContainer);
+                }
+            });
+            
+            // Add focus and blur event listeners
+            newEditorContainer.addEventListener('focus', () => {
+                newEditorContainer.style.borderColor = '#007AFF';
+            });
+            
+            newEditorContainer.addEventListener('blur', () => {
+                newEditorContainer.style.borderColor = '#ddd';
+            });
+            
+            // Add keyboard shortcuts
+            newEditorContainer.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'b':
+                            e.preventDefault();
+                            document.execCommand('bold', false, null);
+                            break;
+                        case 'i':
+                            e.preventDefault();
+                            document.execCommand('italic', false, null);
+                            break;
+                        case 'u':
+                            e.preventDefault();
+                            document.execCommand('underline', false, null);
+                            break;
+                    }
                 }
             });
             
             // Setup placeholder system for this tab
             this.setupPlaceholderSystemForTab(tabId);
             
+            console.log(`✅ Rich text editor setup completed for ${tabId}`);
+            
         } catch (error) {
-            console.error('Error setting up rich editor for tab:', error);
+            console.error(`Error setting up rich editor for tab ${tabId}:`, error);
         }
     }
     
@@ -3919,23 +3959,179 @@ class RTXApp {
     handleGoogleLogin(tabId) {
         try {
             this.showInfo('Initiating Google OAuth authentication...');
+            
+            // Disable the login button to prevent multiple clicks
+            const googleLoginBtn = document.getElementById(`googleLoginBtn_${tabId}`);
+            if (googleLoginBtn) {
+                googleLoginBtn.disabled = true;
+                googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+            }
+            
+            // Update auth status
+            this.updateTabAuthStatus(tabId, false, 'Authenticating...');
+            
             // This would call the main process to start OAuth flow
             if (window.electronAPI && window.electronAPI.authenticateGoogle) {
-                window.electronAPI.authenticateGoogle().then(result => {
-                    if (result.success) {
-                        this.showSuccess(`Successfully authenticated in ${tabId}`);
-                        this.updateTabAuthStatus(tabId, true, result.userEmail);
-                    } else {
-                        this.showError(`Authentication failed: ${result.error}`);
-                    }
-                }).catch(error => {
-                    this.showError(`Authentication error: ${error.message}`);
-                });
+                window.electronAPI.authenticateGoogle()
+                    .then(result => {
+                        if (result.success) {
+                            this.showSuccess(`Successfully authenticated in ${tabId}`);
+                            this.updateTabAuthStatus(tabId, true, result.userEmail || 'Authenticated');
+                            
+                            // Enable campaign creation
+                            this.enableCampaignFeatures(tabId);
+                            
+                            // Initialize services for this tab
+                            this.initializeTabServices(tabId);
+                        } else {
+                            this.showError(`Authentication failed: ${result.error || 'Unknown error'}`);
+                            this.updateTabAuthStatus(tabId, false, 'Authentication failed');
+                            this.resetLoginButton(tabId);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Authentication error:', error);
+                        this.showError(`Authentication error: ${error.message || 'Unknown error'}`);
+                        this.updateTabAuthStatus(tabId, false, 'Authentication error');
+                        this.resetLoginButton(tabId);
+                    });
             } else {
                 this.showError('Electron API not available');
+                this.updateTabAuthStatus(tabId, false, 'API not available');
+                this.resetLoginButton(tabId);
             }
         } catch (error) {
             console.error('Error handling Google login:', error);
+            this.showError(`Login error: ${error.message}`);
+            this.updateTabAuthStatus(tabId, false, 'Login error');
+            this.resetLoginButton(tabId);
+        }
+    }
+    
+    resetLoginButton(tabId) {
+        const googleLoginBtn = document.getElementById(`googleLoginBtn_${tabId}`);
+        if (googleLoginBtn) {
+            googleLoginBtn.disabled = false;
+            googleLoginBtn.innerHTML = '<i class="fab fa-google"></i> Sign in with Google';
+        }
+    }
+    
+    updateTabAuthStatus(tabId, isAuthenticated, statusText) {
+        try {
+            const authStatus = document.getElementById(`authStatus_${tabId}`);
+            const accountStatus = document.getElementById(`accountStatus_${tabId}`);
+            
+            if (authStatus) {
+                authStatus.className = `status-indicator ${isAuthenticated ? 'connected' : 'disconnected'}`;
+            }
+            
+            if (accountStatus) {
+                accountStatus.textContent = statusText;
+                accountStatus.style.color = isAuthenticated ? '#34c759' : '#ff3b30';
+            }
+        } catch (error) {
+            console.error(`Error updating auth status for tab ${tabId}:`, error);
+        }
+    }
+    
+    enableCampaignFeatures(tabId) {
+        try {
+            // Enable campaign form elements
+            const campaignElements = [
+                'campaignName', 'subjectLine', 'signature', 'attachments',
+                'templateSelect', 'emailDelay', 'maxEmailsPerHour'
+            ];
+            
+            campaignElements.forEach(elementId => {
+                const element = document.getElementById(`${elementId}_${tabId}`);
+                if (element) {
+                    element.disabled = false;
+                }
+            });
+            
+            // Enable campaign buttons
+            const campaignButtons = ['sendCampaignBtn', 'testEmailBtn', 'scheduleCampaignBtn'];
+            campaignButtons.forEach(buttonId => {
+                const button = document.getElementById(`${buttonId}_${tabId}`);
+                if (button) {
+                    button.disabled = false;
+                }
+            });
+            
+            console.log(`✅ Campaign features enabled for tab ${tabId}`);
+        } catch (error) {
+            console.error(`Error enabling campaign features for tab ${tabId}:`, error);
+        }
+    }
+    
+    initializeTabServices(tabId) {
+        try {
+            // Initialize Gmail service for this tab
+            if (window.electronAPI && window.electronAPI.initializeGmailService) {
+                window.electronAPI.initializeGmailService()
+                    .then(() => {
+                        console.log(`✅ Gmail service initialized for tab ${tabId}`);
+                        this.loadSendAsListForTab(tabId);
+                    })
+                    .catch(error => {
+                        console.error(`Error initializing Gmail service for tab ${tabId}:`, error);
+                    });
+            }
+            
+            // Initialize Sheets service for this tab
+            if (window.electronAPI && window.electronAPI.initializeSheetsService) {
+                window.electronAPI.initializeSheetsService()
+                    .then(() => {
+                        console.log(`✅ Sheets service initialized for tab ${tabId}`);
+                    })
+                    .catch(error => {
+                        console.error(`Error initializing Sheets service for tab ${tabId}:`, error);
+                    });
+            }
+        } catch (error) {
+            console.error(`Error initializing services for tab ${tabId}:`, error);
+        }
+    }
+    
+    loadSendAsListForTab(tabId) {
+        try {
+            if (window.electronAPI && window.electronAPI.listSendAs) {
+                window.electronAPI.listSendAs()
+                    .then(result => {
+                        if (result.success && result.sendAsList) {
+                            this.populateFromAddressDropdownForTab(tabId, result.sendAsList);
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Error loading send-as list for tab ${tabId}:`, error);
+                    });
+            }
+        } catch (error) {
+            console.error(`Error loading send-as list for tab ${tabId}:`, error);
+        }
+    }
+    
+    populateFromAddressDropdownForTab(tabId, sendAsList) {
+        try {
+            const fromAddressSelect = document.getElementById(`fromAddress_${tabId}`);
+            if (!fromAddressSelect) return;
+            
+            // Clear existing options
+            fromAddressSelect.innerHTML = '<option value="">Select from address...</option>';
+            
+            // Add send-as addresses
+            if (sendAsList && sendAsList.length > 0) {
+                sendAsList.forEach(sendAs => {
+                    const option = document.createElement('option');
+                    option.value = sendAs.sendAsEmailAddress;
+                    option.textContent = `${sendAs.sendAsEmailAddress} (${sendAs.displayName || 'No name'})`;
+                    fromAddressSelect.appendChild(option);
+                });
+            }
+            
+            console.log(`✅ From address dropdown populated for tab ${tabId}`);
+        } catch (error) {
+            console.error(`Error populating from address dropdown for tab ${tabId}:`, error);
         }
     }
     
@@ -3970,25 +4166,6 @@ class RTXApp {
             reader.readAsText(file);
         } catch (error) {
             console.error('Error handling credentials upload:', error);
-        }
-    }
-    
-    updateTabAuthStatus(tabId, isAuthenticated, email) {
-        try {
-            const authStatus = document.getElementById(`authStatus_${tabId}`);
-            const accountStatus = document.getElementById(`accountStatus_${tabId}`);
-            
-            if (authStatus && accountStatus) {
-                if (isAuthenticated) {
-                    authStatus.className = 'status-indicator connected';
-                    accountStatus.textContent = email || 'Connected';
-                } else {
-                    authStatus.className = 'status-indicator disconnected';
-                    accountStatus.textContent = 'Not Connected';
-                }
-            }
-        } catch (error) {
-            console.error('Error updating tab auth status:', error);
         }
     }
     
@@ -4181,4 +4358,4 @@ class RTXApp {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing RTX App...');
     if (!window.rtxApp) window.rtxApp = new RTXApp();
-}); 
+});
