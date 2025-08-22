@@ -51,21 +51,118 @@ function getEmbeddedDefaultCredentials() {
 
 function loadDefaultOAuthCredentials() {
     try {
-        const inputPath = process.env.TF_DEFAULT_OAUTH_JSON;
-        if (!inputPath) return getEmbeddedDefaultCredentials();
-        if (!fs.existsSync(inputPath)) return getEmbeddedDefaultCredentials();
-        const stat = fs.statSync(inputPath);
-        if (stat.isDirectory()) {
-            const files = fs.readdirSync(inputPath).filter(f => f.toLowerCase().endsWith('.json'));
-            const pick = files.find(f => /oauth|client_secret|credentials/i.test(f)) || files[0];
-            if (!pick) return getEmbeddedDefaultCredentials();
-            const obj = JSON.parse(fs.readFileSync(path.join(inputPath, pick), 'utf8'));
-            return obj;
-        } else {
-            const obj = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-            return obj;
+        console.log('🔍 Looking for OAuth credentials...');
+        
+        // First, check if there's a credentials file in the user data directory
+        const userDataPath = app.getPath('userData');
+        const credsPath = path.join(userDataPath, 'client_secret.json');
+        
+        if (fs.existsSync(credsPath)) {
+            console.log('✅ Found credentials file in user data directory');
+            try {
+                const obj = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+                console.log('✅ Successfully loaded credentials from user data');
+                return obj;
+            } catch (e) {
+                console.warn('⚠️ Failed to parse credentials from user data:', e.message);
+            }
         }
-    } catch (_) { return getEmbeddedDefaultCredentials(); }
+        
+        // Check environment variable
+        const inputPath = process.env.TF_DEFAULT_OAUTH_JSON;
+        if (inputPath) {
+            console.log(`🔍 Checking environment path: ${inputPath}`);
+            if (fs.existsSync(inputPath)) {
+                const stat = fs.statSync(inputPath);
+                if (stat.isDirectory()) {
+                    const files = fs.readdirSync(inputPath).filter(f => f.toLowerCase().endsWith('.json'));
+                    const pick = files.find(f => /oauth|client_secret|credentials/i.test(f)) || files[0];
+                    if (pick) {
+                        console.log(`✅ Found credentials file: ${pick}`);
+                        const obj = JSON.parse(fs.readFileSync(path.join(inputPath, pick), 'utf8'));
+                        return obj;
+                    }
+                } else {
+                    console.log(`✅ Found credentials file: ${inputPath}`);
+                    const obj = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+                    return obj;
+                }
+            }
+        }
+        
+        // Check current working directory for credentials files
+        const cwd = process.cwd();
+        const cwdFiles = fs.readdirSync(cwd).filter(f => f.toLowerCase().endsWith('.json') && /oauth|client_secret|credentials/i.test(f));
+        if (cwdFiles.length > 0) {
+            console.log(`✅ Found credentials file in CWD: ${cwdFiles[0]}`);
+            try {
+                const obj = JSON.parse(fs.readFileSync(path.join(cwd, cwdFiles[0]), 'utf8'));
+                return obj;
+            } catch (e) {
+                console.warn('⚠️ Failed to parse credentials from CWD:', e.message);
+            }
+        }
+        
+        console.log('🔄 Falling back to embedded credentials');
+        return getEmbeddedDefaultCredentials();
+    } catch (error) {
+        console.error('❌ Error loading OAuth credentials:', error);
+        console.log('🔄 Falling back to embedded credentials');
+        return getEmbeddedDefaultCredentials();
+    }
+}
+
+// Function to copy credentials file to user data directory for persistent access
+function copyCredentialsToUserData() {
+    try {
+        const userDataPath = app.getPath('userData');
+        const credsPath = path.join(userDataPath, 'client_secret.json');
+        
+        // Check if credentials already exist in user data
+        if (fs.existsSync(credsPath)) {
+            console.log('✅ Credentials already exist in user data directory');
+            return true;
+        }
+        
+        // Look for credentials in current working directory
+        const cwd = process.cwd();
+        const cwdFiles = fs.readdirSync(cwd).filter(f => f.toLowerCase().endsWith('.json') && /oauth|client_secret|credentials/i.test(f));
+        
+        if (cwdFiles.length > 0) {
+            const sourceFile = path.join(cwd, cwdFiles[0]);
+            console.log(`📋 Copying credentials from: ${sourceFile}`);
+            
+            try {
+                // Read and validate the credentials file
+                const credsContent = fs.readFileSync(sourceFile, 'utf8');
+                const creds = JSON.parse(credsContent);
+                
+                // Validate that it has the required fields
+                if (creds.installed && creds.installed.client_id && creds.installed.client_secret) {
+                    // Copy to user data directory
+                    fs.writeFileSync(credsPath, credsContent);
+                    console.log('✅ Credentials copied to user data directory');
+                    return true;
+                } else if (creds.client_id && creds.client_secret) {
+                    // Alternative format
+                    fs.writeFileSync(credsPath, credsContent);
+                    console.log('✅ Credentials copied to user data directory');
+                    return true;
+                } else {
+                    console.warn('⚠️ Credentials file missing required fields');
+                    return false;
+                }
+            } catch (e) {
+                console.error('❌ Failed to copy credentials:', e.message);
+                return false;
+            }
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('❌ Error copying credentials:', error);
+        return false;
+    }
 }
 
 // Function to update and store client credentials
@@ -437,28 +534,44 @@ function getSheetsServiceForTab(tabId) {
 // Google API Integration
 async function authenticateGoogle(credentialsData, tabId = 'main') {
 	try {
+		console.log(`🔐 Starting authentication for tab: ${tabId}`);
+		console.log(`📋 Credentials data:`, credentialsData ? 'provided' : 'using defaults');
+		
 		let norm;
 		if (credentialsData && Object.keys(credentialsData || {}).length) {
+			console.log(`✅ Using provided credentials for tab ${tabId}`);
 			norm = normalizeCredentials(credentialsData);
 		} else {
+			console.log(`🔄 Loading default credentials for tab ${tabId}`);
 			const def = (typeof loadDefaultOAuthCredentials === 'function') ? loadDefaultOAuthCredentials() : null;
-			if (!def) throw new Error('Default OAuth credentials not configured');
+			if (!def) {
+				console.error(`❌ No default OAuth credentials available for tab ${tabId}`);
+				throw new Error('Default OAuth credentials not configured');
+			}
 			norm = normalizeCredentials(def);
 		}
 		
 		// Validate credentials before proceeding
 		if (!norm.client_id || !norm.client_secret) {
+			console.error(`❌ Invalid credentials for tab ${tabId}:`, { 
+				hasClientId: !!norm.client_id, 
+				hasClientSecret: !!norm.client_secret 
+			});
 			throw new Error('Invalid credentials: missing client_id or client_secret');
 		}
+		
+		console.log(`✅ Credentials validated for tab ${tabId}, client_id: ${norm.client_id.substring(0, 10)}...`);
 		
 		// Store credentials per tab
 		const tabCredsKey = `googleCreds_${tabId}`;
 		store.set(tabCredsKey, norm);
+		console.log(`💾 Credentials stored for tab ${tabId}`);
 
 		// Check for existing valid token for this tab
 		const tabTokenKey = `googleToken_${tabId}`;
 		const existing = store.get(tabTokenKey);
 		if (existing && existing.access_token) {
+			console.log(`🔄 Found existing token for tab ${tabId}, validating...`);
 			// Validate existing token
 			try {
 				const tabOAuthClient = buildOAuthClient(norm);
@@ -467,6 +580,7 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 				// Quick token validation
 				const isValid = await validateToken(tabOAuthClient);
 				if (isValid) {
+					console.log(`✅ Existing token is valid for tab ${tabId}`);
 					// Token is still valid, use it immediately
 					try {
 						if (mainWindow && mainWindow.webContents) {
@@ -499,11 +613,13 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 					return { success: true, userEmail: 'authenticated', message: 'Using existing token', tabId: tabId };
 				}
 			} catch (error) {
+				console.log(`⚠️ Existing token invalid for tab ${tabId}, proceeding with new auth:`, error.message);
 				logEvent('info', `Existing token invalid for tab ${tabId}, proceeding with new auth`, { error: error.message, tabId: tabId });
 				// Token is invalid, continue with new authentication
 			}
 		}
 
+		console.log(`🔄 Starting new OAuth flow for tab ${tabId}`);
 		// Build OAuth client for new authentication
 		const tabOAuthClient = buildOAuthClient(norm);
 
@@ -532,11 +648,14 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 						const code = reqUrl.searchParams.get('code');
 						if (!code) { res.writeHead(400); res.end('Missing code'); return; }
                         
+						console.log(`✅ Received authorization code for tab ${tabId}`);
 						// Clear timeout since we got the code
 						clearTimeout(authTimeout);
                         
                         const { tokens } = await tabOAuthClient.getToken(code);
                         tabOAuthClient.setCredentials(tokens);
+                        
+                        console.log(`✅ Tokens received for tab ${tabId}`);
                         
                         // Store tokens for this specific tab
                         store.set(tabTokenKey, tokens);
@@ -552,6 +671,7 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 						settled = true;
 						server.close(() => resolve(tokens));
 					} catch (err) {
+						console.error(`❌ Error processing authorization code for tab ${tabId}:`, err);
 						if (!settled) { 
 							settled = true; 
 							clearTimeout(authTimeout);
@@ -572,6 +692,8 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 							response_type: 'code'
 						});
 						
+						console.log(`🌐 Opening browser for OAuth flow, tab ${tabId}`);
+						
 						// Send progress update
 						try {
 							if (mainWindow && mainWindow.webContents) {
@@ -581,6 +703,7 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 						
 						await shell.openExternal(authUrl);
 					} catch (openErr) {
+						console.error(`❌ Failed to open browser for tab ${tabId}:`, openErr);
 						try { server.close(); } catch (_) {}
 						reject(openErr);
 					}
@@ -1599,14 +1722,18 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(() => {
-	try { if (process.platform === 'win32') app.setAppUserModelId('com.rtxinnovations.taskforce'); } catch (_) {}
-	try { if (process.platform === 'darwin') app.setAppUserModelId(getAppIdentifier()); } catch (_) {}
-	try { createWindow(); } catch (e) { logEvent('error', 'createWindow-failed', { error: e.message }); }
-	// startTelemetry(); // Telemetry disabled
-	initAutoUpdater();
-	if (process.platform === 'darwin') {
-    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
-  }
+	console.log('🚀 RTX Innovations AutoMailer Pro starting...');
+	
+	// Copy credentials to user data directory if available
+	copyCredentialsToUserData();
+	
+	createWindow();
+	
+	app.on('activate', () => {
+		if (BrowserWindow.getAllWindows().length === 0) {
+			createWindow();
+		}
+	});
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

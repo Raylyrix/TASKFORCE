@@ -4208,23 +4208,25 @@ class RTXApp {
     
     handleGoogleLogin(tabId) {
         try {
-            this.showInfo('Initiating Google OAuth authentication...');
+            console.log(`🔐 Starting Google authentication for tab: ${tabId}`);
             
-            // Disable the login button to prevent multiple clicks
+            // Disable the login button and show spinner
             const googleLoginBtn = document.getElementById(`googleLoginBtn_${tabId}`);
             if (googleLoginBtn) {
                 googleLoginBtn.disabled = true;
                 googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
             }
             
-            // Update auth status
+            // Update tab auth status
             this.updateTabAuthStatus(tabId, false, 'Authenticating...');
             
             // This would call the main process to start OAuth flow
             if (window.electronAPI && window.electronAPI.authenticateGoogle) {
+                // Pass null credentials and tabId - the main process will use default credentials for this tab
                 window.electronAPI.authenticateGoogle(null, tabId)
                     .then(result => {
-                        if (result.success) {
+                        console.log(`✅ Authentication result for tab ${tabId}:`, result);
+                        if (result && result.success) {
                             this.showSuccess(`Successfully authenticated in ${tabId}`);
                             this.updateTabAuthStatus(tabId, true, result.userEmail || 'Authenticated');
                             
@@ -4234,13 +4236,14 @@ class RTXApp {
                             // Initialize services for this tab
                             this.initializeTabServices(tabId);
                         } else {
-                            this.showError(`Authentication failed: ${result.error || 'Unknown error'}`);
+                            const errorMsg = result?.error || 'Authentication failed';
+                            this.showError(`Authentication failed: ${errorMsg}`);
                             this.updateTabAuthStatus(tabId, false, 'Authentication failed');
                             this.resetLoginButton(tabId);
                         }
                     })
                     .catch(error => {
-                        console.error('Authentication error:', error);
+                        console.error(`❌ Authentication error for tab ${tabId}:`, error);
                         this.showError(`Authentication error: ${error.message || 'Unknown error'}`);
                         this.updateTabAuthStatus(tabId, false, 'Authentication error');
                         this.resetLoginButton(tabId);
@@ -4251,9 +4254,9 @@ class RTXApp {
                 this.resetLoginButton(tabId);
             }
         } catch (error) {
-            console.error('Error handling Google login:', error);
-            this.showError(`Login error: ${error.message}`);
-            this.updateTabAuthStatus(tabId, false, 'Login error');
+            console.error(`❌ Error in handleGoogleLogin for tab ${tabId}:`, error);
+            this.showError(`Authentication error: ${error.message || 'Unknown error'}`);
+            this.updateTabAuthStatus(tabId, false, 'Authentication error');
             this.resetLoginButton(tabId);
         }
     }
