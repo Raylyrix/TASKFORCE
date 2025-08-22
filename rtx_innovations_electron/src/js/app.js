@@ -41,6 +41,10 @@ class RTXApp {
         this.loadSendAsList();
         this.updateUI();
         this.initializeGlobalInstance();
+        
+        // Set up the first tab (main content) as part of the tab system
+        this.setupFirstTab();
+        
         console.log('✅ RTX Innovations AutoMailer Pro initialized successfully!');
         
         // Show a success message on the page
@@ -48,6 +52,51 @@ class RTXApp {
 
         // Update and version wiring
         this.wireAutoUpdates();
+    }
+    
+    setupFirstTab() {
+        try {
+            console.log('Setting up first tab (main content)...');
+            
+            // Create the first tab button
+            const tabList = document.getElementById('tabList');
+            if (tabList) {
+                const firstTab = document.createElement('li');
+                firstTab.className = 'tab-item active';
+                firstTab.setAttribute('data-tab', 'mainTab');
+                firstTab.innerHTML = `
+                    <span class="tab-text">Main Campaign</span>
+                    <span class="tab-close" onclick="window.rtxApp.closeTab('mainTab')" style="display: none;">&times;</span>
+                `;
+                
+                // Add click handler to switch to this tab
+                firstTab.addEventListener('click', () => this.switchTab('mainTab'));
+                
+                tabList.appendChild(firstTab);
+                
+                // Set the main content area as the first tab content
+                const mainContent = document.querySelector('.mailer-interface');
+                if (mainContent) {
+                    // Wrap the main content in a tab-content div
+                    const tabContentWrapper = document.createElement('div');
+                    tabContentWrapper.id = 'mainTab';
+                    tabContentWrapper.className = 'tab-content active';
+                    tabContentWrapper.style.display = 'block';
+                    
+                    // Move the main content into the wrapper
+                    mainContent.parentNode.insertBefore(tabContentWrapper, mainContent);
+                    tabContentWrapper.appendChild(mainContent);
+                    
+                    console.log('✅ First tab (main content) set up successfully');
+                } else {
+                    console.error('Main content area not found');
+                }
+            } else {
+                console.error('Tab list not found');
+            }
+        } catch (error) {
+            console.error('Error setting up first tab:', error);
+        }
     }
 
     setupRichEditor() {
@@ -3359,15 +3408,21 @@ class RTXApp {
     addNewTab() {
         try {
             const tabList = document.getElementById('tabList');
-            const tabCount = tabList.children.length + 1;
-            const newTabId = `tab${tabCount}`;
+            // Count only actual campaign tabs (excluding main tab)
+            const campaignTabs = Array.from(tabList.children).filter(tab => 
+                tab.getAttribute('data-tab') !== 'mainTab'
+            );
+            const tabCount = campaignTabs.length + 1;
+            const newTabId = `campaignTab${tabCount}`;
+            
+            console.log(`Creating new campaign tab: ${newTabId}`);
             
             // Create new tab
             const newTab = document.createElement('li');
             newTab.className = 'tab-item';
             newTab.setAttribute('data-tab', newTabId);
             newTab.innerHTML = `
-                Campaign ${tabCount}
+                <span class="tab-text">Campaign ${tabCount}</span>
                 <span class="tab-close" onclick="window.rtxApp.closeTab('${newTabId}')">&times;</span>
             `;
             
@@ -3393,23 +3448,63 @@ class RTXApp {
     
     switchTab(tabId) {
         try {
-            // Remove active class from all tabs and content
-            document.querySelectorAll('.tab-item').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            console.log(`Switching to tab: ${tabId}`);
             
-            // Activate selected tab and content
-            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab-item').forEach(tab => {
+                tab.classList.remove('active');
+                console.log(`Removed active from tab: ${tab.getAttribute('data-tab')}`);
+            });
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                console.log(`Removed active from content: ${content.id}`);
+            });
+            
+            // Activate selected tab
+            const selectedTab = document.querySelector(`[data-tab="${tabId}"]`);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+                console.log(`Added active to tab: ${tabId}`);
+            } else {
+                console.error(`Tab button not found: ${tabId}`);
+            }
+            
+            // Activate selected content
+            const selectedContent = document.getElementById(tabId);
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+                console.log(`Added active to content: ${tabId}`);
+                
+                // Ensure the content is visible
+                selectedContent.style.display = 'block';
+            } else {
+                console.error(`Tab content not found: ${tabId}`);
+            }
+            
+            // Update tab list scroll position if needed
+            const tabList = document.getElementById('tabList');
+            if (tabList && selectedTab) {
+                selectedTab.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
             
             this.logEvent('info', `Switched to tab: ${tabId}`);
+            console.log(`✅ Successfully switched to tab: ${tabId}`);
             
         } catch (error) {
             console.error('Error switching tab:', error);
+            this.showError('Failed to switch tab: ' + error.message);
         }
     }
     
     closeTab(tabId) {
         try {
+            // Prevent closing the main tab
+            if (tabId === 'mainTab') {
+                this.showWarning('Cannot close the main campaign tab.');
+                return;
+            }
+            
             const tabList = document.getElementById('tabList');
             const tabToClose = document.querySelector(`[data-tab="${tabId}"]`);
             const tabContent = document.getElementById(tabId);
@@ -3420,10 +3515,10 @@ class RTXApp {
             }
             
             // Remove tab and content
-            tabToClose.remove();
-            tabContent.remove();
+            if (tabToClose) tabToClose.remove();
+            if (tabContent) tabContent.remove();
             
-            // Switch to first available tab
+            // Switch to first available tab (main tab)
             const firstTab = tabList.querySelector('.tab-item');
             if (firstTab) {
                 const firstTabId = firstTab.getAttribute('data-tab');
@@ -3435,6 +3530,7 @@ class RTXApp {
             
         } catch (error) {
             console.error('Error closing tab:', error);
+            this.showError('Failed to close tab: ' + error.message);
         }
     }
     
@@ -3448,8 +3544,11 @@ class RTXApp {
             newTabContent.innerHTML = `
                 <div class="mailer-interface" style="max-width:unset; width:100%;">
                     <div class="tab-header">
-                        <h2 class="tab-title">Email Campaign Manager - Campaign ${tabNumber}</h2>
+                        <h2 class="tab-title" id="tabTitle_${tabId}">Email Campaign Manager - Campaign ${tabNumber}</h2>
                         <div class="tab-actions">
+                            <button class="btn btn-secondary" onclick="window.rtxApp.renameTab('${tabId}')">
+                                <i class="fas fa-edit"></i>Rename Tab
+                            </button>
                             <button class="btn btn-secondary" onclick="window.rtxApp.importSheet('${tabId}')">
                                 <i class="fas fa-file-import"></i>Import Spreadsheet
                             </button>
@@ -3532,12 +3631,131 @@ class RTXApp {
                         
                         <div class="form-group">
                             <label>Email Content</label>
-                            <div id="emailEditor_${tabId}" class="rich-editor" contenteditable="true" style="min-height: 200px; border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: white; font-family: Arial, sans-serif; line-height: 1.5;">
-                                <p>Dear @name,</p>
-                                <p>Thank you for your interest in our services.</p>
-                                <p>Best regards,<br>Your Team</p>
+                            <div id="emailEditorContainer_${tabId}" style="border:1px solid #e1e5e9; border-top:none; border-radius:0 0 12px 12px; min-height:400px; background:#fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow:hidden;">
+                                <!-- Editor Header Bar -->
+                                <div style="background:#f8f9fa; border-bottom:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; gap:12px; font-size:13px; color:#5f6368;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <i class="fas fa-edit" style="color:#1a73e8;"></i>
+                                        <span style="font-weight:500;">Rich Text Editor</span>
+                                    </div>
+                                    <div style="height:16px; width:1px; background:#dadce0;"></div>
+                                    <span id="editorStatus_${tabId}" style="color:#34a853;">Ready</span>
+                                    <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+                                        <button type="button" id="wordCountBtn_${tabId}" style="background:none; border:none; color:#5f6368; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:4px;" title="Word Count">
+                                            <span id="wordCount_${tabId}">0 words</span>
+                                        </button>
+                                        <button type="button" id="charCountBtn_${tabId}" style="background:none; border:none; color:#5f6368; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:4px;" title="Character Count">
+                                            <span id="charCount_${tabId}">0 chars</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Enhanced Toolbar -->
+                                <div style="background:#fff; border-bottom:1px solid #e1e5e9; padding:12px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <!-- Text Formatting -->
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:4px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <select id="fontFamily_${tabId}" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:120px;">
+                                            <option value="Arial, sans-serif">Arial</option>
+                                            <option value="'Times New Roman', serif">Times New Roman</option>
+                                            <option value="'Courier New', monospace">Courier New</option>
+                                            <option value="Georgia, serif">Georgia</option>
+                                            <option value="Verdana, sans-serif">Verdana</option>
+                                            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                                        </select>
+                                        <select id="fontSize_${tabId}" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:60px;">
+                                            <option value="1">8pt</option>
+                                            <option value="2">10pt</option>
+                                            <option value="3" selected>12pt</option>
+                                            <option value="4">14pt</option>
+                                            <option value="5">16pt</option>
+                                            <option value="6">18pt</option>
+                                            <option value="7">24pt</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="boldBtn_${tabId}" title="Bold (Ctrl+B)" onclick="window.rtxApp.execCommandForTab('bold', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
+                                        <button type="button" id="italicBtn_${tabId}" title="Italic (Ctrl+I)" onclick="window.rtxApp.execCommandForTab('italic', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-style:italic; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">I</button>
+                                        <button type="button" id="underlineBtn_${tabId}" title="Underline (Ctrl+U)" onclick="window.rtxApp.execCommandForTab('underline', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:underline; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">U</button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="strikeBtn_${tabId}" title="Strikethrough" onclick="window.rtxApp.execCommandForTab('strikeThrough', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:line-through; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">S</button>
+                                        <button type="button" id="superscriptBtn_${tabId}" title="Superscript" onclick="window.rtxApp.execCommandForTab('superscript', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X²</button>
+                                        <button type="button" id="subscriptBtn_${tabId}" title="Subscript" onclick="window.rtxApp.execCommandForTab('subscript', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X₂</button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="alignLeftBtn_${tabId}" title="Align Left" onclick="window.rtxApp.execCommandForTab('justifyLeft', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-left"></i></button>
+                                        <button type="button" id="alignCenterBtn_${tabId}" title="Align Center" onclick="window.rtxApp.execCommandForTab('justifyCenter', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-center"></i></button>
+                                        <button type="button" id="alignRightBtn_${tabId}" title="Align Right" onclick="window.rtxApp.execCommandForTab('justifyRight', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-right"></i></button>
+                                        <button type="button" id="justifyBtn_${tabId}" title="Justify" onclick="window.rtxApp.execCommandForTab('justifyFull', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-justify"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="listUlBtn_${tabId}" title="Bullet List" onclick="window.rtxApp.execCommandForTab('insertUnorderedList', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-list-ul"></i></button>
+                                        <button type="button" id="listOlBtn_${tabId}" title="Numbered List" onclick="window.rtxApp.execCommandForTab('insertOrderedList', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-list-ol"></i></button>
+                                        <button type="button" id="blockquoteBtn_${tabId}" title="Blockquote" onclick="window.rtxApp.execCommandForTab('formatBlock', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-quote-right"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="linkBtn_${tabId}" title="Insert Link (Ctrl+K)" onclick="window.rtxApp.insertLinkForTab('${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
+                                        <button type="button" id="imageBtn_${tabId}" title="Insert Image" onclick="window.rtxApp.insertImageForTab('${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
+                                        <button type="button" id="tableBtn_${tabId}" title="Insert Table" onclick="window.rtxApp.insertTableForTab('${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
+                                        <button type="button" id="hrBtn_${tabId}" title="Insert Horizontal Rule" onclick="window.rtxApp.execCommandForTab('insertHorizontalRule', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-minus"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="undoBtn_${tabId}" title="Undo (Ctrl+Z)" onclick="window.rtxApp.execCommandForTab('undo', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-undo"></i></button>
+                                        <button type="button" id="redoBtn_${tabId}" title="Redo (Ctrl+Y)" onclick="window.rtxApp.execCommandForTab('redo', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-redo"></i></button>
+                                        <button type="button" id="clearFormatBtn_${tabId}" title="Clear Formatting" onclick="window.rtxApp.clearFormattingForTab('${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-eraser"></i></button>
+                                    </div>
+                                </div>
+
+                                <!-- Editor Content Area -->
+                                <div id="emailEditor_${tabId}" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Type @ to see available placeholders"></div>
+                                
+                                <!-- Placeholder Dropdown -->
+                                <div id="placeholderDropdown_${tabId}" style="display:none; position:absolute; background:white; border:1px solid #e5e5e7; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); max-height:200px; overflow-y:auto; z-index:1000; min-width:200px;">
+                                    <div style="padding:8px 12px; background:#f8f9fa; border-bottom:1px solid #e5e5e7; font-weight:600; color:#1d1d1f;">
+                                        <i class="fas fa-tags"></i> Available Placeholders
+                                    </div>
+                                    <div id="placeholderList_${tabId}" style="padding:8px 0;">
+                                        <!-- Placeholders will be populated here -->
+                                    </div>
+                                </div>
+
+                                <!-- Attachments Section -->
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label>Attachments</label>
+                                    <div id="campaignAttachments_${tabId}" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa; min-height: 80px;">
+                                        <div style="text-align: center; color: #8E8E93;">
+                                            <i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                                            <p>No attachments selected</p>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                        <button type="button" class="btn btn-secondary" id="addCampaignAttachmentBtn_${tabId}">
+                                            <i class="fas fa-plus"></i> Add Attachment
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" id="removeAllCampaignAttachmentsBtn_${tabId}">
+                                            <i class="fas fa-trash"></i> Remove All
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Editor Footer -->
+                                <div style="background:#f8f9fa; border-top:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#5f6368;">
+                                    <div style="display:flex; align-items:center; gap:16px;">
+                                        <span>Format: Rich Text (HTML)</span>
+                                        <span id="editorMode_${tabId}">Standard Mode</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <button type="button" id="toggleModeBtn_${tabId}" style="background:none; border:1px solid #dadce0; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer; color:#5f6368;" onclick="window.rtxApp.toggleEditorModeForTab('${tabId}')">Toggle Mode</button>
+                                        <button type="button" id="clearFormatBtn_${tabId}" style="background:none; border:1px solid #dadce0; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer; color:#5f6368;" onclick="window.rtxApp.clearFormattingForTab('${tabId}')">Clear Format</button>
+                                    </div>
+                                </div>
                             </div>
-                            <small style="color:#8E8E93;">Type @ to see available placeholders</small>
                         </div>
                         
                         <div class="form-group">
@@ -3546,20 +3764,6 @@ class RTXApp {
                             <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
                                 <input type="checkbox" id="useSignature_${tabId}">
                                 <label for="useSignature_${tabId}" style="margin:0;">Use Gmail signature</label>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Attachments</label>
-                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                <input type="file" id="attachments_${tabId}" multiple style="flex:1;">
-                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.clearAttachments('${tabId}')">
-                                    <i class="fas fa-trash"></i>Clear
-                                </button>
-                            </div>
-                            <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                                <input type="checkbox" id="sendWithoutAttachment_${tabId}">
-                                <label for="sendWithoutAttachment_${tabId}" style="margin:0;">Send without attachments</label>
                             </div>
                         </div>
                         
@@ -3631,18 +3835,6 @@ class RTXApp {
                         </div>
                         <div id="progressDetails_${tabId}"></div>
                     </div>
-                    
-                    <!-- Placeholder Dropdown -->
-                    <div id="placeholderDropdown_${tabId}" class="placeholder-dropdown" style="display:none; position:absolute; background:white; border:1px solid #ddd; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:200px; overflow-y:auto;">
-                        <div class="placeholder-item" data-placeholder="@name">@name - Recipient's name</div>
-                        <div class="placeholder-item" data-placeholder="@email">@email - Recipient's email</div>
-                        <div class="placeholder-item" data-placeholder="@company">@company - Company name</div>
-                        <div class="placeholder-item" data-placeholder="@position">@position - Job position</div>
-                        <div class="placeholder-item" data-placeholder="@phone">@phone - Phone number</div>
-                        <div class="placeholder-item" data-placeholder="@website">@website - Website URL</div>
-                        <div class="placeholder-item" data-placeholder="@date">@date - Current date</div>
-                        <div class="placeholder-item" data-placeholder="@time">@time - Current time</div>
-                    </div>
                 </div>
             `;
             
@@ -3653,6 +3845,14 @@ class RTXApp {
             
             // Setup event listeners for this tab
             this.setupTabEventListeners(tabId);
+            
+            // Populate placeholders for this tab
+            this.populatePlaceholdersForTab(tabId);
+            
+            // Initialize word/character count
+            this.initializeEditorCounts(tabId);
+            
+            console.log(`✅ Tab content created successfully for ${tabId}`);
             
         } catch (error) {
             console.error('Error creating tab content:', error);
@@ -4350,6 +4550,229 @@ class RTXApp {
             
         } catch (error) {
             console.error('Error refreshing email preview:', error);
+        }
+    }
+    
+    // Tab renaming functionality
+    renameTab(tabId) {
+        try {
+            const tabTitle = document.getElementById(`tabTitle_${tabId}`);
+            if (!tabTitle) return;
+            
+            const currentName = tabTitle.textContent;
+            const newName = prompt('Enter new tab name:', currentName);
+            
+            if (newName && newName.trim() && newName !== currentName) {
+                tabTitle.textContent = newName.trim();
+                
+                // Update the tab button text as well
+                const tabButton = document.querySelector(`[data-tab="${tabId}"]`);
+                if (tabButton) {
+                    const tabText = tabButton.querySelector('.tab-text');
+                    if (tabText) {
+                        tabText.textContent = newName.trim();
+                    }
+                }
+                
+                this.showSuccess('Tab renamed successfully');
+                this.logEvent('info', `Tab renamed: ${tabId} to "${newName.trim()}"`);
+            }
+        } catch (error) {
+            console.error('Error renaming tab:', error);
+            this.showError('Failed to rename tab: ' + error.message);
+        }
+    }
+    
+    // Rich text editor commands for tabs
+    execCommandForTab(command, tabId) {
+        try {
+            const editor = document.getElementById(`emailEditor_${tabId}`);
+            if (!editor) return;
+            
+            editor.focus();
+            document.execCommand(command, false, null);
+            
+            // Update editor counts
+            this.updateEditorCountsForTab(tabId);
+        } catch (error) {
+            console.error(`Error executing command ${command} for tab ${tabId}:`, error);
+        }
+    }
+    
+    insertLinkForTab(tabId) {
+        try {
+            const url = prompt('Enter URL:', 'https://');
+            if (url && url.trim()) {
+                this.execCommandForTab('createLink', tabId);
+                // The execCommand will use the URL from prompt
+            }
+        } catch (error) {
+            console.error(`Error inserting link for tab ${tabId}:`, error);
+        }
+    }
+    
+    insertImageForTab(tabId) {
+        try {
+            const url = prompt('Enter image URL:', 'https://');
+            if (url && url.trim()) {
+                this.execCommandForTab('insertImage', tabId);
+                // The execCommand will use the URL from prompt
+            }
+        } catch (error) {
+            console.error(`Error inserting image for tab ${tabId}:`, error);
+        }
+    }
+    
+    insertTableForTab(tabId) {
+        try {
+            const rows = prompt('Enter number of rows:', '3');
+            const cols = prompt('Enter number of columns:', '3');
+            
+            if (rows && cols) {
+                const editor = document.getElementById(`emailEditor_${tabId}`);
+                if (editor) {
+                    editor.focus();
+                    
+                    let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+                    for (let i = 0; i < parseInt(rows); i++) {
+                        tableHTML += '<tr>';
+                        for (let j = 0; j < parseInt(cols); j++) {
+                            tableHTML += '<td style="padding: 8px; border: 1px solid #ddd;">Cell</td>';
+                        }
+                        tableHTML += '</tr>';
+                    }
+                    tableHTML += '</table>';
+                    
+                    this.insertHTMLAtCursor(tableHTML, editor);
+                }
+            }
+        } catch (error) {
+            console.error(`Error inserting table for tab ${tabId}:`, error);
+        }
+    }
+    
+    clearFormattingForTab(tabId) {
+        try {
+            this.execCommandForTab('removeFormat', tabId);
+        } catch (error) {
+            console.error(`Error clearing formatting for tab ${tabId}:`, error);
+        }
+    }
+    
+    toggleEditorModeForTab(tabId) {
+        try {
+            const modeSpan = document.getElementById(`editorMode_${tabId}`);
+            const toggleBtn = document.getElementById(`toggleModeBtn_${tabId}`);
+            
+            if (modeSpan && toggleBtn) {
+                if (modeSpan.textContent === 'Standard Mode') {
+                    modeSpan.textContent = 'Advanced Mode';
+                    toggleBtn.textContent = 'Standard Mode';
+                } else {
+                    modeSpan.textContent = 'Standard Mode';
+                    toggleBtn.textContent = 'Advanced Mode';
+                }
+            }
+        } catch (error) {
+            console.error(`Error toggling editor mode for tab ${tabId}:`, error);
+        }
+    }
+    
+    populatePlaceholdersForTab(tabId) {
+        try {
+            const placeholderList = document.getElementById(`placeholderList_${tabId}`);
+            if (!placeholderList) return;
+            
+            const placeholders = [
+                { tag: '@name', description: 'Recipient\'s name' },
+                { tag: '@email', description: 'Recipient\'s email' },
+                { tag: '@company', description: 'Company name' },
+                { tag: '@position', description: 'Job position' },
+                { tag: '@phone', description: 'Phone number' },
+                { tag: '@website', description: 'Website URL' },
+                { tag: '@date', description: 'Current date' },
+                { tag: '@time', description: 'Current time' },
+                { tag: '@sender_name', description: 'Your name' },
+                { tag: '@sender_email', description: 'Your email' },
+                { tag: '@sender_company', description: 'Your company' }
+            ];
+            
+            placeholderList.innerHTML = placeholders.map(ph => 
+                `<div class="placeholder-item" data-placeholder="${ph.tag}" onclick="window.rtxApp.insertPlaceholderForTab('${ph.tag}', '${tabId}')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
+                    <strong>${ph.tag}</strong> - ${ph.description}
+                </div>`
+            ).join('');
+            
+            console.log(`✅ Placeholders populated for tab ${tabId}`);
+        } catch (error) {
+            console.error(`Error populating placeholders for tab ${tabId}:`, error);
+        }
+    }
+    
+    insertPlaceholderForTab(placeholder, tabId) {
+        try {
+            const editor = document.getElementById(`emailEditor_${tabId}`);
+            if (!editor) return;
+            
+            editor.focus();
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(document.createTextNode(placeholder));
+                range.collapse(false);
+            } else {
+                editor.appendChild(document.createTextNode(placeholder));
+            }
+            
+            // Hide placeholder dropdown
+            const dropdown = document.getElementById(`placeholderDropdown_${tabId}`);
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+            
+            // Update editor counts
+            this.updateEditorCountsForTab(tabId);
+        } catch (error) {
+            console.error(`Error inserting placeholder ${placeholder} for tab ${tabId}:`, error);
+        }
+    }
+    
+    initializeEditorCounts(tabId) {
+        try {
+            const editor = document.getElementById(`emailEditor_${tabId}`);
+            if (!editor) return;
+            
+            // Update counts on input
+            editor.addEventListener('input', () => {
+                this.updateEditorCountsForTab(tabId);
+            });
+            
+            // Initial count update
+            this.updateEditorCountsForTab(tabId);
+            
+            console.log(`✅ Editor counts initialized for tab ${tabId}`);
+        } catch (error) {
+            console.error(`Error initializing editor counts for tab ${tabId}:`, error);
+        }
+    }
+    
+    updateEditorCountsForTab(tabId) {
+        try {
+            const editor = document.getElementById(`emailEditor_${tabId}`);
+            const wordCount = document.getElementById(`wordCount_${tabId}`);
+            const charCount = document.getElementById(`charCount_${tabId}`);
+            
+            if (!editor || !wordCount || !charCount) return;
+            
+            const text = editor.textContent || editor.innerText || '';
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            
+            wordCount.textContent = `${words} words`;
+            charCount.textContent = `${chars} chars`;
+        } catch (error) {
+            console.error(`Error updating editor counts for tab ${tabId}:`, error);
         }
     }
 }
