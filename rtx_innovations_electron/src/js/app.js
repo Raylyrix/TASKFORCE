@@ -9,20 +9,193 @@ console.log('🚀 app.js is loading...');
 // RTX Innovations - AutoMailer Pro
 class RTXApp {
     constructor() {
-        console.log('🚀 RTXApp constructor called');
         this.isAuthenticated = false;
-        this.currentAccount = null;
-        this.sheetData = null;
-        this.rowStatus = new Map();
-        this.sendAsList = [];
         this.selectedFrom = null;
         this.gmailSignature = '';
-        this.useSignature = false;
+        this.sheetData = null;
         this.attachmentsPaths = [];
-        this.selectedSheetId = null;
-        this.selectedSheetTitle = null;
-        this.templates = [];
+        this.currentTab = 'main';
+        this.tabs = new Map();
+        this.tabCounter = 0;
+        
+        // Initialize input dialog system
+        this.initInputDialog();
+        
         this.init();
+    }
+
+    // Input dialog system to replace prompt() calls
+    initInputDialog() {
+        // Create input dialog HTML
+        const dialogHTML = `
+            <div id="inputDialog" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="inputDialogTitle">Input Required</h3>
+                        <span class="close" onclick="window.rtxApp.closeInputDialog()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <label id="inputDialogLabel" for="inputDialogInput">Enter value:</label>
+                        <input type="text" id="inputDialogInput" placeholder="Enter value here...">
+                        <div class="modal-actions">
+                            <button onclick="window.rtxApp.confirmInputDialog()" class="btn btn-primary">OK</button>
+                            <button onclick="window.rtxApp.closeInputDialog()" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add to body if not already present
+        if (!document.getElementById('inputDialog')) {
+            document.body.insertAdjacentHTML('beforeend', dialogHTML);
+        }
+        
+        // Add styles
+        if (!document.getElementById('inputDialogStyles')) {
+            const styles = `
+                <style id="inputDialogStyles">
+                    .modal {
+                        display: none;
+                        position: fixed;
+                        z-index: 10000;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: rgba(0,0,0,0.4);
+                    }
+                    .modal-content {
+                        background-color: #fefefe;
+                        margin: 15% auto;
+                        padding: 0;
+                        border: 1px solid #888;
+                        width: 400px;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    }
+                    .modal-header {
+                        padding: 15px 20px;
+                        border-bottom: 1px solid #ddd;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .modal-header h3 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .close {
+                        color: #aaa;
+                        font-size: 28px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    }
+                    .close:hover {
+                        color: #000;
+                    }
+                    .modal-body {
+                        padding: 20px;
+                    }
+                    .modal-body label {
+                        display: block;
+                        margin-bottom: 10px;
+                        font-weight: 500;
+                        color: #555;
+                    }
+                    .modal-body input {
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid #ddd;
+                        border-radius: 4px;
+                        font-size: 14px;
+                        margin-bottom: 20px;
+                    }
+                    .modal-actions {
+                        display: flex;
+                        gap: 10px;
+                        justify-content: flex-end;
+                    }
+                    .btn {
+                        padding: 8px 16px;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    }
+                    .btn-primary {
+                        background-color: #007bff;
+                        color: white;
+                    }
+                    .btn-primary:hover {
+                        background-color: #0056b3;
+                    }
+                    .btn-secondary {
+                        background-color: #6c757d;
+                        color: white;
+                    }
+                    .btn-secondary:hover {
+                        background-color: #545b62;
+                    }
+                </style>
+            `;
+            document.head.insertAdjacentHTML('beforeend', styles);
+        }
+    }
+
+    // Show input dialog and return a promise
+    async showInputDialog(title, label, defaultValue = '') {
+        return new Promise((resolve) => {
+            const dialog = document.getElementById('inputDialog');
+            const titleEl = document.getElementById('inputDialogTitle');
+            const labelEl = document.getElementById('inputDialogLabel');
+            const input = document.getElementById('inputDialogInput');
+            
+            titleEl.textContent = title;
+            labelEl.textContent = label;
+            input.value = defaultValue;
+            
+            // Store resolve function
+            this.inputDialogResolve = resolve;
+            
+            // Show dialog
+            dialog.style.display = 'block';
+            input.focus();
+            input.select();
+            
+            // Handle Enter key
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    this.confirmInputDialog();
+                } else if (e.key === 'Escape') {
+                    this.closeInputDialog();
+                }
+            };
+        });
+    }
+
+    // Confirm input dialog
+    confirmInputDialog() {
+        const input = document.getElementById('inputDialogInput');
+        const value = input.value.trim();
+        
+        if (this.inputDialogResolve) {
+            this.inputDialogResolve(value);
+            this.inputDialogResolve = null;
+        }
+        
+        this.closeInputDialog();
+    }
+
+    // Close input dialog
+    closeInputDialog() {
+        const dialog = document.getElementById('inputDialog');
+        dialog.style.display = 'none';
+        
+        if (this.inputDialogResolve) {
+            this.inputDialogResolve('');
+            this.inputDialogResolve = null;
+        }
     }
 
     init() {
@@ -1294,7 +1467,7 @@ class RTXApp {
             this.showError('Please authenticate with Google first');
             return;
         }
-        const testEmail = prompt('Enter test email address:');
+        const testEmail = await this.showInputDialog('Test Email', 'Enter test email address:');
         if (!testEmail) { this.showError('Test email address required'); return; }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(testEmail)) { this.showError('Invalid email address'); return; }
@@ -2529,9 +2702,9 @@ class RTXApp {
         } catch (e) { this.showError('Failed to insert preset'); }
     }
 
-    saveCurrentTemplate() {
+    async saveCurrentTemplate() {
         const data = this.getCampaignData(); if (!data) return;
-        const name = prompt('Template name:'); if (!name) return;
+        const name = await this.showInputDialog('Save Template', 'Template name:'); if (!name) return;
         const tpl = { name, subject: data.subject, content: data.content, attachmentsPaths: this.attachmentsPaths };
         // Save in app templates directory by default
         window.electronAPI.saveTemplateJson?.(name, tpl).then(async res => {
@@ -3263,9 +3436,9 @@ class RTXApp {
     }
     
     // Enhanced template management
-    saveTemplate() {
+    async saveTemplate() {
         try {
-            const templateName = prompt('Enter template name:');
+            const templateName = await this.showInputDialog('Load Template', 'Enter template name:');
             if (!templateName) return;
             
             const template = {
@@ -3547,7 +3720,7 @@ class RTXApp {
                     <div class="tab-header">
                         <h2 class="tab-title" id="tabTitle_${tabId}">Email Campaign Manager - Campaign ${tabNumber}</h2>
                         <div class="tab-actions">
-                            <button class="btn btn-secondary" onclick="window.rtxApp.renameTab('${tabId}')">
+                            <button class="btn btn-secondary" onclick="window.rtxApp.renameTab('${tabId}').catch(console.error)">
                                 <i class="fas fa-edit"></i>Rename Tab
                             </button>
                             <button class="btn btn-secondary" onclick="window.rtxApp.importSheet('${tabId}')">
@@ -3700,9 +3873,9 @@ class RTXApp {
                                     </div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
-                                        <button type="button" id="linkBtn_${tabId}" title="Insert Link (Ctrl+K)" onclick="window.rtxApp.insertLinkForTab('${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
-                                        <button type="button" id="imageBtn_${tabId}" title="Insert Image" onclick="window.rtxApp.insertImageForTab('${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
-                                        <button type="button" id="tableBtn_${tabId}" title="Insert Table" onclick="window.rtxApp.insertTableForTab('${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
+                                        <button type="button" id="linkBtn_${tabId}" title="Insert Link (Ctrl+K)" onclick="window.rtxApp.insertLinkForTab('${tabId}').catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
+                                        <button type="button" id="imageBtn_${tabId}" title="Insert Image" onclick="window.rtxApp.insertImageForTab('${tabId}').catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
+                                        <button type="button" id="tableBtn_${tabId}" title="Insert Table" onclick="window.rtxApp.insertTableForTab('${tabId}').catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
                                         <button type="button" id="hrBtn_${tabId}" title="Insert Horizontal Rule" onclick="window.rtxApp.execCommandForTab('insertHorizontalRule', '${tabId}')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-minus"></i></button>
                                     </div>
 
@@ -3774,10 +3947,10 @@ class RTXApp {
                                 <select id="templateSelect_${tabId}" style="flex:1;">
                                     <option value="">Select a template...</option>
                                 </select>
-                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.saveTemplate('${tabId}')">
+                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.saveTemplate('${tabId}').catch(console.error)">
                                     <i class="fas fa-save"></i>Save
                                 </button>
-                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.loadTemplate('${tabId}')">
+                                <button type="button" class="btn btn-secondary" onclick="window.rtxApp.loadTemplate('${tabId}').catch(console.error)">
                                     <i class="fas fa-folder-open"></i>Load
                                 </button>
                                 <button type="button" class="btn btn-secondary" onclick="window.rtxApp.deleteTemplate('${tabId}')">
@@ -3854,10 +4027,10 @@ class RTXApp {
                             <textarea id="customSignature_${tabId}" placeholder="Enter your custom signature" rows="3"></textarea>
                         </div>
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <button class="btn btn-secondary" onclick="window.rtxApp.saveSignatureForTab('${tabId}')">
+                            <button class="btn btn-secondary" onclick="window.rtxApp.saveSignatureForTab('${tabId}').catch(console.error)">
                                 <i class="fas fa-save"></i>Save Signature
                             </button>
-                            <button class="btn btn-secondary" onclick="window.rtxApp.loadSignatureForTab('${tabId}')">
+                            <button class="btn btn-secondary" onclick="window.rtxApp.loadSignatureForTab('${tabId}').catch(console.error)">
                                 <i class="fas fa-folder-open"></i>Load Signature
                             </button>
                             <button class="btn btn-secondary" onclick="window.rtxApp.clearSignatureForTab('${tabId}')">
@@ -4615,13 +4788,13 @@ class RTXApp {
     }
     
     // Tab renaming functionality
-    renameTab(tabId) {
+    async renameTab(tabId) {
         try {
             const tabTitle = document.getElementById(`tabTitle_${tabId}`);
             if (!tabTitle) return;
             
             const currentName = tabTitle.textContent;
-            const newName = prompt('Enter new tab name:', currentName);
+            const newName = await this.showInputDialog('Rename Tab', 'Enter new tab name:', currentName);
             
             if (newName && newName.trim() && newName !== currentName) {
                 tabTitle.textContent = newName.trim();
@@ -4660,34 +4833,34 @@ class RTXApp {
         }
     }
     
-    insertLinkForTab(tabId) {
+    async insertLinkForTab(tabId) {
         try {
-            const url = prompt('Enter URL:', 'https://');
+            const url = await this.showInputDialog('Insert Link', 'Enter URL:', 'https://');
             if (url && url.trim()) {
                 this.execCommandForTab('createLink', tabId);
-                // The execCommand will use the URL from prompt
+                // The execCommand will use the URL from input
             }
         } catch (error) {
             console.error(`Error inserting link for tab ${tabId}:`, error);
         }
     }
     
-    insertImageForTab(tabId) {
+    async insertImageForTab(tabId) {
         try {
-            const url = prompt('Enter image URL:', 'https://');
+            const url = await this.showInputDialog('Insert Image', 'Enter image URL:', 'https://');
             if (url && url.trim()) {
                 this.execCommandForTab('insertImage', tabId);
-                // The execCommand will use the URL from prompt
+                // The execCommand will use the URL from input
             }
         } catch (error) {
             console.error(`Error inserting image for tab ${tabId}:`, error);
         }
     }
     
-    insertTableForTab(tabId) {
+    async insertTableForTab(tabId) {
         try {
-            const rows = prompt('Enter number of rows:', '3');
-            const cols = prompt('Enter number of columns:', '3');
+            const rows = await this.showInputDialog('Insert Table', 'Enter number of rows:', '3');
+            const cols = await this.showInputDialog('Insert Table', 'Enter number of columns:', '3');
             
             if (rows && cols) {
                 const editor = document.getElementById(`emailEditor_${tabId}`);
@@ -4977,7 +5150,7 @@ class RTXApp {
     }
     
     // Signature management methods for tabs
-    saveSignatureForTab(tabId) {
+    async saveSignatureForTab(tabId) {
         try {
             const customSignature = document.getElementById(`customSignature_${tabId}`);
             if (!customSignature || !customSignature.value.trim()) {
@@ -4985,7 +5158,7 @@ class RTXApp {
                 return;
             }
             
-            const signatureName = prompt('Enter a name for this signature:', 'Custom Signature');
+            const signatureName = await this.showInputDialog('Save Signature', 'Enter a name for this signature:', 'Custom Signature');
             if (!signatureName) return;
             
             // Save to localStorage for this tab
@@ -5005,7 +5178,7 @@ class RTXApp {
         }
     }
     
-    loadSignatureForTab(tabId) {
+    async loadSignatureForTab(tabId) {
         try {
             const signatures = JSON.parse(localStorage.getItem(`signatures_${tabId}`) || '[]');
             if (signatures.length === 0) {
@@ -5014,7 +5187,7 @@ class RTXApp {
             }
             
             const signatureNames = signatures.map(s => s.name);
-            const selectedName = prompt('Select signature to load:\n\n' + signatureNames.join('\n'));
+            const selectedName = await this.showInputDialog('Load Signature', 'Select signature to load:\n\n' + signatureNames.join('\n'));
             
             if (selectedName) {
                 const signature = signatures.find(s => s.name === selectedName);

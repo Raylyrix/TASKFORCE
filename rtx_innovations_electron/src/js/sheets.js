@@ -60,7 +60,7 @@ class SheetsManager {
     }
 
     async getSheetUrl() {
-        return prompt('Enter your Google Sheets URL:');
+        return await window.rtxApp.showInputDialog('Google Sheets', 'Enter your Google Sheets URL:');
     }
 
     extractSheetId(url) {

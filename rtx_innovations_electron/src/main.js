@@ -45,7 +45,7 @@ function getEmbeddedDefaultCredentials() {
             token_uri: 'https://oauth2.googleapis.com/token',
             auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
             client_secret: secret,
-            redirect_uris: ['http://localhost']
+            redirect_uris: ['http://localhost:8080', 'http://127.0.0.1:8080']
         }
     };
 }
@@ -709,12 +709,11 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 						reject(openErr);
 					}
 				}).on('error', (e) => {
-					// fallback to alternate host/port
+					// If port is busy, try alternate host
 					try { server.close(); } catch (_) {}
 					if (!settled) {
 						const altHost = h === 'localhost' ? '127.0.0.1' : 'localhost';
-						server = http.createServer(() => {});
-						tryListen(altHost, 0);
+						startServer(altHost, p, pathName);
 					}
 				});
 				tryListen(host, port);
@@ -724,14 +723,15 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 			if (norm.fixed && norm.redirect_uri) {
 				const parsed = new URL(norm.redirect_uri);
 				const host = parsed.hostname || 'localhost';
-				const port = parsed.port ? parseInt(parsed.port, 10) : 80;
+				const port = parsed.port ? parseInt(parsed.port, 10) : 8080;
 				const pathName = parsed.pathname || '/';
 				startServer(host, port, pathName);
 			} else {
-				// Desktop app style: dynamic random port on loopback per Google guidelines
-				const host = norm.host || 'localhost';
+				// Use fixed port for embedded credentials to match redirect_uri
+				const host = 'localhost';
+				const port = 8080;
 				const pathName = '/';
-				startServer(host, 0, pathName);
+				startServer(host, port, pathName);
 			}
 
 			setTimeout(() => {
@@ -1385,21 +1385,24 @@ ipcMain.handle('getSendAsList', async (event) => {
     try {
         logEvent('info', 'Getting send-as list from Gmail');
         
-        if (!googleToken) {
-            throw new Error('Not authenticated with Google');
+        if (isOAuthAvailable()) {
+            await ensureServices();
+            const gmail = google.gmail({ version: 'v1', auth: gmailService });
+            const response = await gmail.users.settings.sendAs.list({ userId: 'me' });
+            
+            const sendAsList = response.data.sendAs || [];
+            const emails = sendAsList.map(sendAs => sendAs.verificationStatus === 'accepted' ? sendAs.sendAsEmail : null).filter(Boolean);
+            
+            logEvent('info', 'Send-as list retrieved', { count: emails.length });
+            return emails;
+        } else {
+            // Fallback to SMTP mode
+            const email = getActiveSmtpEmail();
+            if (email) {
+                return [email];
+            }
+            throw new Error('Not authenticated with Google or SMTP');
         }
-        
-        const oauth2Client = new google.auth.OAuth2();
-        oauth2Client.setCredentials({ access_token: googleToken });
-        
-        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-        const response = await gmail.users.settings.sendAs.list({ userId: 'me' });
-        
-        const sendAsList = response.data.sendAs || [];
-        const emails = sendAsList.map(sendAs => sendAs.verificationStatus === 'accepted' ? sendAs.sendAsEmail : null).filter(Boolean);
-        
-        logEvent('info', 'Send-as list retrieved', { count: emails.length });
-        return emails;
         
     } catch (error) {
         logEvent('error', 'Failed to get send-as list', { error: error.message });

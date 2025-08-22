@@ -131,7 +131,7 @@ class EmailManager {
     }
 
     async getTestEmail() {
-        const testEmail = prompt('Enter test email address:');
+        const testEmail = await window.rtxApp.showInputDialog('Test Email', 'Enter test email address:');
         if (!testEmail) {
             this.showError('Test email address required');
             return null;

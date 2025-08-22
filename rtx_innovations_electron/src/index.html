@@ -830,9 +830,9 @@
                                     </div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
-                                        <button type="button" id="linkBtn" title="Insert Link (Ctrl+K)" onclick="insertLink()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
-                                        <button type="button" id="imageBtn" title="Insert Image" onclick="insertImage()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
-                                        <button type="button" id="tableBtn" title="Insert Table" onclick="insertTable()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
+                                        <button type="button" id="linkBtn" title="Insert Link (Ctrl+K)" onclick="insertLink().catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
+                                        <button type="button" id="imageBtn" title="Insert Image" onclick="insertImage().catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
+                                        <button type="button" id="tableBtn" title="Insert Table" onclick="insertTable().catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
                                         <button type="button" id="hrBtn" title="Insert Horizontal Rule" onclick="execCommand('insertHorizontalRule')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-minus"></i></button>
                                     </div>
 
@@ -1123,7 +1123,7 @@
 								<button type="button" onclick="execCommand('insertUnorderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">•</button>
 								<button type="button" onclick="execCommand('insertOrderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">1.</button>
 								<button type="button" onclick="execCommand('createLink')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🔗</button>
-								<button type="button" onclick="insertImage()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🖼️</button>
+								<button type="button" onclick="insertImage().catch(console.error)" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🖼️</button>
 								<button type="button" onclick="clearFormatting()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🧹</button>
 							</div>
 							<div id="signatureEditor" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff;" placeholder="Enter your signature content..."></div>
@@ -1624,23 +1624,23 @@
 			updateToolbarState();
 		}
 
-		function insertLink() {
-			const url = prompt('Enter URL:', 'https://');
+				async function insertLink() {
+			const url = await window.rtxApp.showInputDialog('Insert Link', 'Enter URL:', 'https://');
 			if (url) {
 				execCommand('createLink', url);
 			}
 		}
 
-		function insertImage() {
-			const url = prompt('Enter image URL:', 'https://');
+		async function insertImage() {
+			const url = await window.rtxApp.showInputDialog('Insert Image', 'Enter image URL:', 'https://');
 			if (url) {
 				execCommand('insertImage', url);
 			}
 		}
 
-		function insertTable() {
-			const rows = prompt('Enter number of rows:', '3');
-			const cols = prompt('Enter number of columns:', '3');
+		async function insertTable() {
+			const rows = await window.rtxApp.showInputDialog('Insert Table', 'Enter number of rows:', '3');
+			const cols = await window.rtxApp.showInputDialog('Insert Table', 'Enter number of columns:', '3');
 			
 			if (rows && cols) {
 				let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
