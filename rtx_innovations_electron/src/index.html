@@ -1319,7 +1319,7 @@
 							<button class="btn btn-primary" onclick="saveSignature()"><i class="fas fa-save"></i>Save Signature</button>
 							<button class="btn btn-secondary" onclick="loadSignature()"><i class="fas fa-download"></i>Load</button>
 							<button class="btn btn-danger" onclick="deleteSignature()"><i class="fas fa-trash"></i>Delete</button>
-							<button class="btn btn-secondary" onclick="applySignature()"><i class="fas fa-check"></i>Use in Emails</button>
+							<button class="btn btn-secondary" onclick="applySignatureToEmail()"><i class="fas fa-check"></i>Use in Emails</button>
 						</div>
 					</div>
 					
@@ -1371,7 +1371,7 @@
 					<button class="btn btn-primary" id="saveSignatureBtn"><i class="fas fa-save"></i>Save</button>
 					<button class="btn btn-secondary" id="loadSignatureBtn"><i class="fas fa-download"></i>Load</button>
 					<button class="btn btn-danger" id="deleteSignatureBtn"><i class="fas fa-trash"></i>Delete</button>
-					<button class="btn btn-secondary" id="applySignatureBtn"><i class="fas fa-check"></i>Use in emails</button>
+					<button class="btn btn-secondary" id="applySignatureBtn" onclick="applySignatureToEmail()"><i class="fas fa-check"></i>Use in emails</button>
                     </div>
 				<div style="margin-top:12px; border:1px solid #e5e5e7; border-radius:8px; padding:10px;">
 					<div id="sigPreview" style="min-height:80px;">Signature Preview</div>
@@ -1807,6 +1807,22 @@
 			// Update toolbar state based on selection
 			editor.addEventListener('mouseup', updateToolbarState);
 			editor.addEventListener('keyup', updateToolbarState);
+
+			// Add font family and size change handlers
+			const fontFamilySelect = document.getElementById('fontFamily');
+			const fontSizeSelect = document.getElementById('fontSize');
+			
+			if (fontFamilySelect) {
+				fontFamilySelect.addEventListener('change', function() {
+					execCommand('fontName', this.value);
+				});
+			}
+			
+			if (fontSizeSelect) {
+				fontSizeSelect.addEventListener('change', function() {
+					execCommand('fontSize', this.value);
+				});
+			}
 		}
 
 		function startWordCount() {
@@ -2606,14 +2622,14 @@
 			`).join('');
 		}
 		
-		async function loadSignatureContent(signaturePath) {
+				async function loadSignatureContent(signaturePath) {
 			try {
-				if (!window.electronAPI || !window.electronAPI.signaturesLoad) {
+				if (!window.electronAPI || !window.electronAPI.loadSignature) {
 					alert('Signature loading not available');
 					return;
 				}
 				
-				const result = await window.electronAPI.signaturesLoad(signaturePath);
+				const result = await window.electronAPI.loadSignature(signaturePath);
 				if (result.success && result.signature) {
 					const nameInput = document.getElementById('signatureName');
 					const editor = document.getElementById('signatureEditor');
@@ -2629,6 +2645,41 @@
 				console.error('Error loading signature content:', error);
 				alert('Error loading signature: ' + error.message);
 			}
+		}
+
+		// Function to get current signature content and apply it to email
+		function getCurrentSignatureContent() {
+			const signatureEditor = document.getElementById('signatureEditor');
+			if (signatureEditor && signatureEditor.innerHTML.trim()) {
+				return signatureEditor.innerHTML.trim();
+			}
+			return '';
+		}
+
+		// Function to apply signature to email editor
+		function applySignatureToEmail() {
+			const emailEditor = document.getElementById('emailEditor');
+			const signatureContent = getCurrentSignatureContent();
+			
+			if (!emailEditor || !signatureContent) {
+				alert('No signature content to apply or email editor not found');
+				return;
+			}
+			
+			// Insert signature at the end of the email
+			const signatureHtml = '<br><br>' + signatureContent;
+			emailEditor.innerHTML += signatureHtml;
+			
+			// Move cursor to end
+			const range = document.createRange();
+			const sel = window.getSelection();
+			range.selectNodeContents(emailEditor);
+			range.collapse(false);
+			sel.removeAllRanges();
+			sel.addRange(range);
+			emailEditor.focus();
+			
+			alert('Signature applied to email!');
 		}
 		
 		async function deleteSignature(signaturePath) {

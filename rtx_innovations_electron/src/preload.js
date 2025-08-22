@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     smtpExtractSignature: (email) => wrapInvoke('smtp-extract-signature', email),
 
     // Gmail features
-    listSendAs: () => wrapInvoke('gmail-list-send-as'),
+    listSendAs: (tabId = 'main') => wrapInvoke('gmail-list-send-as', tabId),
     getGmailSignature: () => wrapInvoke('gmail-get-signature'),
     getSendAsList: (tabId = 'main') => wrapInvoke('getSendAsList', tabId),
 
@@ -88,6 +88,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     loadSignature: (path) => wrapInvoke('signatures-load', path),
     deleteSignature: (path) => wrapInvoke('signatures-delete', path),
     getDefaultSignature: () => wrapInvoke('signatures-get-default'),
+    getCurrentSignature: () => wrapInvoke('signatures-get-current'),
 
     // Scheduler
     scheduleOneTime: (params) => wrapInvoke('schedule-campaign-one-time', params),

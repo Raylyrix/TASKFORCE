@@ -1482,10 +1482,16 @@ class RTXApp {
             const htmlContent = this.getEditorHtml({});
             const signatureHtml = this.gmailSignature || '';
             
+            // Get custom signature if available
+            const customSignature = this.getCurrentSignatureContent();
+            
             // Combine content and signature with proper HTML structure
             let finalHtml = htmlContent;
             if (signatureHtml && campaignData.useSig) {
                 finalHtml = `<div>${htmlContent}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
+            } else if (customSignature && customSignature.trim()) {
+                // Use custom signature instead
+                finalHtml = `<div>${htmlContent}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${customSignature}</div>`;
             }
             
             const result = await window.electronAPI.sendTestEmail({
@@ -1494,7 +1500,8 @@ class RTXApp {
                 content: finalContent,
                 html: finalHtml,
                 from,
-                attachmentsPaths: this.attachmentsPaths
+                attachmentsPaths: this.attachmentsPaths,
+                customSignature: customSignature
             });
             if (result.success) this.showSuccess('Test email sent successfully!'); else throw new Error(result.error || 'Failed to send test email');
         } catch (error) {
@@ -1516,6 +1523,15 @@ class RTXApp {
         }
 
         return { name, subject, content, fromName, useSig };
+    }
+
+    // Get current signature content from signature editor
+    getCurrentSignatureContent() {
+        const signatureEditor = document.getElementById('signatureEditor');
+        if (signatureEditor && signatureEditor.innerHTML.trim()) {
+            return signatureEditor.innerHTML.trim();
+        }
+        return '';
     }
 
     async startCampaign() {

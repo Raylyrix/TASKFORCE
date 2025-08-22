@@ -897,21 +897,43 @@ function toBase64Url(str) {
 	return Buffer.from(str).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function listSendAs() {
-	if (isOAuthAvailable()) {
-		await ensureServices();
-		const res = await gmailService.users.settings.sendAs.list({ userId: 'me' });
-		return (res.data.sendAs || []).map(s => ({
-			email: s.sendAsEmail,
-			name: s.displayName || '',
-			isPrimary: !!s.isPrimary,
-			verificationStatus: s.verificationStatus,
-			signature: s.signature || ''
-		}));
+async function listSendAs(tabId = 'main') {
+	try {
+		// Try to get tab-specific services first
+		let gmail = getGmailServiceForTab(tabId);
+		
+		if (gmail) {
+			// Use tab-specific service
+			const res = await gmail.users.settings.sendAs.list({ userId: 'me' });
+			return (res.data.sendAs || []).map(s => ({
+				email: s.sendAsEmail,
+				name: s.displayName || '',
+				isPrimary: !!s.isPrimary,
+				verificationStatus: s.verificationStatus,
+				signature: s.signature || ''
+			}));
+		} else if (isOAuthAvailable()) {
+			// Fallback to global services
+			await ensureServices();
+			const res = await gmailService.users.settings.sendAs.list({ userId: 'me' });
+			return (res.data.sendAs || []).map(s => ({
+				email: s.sendAsEmail,
+				name: s.displayName || '',
+				isPrimary: !!s.isPrimary,
+				verificationStatus: s.verificationStatus,
+				signature: s.signature || ''
+			}));
+		}
+		
+		// Fallback to SMTP mode
+		const email = getActiveSmtpEmail();
+		if (email) return [{ email, name: '', isPrimary: true, verificationStatus: 'accepted', signature: (store.get(`smtp.signature.${email}`) || '') }];
+		return [];
+	} catch (error) {
+		logEvent('error', 'Failed to list send-as addresses', { error: error.message, tabId });
+		console.error('Failed to list send-as addresses:', error);
+		return [];
 	}
-	const email = getActiveSmtpEmail();
-	if (email) return [{ email, name: '', isPrimary: true, verificationStatus: 'accepted', signature: (store.get(`smtp.signature.${email}`) || '') }];
-	return [];
 }
 
 async function getPrimarySignature() {
@@ -1262,15 +1284,25 @@ function buildRawEmail({ from, to, subject, text, html, attachments }) {
 
 async function sendTestEmail(emailData) {
 	try {
+		// Handle custom signature if provided
+		let finalContent = emailData.content || '';
+		let finalHtml = emailData.html || '';
+		
+		if (emailData.customSignature && emailData.customSignature.trim()) {
+			const signature = emailData.customSignature.trim();
+			finalContent = finalContent + '\n\n' + signature.replace(/<[^>]+>/g, '');
+			finalHtml = finalHtml + '<br><br>' + signature;
+		}
+		
 		if (isOAuthAvailable()) {
 			await ensureServices();
-			logEvent('info', 'Sending test email (OAuth)', { to: emailData.to, attachments: (emailData.attachmentsPaths || []).length });
+			logEvent('info', 'Sending test email (OAuth)', { to: emailData.to, attachments: (emailData.attachmentsPaths || []).length, hasCustomSignature: !!emailData.customSignature });
 			const rawStr = buildRawEmail({
 				from: emailData.from,
 				to: emailData.to,
 				subject: emailData.subject,
-				text: emailData.content,
-				html: emailData.html,
+				text: finalContent,
+				html: finalHtml,
 				attachments: emailData.attachmentsPaths || []
 			});
 			const res = await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
@@ -1284,9 +1316,9 @@ async function sendTestEmail(emailData) {
 		if (!creds) throw new Error('Not authenticated (SMTP). Please login with Gmail App Password.');
 		const transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: creds.email, pass: creds.appPassword } });
 		const attachments = await Promise.all((emailData.attachmentsPaths || []).map(async (p) => ({ filename: require('path').basename(p), content: await require('fs').promises.readFile(p) })));
-		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, html: emailData.html, attachments });
+		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: finalContent, html: finalHtml, attachments });
 		logEvent('info', 'Test email sent (SMTP)', { to: emailData.to, id: info.messageId });
-		// Test email sent via SMTP
+		// Email sent via SMTP
 		return { success: true, messageId: info.messageId };
 	} catch (error) {
 		console.error('Email sending error:', error);
@@ -1298,15 +1330,25 @@ async function sendTestEmail(emailData) {
 
 async function sendEmail(emailData) {
 	try {
+		// Handle custom signature if provided
+		let finalContent = emailData.content || '';
+		let finalHtml = emailData.html || '';
+		
+		if (emailData.customSignature && emailData.customSignature.trim()) {
+			const signature = emailData.customSignature.trim();
+			finalContent = finalContent + '\n\n' + signature.replace(/<[^>]+>/g, '');
+			finalHtml = finalHtml + '<br><br>' + signature;
+		}
+		
 		if (isOAuthAvailable()) {
 			await ensureServices();
-			logEvent('info', 'Sending email (OAuth)', { to: emailData.to, attachments: (emailData.attachmentsPaths || []).length });
+			logEvent('info', 'Sending email (OAuth)', { to: emailData.to, attachments: (emailData.attachmentsPaths || []).length, hasCustomSignature: !!emailData.customSignature });
 			const rawStr = buildRawEmail({
 				from: emailData.from,
 				to: emailData.to,
 				subject: emailData.subject,
-				text: emailData.content,
-				html: emailData.html,
+				text: finalContent,
+				html: finalHtml,
 				attachments: emailData.attachmentsPaths || []
 			});
 			const res = await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
@@ -1320,7 +1362,7 @@ async function sendEmail(emailData) {
 		if (!creds) throw new Error('Not authenticated (SMTP). Please login with Gmail App Password.');
 		const transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: creds.email, pass: creds.appPassword } });
 		const attachments = await Promise.all((emailData.attachmentsPaths || []).map(async (p) => ({ filename: require('path').basename(p), content: await require('fs').promises.readFile(p) })));
-		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: emailData.content, html: emailData.html, attachments });
+		const info = await transporter.sendMail({ from: emailData.from || creds.email, to: emailData.to, subject: emailData.subject, text: finalContent, html: finalHtml, attachments });
 		logEvent('info', 'Email sent (SMTP)', { to: emailData.to, id: info.messageId });
 		// Email sent via SMTP
 		return { success: true, messageId: info.messageId };
@@ -1469,7 +1511,7 @@ ipcMain.handle('getSendAsList', async (event, tabId = 'main') => {
         return [];
     }
 });
-ipcMain.handle('gmail-list-send-as', async () => listSendAs());
+ipcMain.handle('gmail-list-send-as', async (event, tabId = 'main') => listSendAs(tabId));
 ipcMain.handle('gmail-get-signature', async () => getPrimarySignature());
 ipcMain.handle('sheets-list-tabs', async (e, sheetId) => listSheets(sheetId));
 ipcMain.handle('sheets-update-status', async (e, args) => updateSheetStatus(args.sheetId, args.sheetTitle, args.headers, args.rowIndexZeroBased, args.status));
@@ -1869,6 +1911,18 @@ ipcMain.handle('signatures-delete', async (e, fpath) => {
 		return { success: true };
 	} catch (error) {
 		logEvent('error', 'Failed to delete signature', { error: error.message, path: fpath });
+		return { success: false, error: error.message };
+	}
+});
+
+// Get current signature content from signature editor
+ipcMain.handle('signatures-get-current', async () => {
+	try {
+		// This will be called from the renderer to get the current signature content
+		// The actual content will be passed from the renderer
+		return { success: true, message: 'Current signature content requested' };
+	} catch (error) {
+		logEvent('error', 'Failed to get current signature', { error: error.message });
 		return { success: false, error: error.message };
 	}
 });
