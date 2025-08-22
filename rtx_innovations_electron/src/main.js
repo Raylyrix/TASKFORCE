@@ -1133,17 +1133,61 @@ ipcMain.handle('update-quit-and-install', async () => { try { if (!autoUpdater) 
 // Local spreadsheet loader
 ipcMain.handle('load-local-spreadsheet', async (e, filePath) => {
 	try {
-		await ensureServices().catch(() => {});
-		const XLSX = require('xlsx');
-		const wb = XLSX.readFile(filePath);
-		const sheetName = wb.SheetNames[0];
-		const ws = wb.Sheets[sheetName];
-		const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-		if (!rows || !rows.length) throw new Error('No data in spreadsheet');
-		const headers = rows[0];
-		const body = rows.slice(1);
-		logEvent('info', 'Loaded local spreadsheet', { filePath, rows: body.length, headers: headers.length });
-		return { success: true, data: { headers, rows: body } };
+		const ext = path.extname(filePath).toLowerCase();
+		let data;
+		
+		if (ext === '.csv') {
+			// Handle CSV files
+			const csv = require('csv-parser');
+			const fs = require('fs');
+			
+			return new Promise((resolve, reject) => {
+				const results = [];
+				fs.createReadStream(filePath)
+					.pipe(csv())
+					.on('data', (row) => results.push(row))
+					.on('end', () => {
+						if (results.length === 0) {
+							reject(new Error('No data found in CSV file'));
+							return;
+						}
+						
+						const headers = Object.keys(results[0]);
+						const rows = results.map(row => headers.map(header => row[header]));
+						
+						logEvent('info', 'Loaded local CSV spreadsheet', { filePath, rows: rows.length, headers: headers.length });
+						resolve({ success: true, data: { headers, rows } });
+					})
+					.on('error', (error) => {
+						logEvent('error', 'CSV parsing failed', { error: error.message, filePath });
+						reject(new Error(`CSV parsing failed: ${error.message}`));
+					});
+			});
+		} else if (ext === '.xlsx' || ext === '.xls') {
+			// Handle Excel files
+			const XLSX = require('xlsx');
+			const workbook = XLSX.readFile(filePath);
+			const sheetName = workbook.SheetNames[0];
+			const worksheet = workbook.Sheets[sheetName];
+			
+			if (!worksheet) {
+				throw new Error('No worksheet found in Excel file');
+			}
+			
+			const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+			
+			if (!jsonData || jsonData.length === 0) {
+				throw new Error('No data found in Excel file');
+			}
+			
+			const headers = jsonData[0];
+			const rows = jsonData.slice(1);
+			
+			logEvent('info', 'Loaded local Excel spreadsheet', { filePath, rows: rows.length, headers: headers.length });
+			return { success: true, data: { headers, rows } };
+		} else {
+			throw new Error(`Unsupported file format: ${ext}. Please use CSV or Excel files.`);
+		}
 	} catch (error) {
 		logEvent('error', 'Local spreadsheet load failed', { error: error.message, filePath });
 		return { success: false, error: error.message };
@@ -1481,43 +1525,135 @@ ipcMain.handle('storeSet', async (event, key, value) => { store.set(key, value);
 ipcMain.handle('storeDelete', async (event, key) => { store.delete(key); return true; });
 
 // Template management under user data
-function getTemplatesDir() {
-	const dir = path.join(app.getPath('userData'), 'templates');
-	try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
-	return dir;
-}
-function sanitizeName(name) {
-	return String(name || 'template').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 80);
-}
 ipcMain.handle('templates-list', async () => {
-	const dir = getTemplatesDir();
-	const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.json'));
-	return files.map(f => ({ id: path.join(dir, f), name: path.basename(f, '.json'), path: path.join(dir, f) }));
+	try {
+		const userDataPath = app.getPath('userData');
+		const templatesDir = path.join(userDataPath, 'templates');
+		
+		if (!fs.existsSync(templatesDir)) {
+			fs.mkdirSync(templatesDir, { recursive: true });
+			return { success: true, templates: [] };
+		}
+		
+		const files = fs.readdirSync(templatesDir);
+		const templates = [];
+		
+		for (const file of files) {
+			if (file.endsWith('.json')) {
+				try {
+					const filePath = path.join(templatesDir, file);
+					const content = fs.readFileSync(filePath, 'utf8');
+					const template = JSON.parse(content);
+					
+					// Validate template structure
+					if (template.name && (template.subject || template.content)) {
+						templates.push({
+							name: template.name,
+							path: filePath,
+							subject: template.subject || '',
+							content: template.content || '',
+							attachments: template.attachments || [],
+							created: template.created || fs.statSync(filePath).mtime.toISOString(),
+							updated: template.updated || fs.statSync(filePath).mtime.toISOString()
+						});
+					}
+				} catch (parseError) {
+					logEvent('warning', 'Failed to parse template file', { file, error: parseError.message });
+					// Continue with other files
+				}
+			}
+		}
+		
+		// Sort by creation date (newest first)
+		templates.sort((a, b) => new Date(b.created) - new Date(a.created));
+		
+		logEvent('info', 'Listed templates', { count: templates.length });
+		return { success: true, templates };
+	} catch (error) {
+		logEvent('error', 'Failed to list templates', { error: error.message });
+		return { success: false, error: error.message };
+	}
 });
+
 ipcMain.handle('templates-save', async (e, args) => {
 	try {
-		const dir = getTemplatesDir();
-		const fname = sanitizeName(args.name) + '.json';
-		const fpath = path.join(dir, fname);
-		await fs.promises.writeFile(fpath, JSON.stringify(args.data || {}, null, 2), 'utf8');
-		return { success: true, path: fpath };
+		const { name, data } = args;
+		
+		if (!name || !data) {
+			throw new Error('Template name and data are required');
+		}
+		
+		const userDataPath = app.getPath('userData');
+		const templatesDir = path.join(userDataPath, 'templates');
+		
+		if (!fs.existsSync(templatesDir)) {
+			fs.mkdirSync(templatesDir, { recursive: true });
+		}
+		
+		// Sanitize filename
+		const safeName = name.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim();
+		if (!safeName) {
+			throw new Error('Invalid template name');
+		}
+		
+		const fileName = `${safeName.replace(/\s+/g, '_')}_${Date.now()}.json`;
+		const filePath = path.join(templatesDir, fileName);
+		
+		const templateData = {
+			name: safeName,
+			subject: data.subject || '',
+			content: data.content || '',
+			attachments: data.attachments || [],
+			created: new Date().toISOString(),
+			updated: new Date().toISOString()
+		};
+		
+		fs.writeFileSync(filePath, JSON.stringify(templateData, null, 2), 'utf8');
+		
+		logEvent('info', 'Template saved', { name: safeName, path: filePath });
+		return { success: true, path: filePath, name: safeName };
 	} catch (error) {
-		logEvent('error', 'Template save failed', { error: error.message });
+		logEvent('error', 'Failed to save template', { error: error.message });
 		return { success: false, error: error.message };
 	}
 });
+
 ipcMain.handle('templates-load', async (e, fpath) => {
 	try {
-		const txt = await fs.promises.readFile(fpath, 'utf8');
-		return { success: true, data: JSON.parse(txt) };
+		if (!fpath || !fs.existsSync(fpath)) {
+			throw new Error('Template file not found');
+		}
+		
+		const content = fs.readFileSync(fpath, 'utf8');
+		const template = JSON.parse(content);
+		
+		// Validate template structure
+		if (!template.name || (!template.subject && !template.content)) {
+			throw new Error('Invalid template file format');
+		}
+		
+		logEvent('info', 'Template loaded', { name: template.name, path: fpath });
+		return { success: true, template };
 	} catch (error) {
-		logEvent('error', 'Template load failed', { error: error.message, path: fpath });
+		logEvent('error', 'Failed to load template', { error: error.message, path: fpath });
 		return { success: false, error: error.message };
 	}
 });
+
 ipcMain.handle('templates-delete', async (e, fpath) => {
-	try { await fs.promises.unlink(fpath); return { success: true }; }
-	catch (error) { return { success: false, error: error.message }; }
+	try {
+		if (!fpath || !fs.existsSync(fpath)) {
+			throw new Error('Template file not found');
+		}
+		
+		fs.unlinkSync(fpath);
+		
+		logEvent('info', 'Template deleted', { path: fpath });
+		return { success: true };
+	} catch (error) {
+		logEvent('error', 'Failed to delete template', { error: error.message, path: fpath });
+		return { success: false, error: error.message };
+	}
 });
 
 // SMTP/App Password IPC
@@ -1594,95 +1730,175 @@ async function streamToString(stream) {
 }
 
 // Signature management
-function getSignaturesDir() {
-	const dir = path.join(app.getPath('userData'), 'signatures');
-	try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
-	return dir;
-}
-
-function sanitizeSignatureName(name) {
-	return String(name || 'signature').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 80);
-}
-
 ipcMain.handle('signatures-list', async () => {
 	try {
-		const dir = getSignaturesDir();
-		const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.json'));
-		return files.map(f => ({ 
-			id: path.join(dir, f), 
-			name: path.basename(f, '.json'), 
-			path: path.join(dir, f) 
-		}));
+		const userDataPath = app.getPath('userData');
+		const signaturesDir = path.join(userDataPath, 'signatures');
+		
+		if (!fs.existsSync(signaturesDir)) {
+			fs.mkdirSync(signaturesDir, { recursive: true });
+			return { success: true, signatures: [] };
+		}
+		
+		const files = fs.readdirSync(signaturesDir);
+		const signatures = [];
+		
+		for (const file of files) {
+			if (file.endsWith('.json')) {
+				try {
+					const filePath = path.join(signaturesDir, file);
+					const content = fs.readFileSync(filePath, 'utf8');
+					const signature = JSON.parse(content);
+					
+					// Validate signature structure
+					if (signature.name && (signature.html || signature.text)) {
+						signatures.push({
+							name: signature.name,
+							path: filePath,
+							html: signature.html || '',
+							text: signature.text || '',
+							created: signature.created || fs.statSync(filePath).mtime.toISOString()
+						});
+					}
+				} catch (parseError) {
+					logEvent('warning', 'Failed to parse signature file', { file, error: parseError.message });
+					// Continue with other files
+				}
+			}
+		}
+		
+		// Sort by creation date (newest first)
+		signatures.sort((a, b) => new Date(b.created) - new Date(a.created));
+		
+		logEvent('info', 'Listed signatures', { count: signatures.length });
+		return { success: true, signatures };
 	} catch (error) {
 		logEvent('error', 'Failed to list signatures', { error: error.message });
-		return [];
+		return { success: false, error: error.message };
 	}
 });
 
 ipcMain.handle('signatures-save', async (e, args) => {
 	try {
-		const dir = getSignaturesDir();
-		const fname = sanitizeSignatureName(args.name) + '.json';
-		const fpath = path.join(dir, fname);
+		const { name, html, text } = args;
+		
+		if (!name || (!html && !text)) {
+			throw new Error('Signature name and content (HTML or text) are required');
+		}
+		
+		const userDataPath = app.getPath('userData');
+		const signaturesDir = path.join(userDataPath, 'signatures');
+		
+		if (!fs.existsSync(signaturesDir)) {
+			fs.mkdirSync(signaturesDir, { recursive: true });
+		}
+		
+		// Sanitize filename
+		const safeName = name.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim();
+		if (!safeName) {
+			throw new Error('Invalid signature name');
+		}
+		
+		const fileName = `${safeName.replace(/\s+/g, '_')}_${Date.now()}.json`;
+		const filePath = path.join(signaturesDir, fileName);
+		
 		const signatureData = {
-			name: args.name,
-			html: args.html || '',
-			text: args.text || '',
-			ts: Date.now()
+			name: safeName,
+			html: html || '',
+			text: text || '',
+			created: new Date().toISOString(),
+			updated: new Date().toISOString()
 		};
-		await fs.promises.writeFile(fpath, JSON.stringify(signatureData, null, 2), 'utf8');
-		return { success: true, path: fpath };
+		
+		fs.writeFileSync(filePath, JSON.stringify(signatureData, null, 2), 'utf8');
+		
+		logEvent('info', 'Signature saved', { name: safeName, path: filePath });
+		return { success: true, path: filePath, name: safeName };
 	} catch (error) {
-		logEvent('error', 'Signature save failed', { error: error.message });
+		logEvent('error', 'Failed to save signature', { error: error.message });
 		return { success: false, error: error.message };
 	}
 });
 
 ipcMain.handle('signatures-load', async (e, fpath) => {
 	try {
-		const txt = await fs.promises.readFile(fpath, 'utf8');
-		return { success: true, data: JSON.parse(txt) };
+		if (!fpath || !fs.existsSync(fpath)) {
+			throw new Error('Signature file not found');
+		}
+		
+		const content = fs.readFileSync(fpath, 'utf8');
+		const signature = JSON.parse(content);
+		
+		// Validate signature structure
+		if (!signature.name || (!signature.html && !signature.text)) {
+			throw new Error('Invalid signature file format');
+		}
+		
+		logEvent('info', 'Signature loaded', { name: signature.name, path: fpath });
+		return { success: true, signature };
 	} catch (error) {
-		logEvent('error', 'Signature load failed', { error: error.message, path: fpath });
+		logEvent('error', 'Failed to load signature', { error: error.message, path: fpath });
 		return { success: false, error: error.message };
 	}
 });
 
 ipcMain.handle('signatures-delete', async (e, fpath) => {
 	try {
-		await fs.promises.unlink(fpath);
+		if (!fpath || !fs.existsSync(fpath)) {
+			throw new Error('Signature file not found');
+		}
+		
+		fs.unlinkSync(fpath);
+		
+		logEvent('info', 'Signature deleted', { path: fpath });
 		return { success: true };
 	} catch (error) {
+		logEvent('error', 'Failed to delete signature', { error: error.message, path: fpath });
 		return { success: false, error: error.message };
 	}
 });
 
 ipcMain.handle('signatures-get-default', async () => {
 	try {
-		const dir = getSignaturesDir();
-		const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.json'));
-		if (files.length === 0) return { success: false, error: 'No signatures found' };
+		const userDataPath = app.getPath('userData');
+		const signaturesDir = path.join(userDataPath, 'signatures');
 		
-		// Get the most recently modified signature
-		let latestFile = null;
+		if (!fs.existsSync(signaturesDir)) {
+			return { success: true, signature: null };
+		}
+		
+		const files = fs.readdirSync(signaturesDir);
+		if (files.length === 0) {
+			return { success: true, signature: null };
+		}
+		
+		// Get the most recently created signature
+		let latestSignature = null;
 		let latestTime = 0;
+		
 		for (const file of files) {
-			const filePath = path.join(dir, file);
-			try {
-				const stats = fs.statSync(filePath);
-				if (stats.mtime.getTime() > latestTime) {
-					latestTime = stats.mtime.getTime();
-					latestFile = filePath;
+			if (file.endsWith('.json')) {
+				try {
+					const filePath = path.join(signaturesDir, file);
+					const content = fs.readFileSync(filePath, 'utf8');
+					const signature = JSON.parse(content);
+					
+					if (signature.created) {
+						const time = new Date(signature.created).getTime();
+						if (time > latestTime) {
+							latestTime = time;
+							latestSignature = signature;
+						}
+					}
+				} catch (parseError) {
+					// Continue with other files
 				}
-			} catch (_) {}
+			}
 		}
 		
-		if (latestFile) {
-			const txt = await fs.promises.readFile(latestFile, 'utf8');
-			return { success: true, data: JSON.parse(txt) };
-		}
-		return { success: false, error: 'No signatures found' };
+		return { success: true, signature: latestSignature };
 	} catch (error) {
+		logEvent('error', 'Failed to get default signature', { error: error.message });
 		return { success: false, error: error.message };
 	}
 });

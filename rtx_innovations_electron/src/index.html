@@ -72,26 +72,27 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
+            font-weight: 500;
             color: #1d1d1f;
         }
         
         .form-group input,
-        .form-group textarea,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e5e5e7;
+            border: 1px solid #e5e5e7;
             border-radius: 8px;
             font-size: 14px;
-            transition: border-color 0.3s ease;
+            transition: border-color 0.2s ease;
         }
         
         .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
         }
         
         .btn {
@@ -99,13 +100,13 @@
             border: none;
             border-radius: 8px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            text-decoration: none;
         }
         
         .btn-primary {
@@ -121,10 +122,21 @@
         .btn-secondary {
             background: #f2f2f7;
             color: #1d1d1f;
+            border: 1px solid #e5e5e7;
         }
         
         .btn-secondary:hover {
-            background: #e5e5e7;
+            background: #e5e5ea;
+            border-color: #d1d1d6;
+        }
+        
+        .btn-success {
+            background: #34C759;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #28A745;
         }
         
         .btn-danger {
@@ -133,15 +145,104 @@
         }
         
         .btn-danger:hover {
-            background: #D70015;
+            background: #DC3545;
         }
         
+        /* Toolbar button active states */
+        .toolbar-group button.active {
+            background: #007AFF !important;
+            color: white !important;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+        
+        .toolbar-group button.active:hover {
+            background: #0056CC !important;
+        }
+        
+        /* Tab styles */
+        .tab-container {
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tab-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e5e5e7;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tab-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin: 0;
+        }
+        
+        .tab-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .tab-list {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e5e5e7;
+            overflow-x: auto;
+        }
+        
+        .tab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            user-select: none;
+            position: relative;
+        }
+        
+        .tab-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .tab-item.active {
+            border-bottom-color: #007AFF;
+            background: #ffffff;
+        }
+        
+        .tab-item .tab-close {
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            background: #e5e5e7;
+            color: #8E8E93;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-item .tab-close:hover {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Status indicators */
         .status-indicator {
             width: 12px;
             height: 12px;
             border-radius: 50%;
             display: inline-block;
-            margin-right: 8px;
         }
         
         .status-indicator.connected {
@@ -150,6 +251,77 @@
         
         .status-indicator.disconnected {
             background: #FF3B30;
+        }
+        
+        .status-indicator.connecting {
+            background: #FF9500;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Table styles */
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+        }
+        
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table-container th,
+        .table-container td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e5e7;
+        }
+        
+        .table-container th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .table-container tr:hover {
+            background: #f8f9fa;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: fixed;
+                top: 0;
+                left: -100%;
+                transition: left 0.3s ease;
+                z-index: 1000;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .mailer-interface {
+                padding: 20px;
+                margin: 0;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
         }
         
         .loading-overlay {
@@ -197,31 +369,41 @@
             background: #FF3B30;
         }
         
+        .notification-warning {
+            background: #FF9500;
+            border-left: 4px solid #fd7e14;
+        }
+        
+        .notification-info {
+            background: #007AFF;
+            border-left: 4px solid #0056CC;
+        }
+        
+        .notification:hover {
+            transform: translateX(0);
+        }
+        
+        .notification .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        
+        .notification .close-btn:hover {
+            opacity: 1;
+        }
+        
         .data-preview {
             margin-top: 20px;
             border: 1px solid #e5e5e7;
             border-radius: 8px;
             overflow: hidden;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e5e5e7;
-        }
-        
-        th {
-            background: #f2f2f7;
-            font-weight: 600;
         }
         
         .campaigns-grid {
@@ -711,12 +893,17 @@
 							<input type="text" id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/d/...">
                             </div>
 						<div id="sheetTabsContainer" class="form-group" style="margin-bottom:10px;"></div>
-						<button class="btn btn-primary" id="connectSheetsBtn2">
-							<i class="fas fa-link"></i>Connect Sheets
-						</button>
-						<button class="btn btn-secondary" id="refreshSheetsBtn" disabled>
-							<i class="fas fa-sync"></i>Refresh Data
-						</button>
+						<div style="display:flex; gap:8px; flex-wrap:wrap;">
+							<button class="btn btn-primary" id="connectSheetsBtn2">
+								<i class="fas fa-link"></i>Connect Sheets
+							</button>
+							<button class="btn btn-secondary" id="refreshSheetsBtn" disabled>
+								<i class="fas fa-sync"></i>Refresh Data
+							</button>
+							<button class="btn btn-secondary" id="importLocalSheetBtn">
+								<i class="fas fa-file-import"></i>Import Local File
+							</button>
+						</div>
 						<div id="sheetsData" style="display: none; margin-top: 12px;"></div>
                         </div>
                         
@@ -805,15 +992,15 @@
 							</div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
-                                        <button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="execCommand('bold')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
-                                        <button type="button" id="italicBtn" title="Italic (Ctrl+I)" onclick="execCommand('italic')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-style:italic; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">I</button>
-                                        <button type="button" id="underlineBtn" title="Underline (Ctrl+U)" onclick="execCommand('underline')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:underline; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">U</button>
+                                        <button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="formatText('bold')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
+                                        <button type="button" id="italicBtn" title="Italic (Ctrl+I)" onclick="formatText('italic')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-style:italic; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">I</button>
+                                        <button type="button" id="underlineBtn" title="Underline (Ctrl+U)" onclick="formatText('underline')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:underline; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">U</button>
                                     </div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
-                                        <button type="button" id="strikeBtn" title="Strikethrough" onclick="execCommand('strikeThrough')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:line-through; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">S</button>
+                                        <button type="button" id="strikeBtn" title="Strikethrough" onclick="formatText('strikeThrough')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:line-through; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">S</button>
                                         <button type="button" id="superscriptBtn" title="Superscript" onclick="execCommand('superscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X²</button>
-                                        <button type="button" id="subscriptBtn" title="Subscript" onclick="execCommand('subscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X₂</button>
+                                        <button type="button" id="subscriptBtn" title="Subscript" onclick="execCommand('subscript')" style="padding:8px; border:none; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X₂</button>
                                     </div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
@@ -1373,6 +1560,34 @@
 		</div>
 	</div>
 
+	<!-- Signature Management -->
+	<div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+		<h3 style="margin-bottom: 10px;"><i class="fas fa-signature"></i> Email Signature</h3>
+		<div class="form-group" style="margin-bottom:10px;">
+			<label>Signature Name</label>
+			<input type="text" id="signatureName" placeholder="Enter signature name">
+		</div>
+		<div class="form-group" style="margin-bottom:10px;">
+			<label>Signature Content</label>
+			<div id="signatureEditor" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff; border-radius:6px;" placeholder="Enter your signature content..."></div>
+		</div>
+		<div style="display:flex; gap:8px; flex-wrap:wrap;">
+			<button class="btn btn-primary" id="saveSignatureBtn" onclick="saveSignature().catch(console.error)">
+				<i class="fas fa-save"></i>Save Signature
+			</button>
+			<button class="btn btn-secondary" id="loadSignatureBtn" onclick="loadSignature().catch(console.error)">
+				<i class="fas fa-folder-open"></i>Load Signature
+			</button>
+			<button class="btn btn-secondary" id="clearSignatureBtn" onclick="clearSignature()">
+				<i class="fas fa-eraser"></i>Clear
+			</button>
+		</div>
+		<div id="signaturesList" style="margin-top:12px; display:none;">
+			<h4 style="margin-bottom:8px;">Saved Signatures</h4>
+			<div id="signaturesContainer"></div>
+		</div>
+	</div>
+
 	<script>
 		// Theme toggle behavior
 		document.getElementById('themeToggle')?.addEventListener('click', () => {
@@ -1570,17 +1785,17 @@
 				// Ctrl+B for bold
 				if (e.ctrlKey && e.key === 'b') {
 					e.preventDefault();
-					execCommand('bold');
+					formatText('bold');
 				}
 				// Ctrl+I for italic
 				if (e.ctrlKey && e.key === 'i') {
 					e.preventDefault();
-					execCommand('italic');
+					formatText('italic');
 				}
 				// Ctrl+U for underline
 				if (e.ctrlKey && e.key === 'u') {
 					e.preventDefault();
-					execCommand('underline');
+					formatText('underline');
 				}
 				// Ctrl+K for link
 				if (e.ctrlKey && e.key === 'k') {
@@ -1610,31 +1825,136 @@
 
 		function updateToolbarState() {
 			const editor = document.getElementById('emailEditor');
-			if (!editor || !document.queryCommandState) return;
+			if (!editor) return;
 
 			// Update button states based on current selection
-			document.getElementById('boldBtn').classList.toggle('active', document.queryCommandState('bold'));
-			document.getElementById('italicBtn').classList.toggle('active', document.queryCommandState('italic'));
-			document.getElementById('underlineBtn').classList.toggle('active', document.queryCommandState('underline'));
-			document.getElementById('strikeBtn').classList.toggle('active', document.queryCommandState('strikeThrough'));
+			const selection = window.getSelection();
+			if (selection.rangeCount > 0) {
+				const range = selection.getRangeAt(0);
+				const parentElement = range.commonAncestorContainer.nodeType === Node.TEXT_NODE ? 
+					range.commonAncestorContainer.parentElement : range.commonAncestorContainer;
+				
+				// Check if parent is a formatting element
+				document.getElementById('boldBtn').classList.toggle('active', parentElement.tagName === 'B' || parentElement.tagName === 'STRONG');
+				document.getElementById('italicBtn').classList.toggle('active', parentElement.tagName === 'I' || parentElement.tagName === 'EM');
+				document.getElementById('underlineBtn').classList.toggle('active', parentElement.style.textDecoration === 'underline');
+				document.getElementById('strikeBtn').classList.toggle('active', parentElement.tagName === 'S' || parentElement.tagName === 'STRIKE');
+			}
 		}
 
-		function execCommand(command, value = null) {
-			document.execCommand(command, false, value);
+		// Modern text formatting functions
+		function formatText(command) {
+			const editor = document.getElementById('emailEditor');
+			if (!editor) return;
+
+			const selection = window.getSelection();
+			if (selection.rangeCount === 0) return;
+
+			const range = selection.getRangeAt(0);
+			const selectedText = range.toString();
+			
+			if (selectedText.length === 0) return;
+
+			let element;
+			switch (command) {
+				case 'bold':
+					element = document.createElement('strong');
+					break;
+				case 'italic':
+					element = document.createElement('em');
+					break;
+				case 'underline':
+					element = document.createElement('span');
+					element.style.textDecoration = 'underline';
+					break;
+				case 'strikeThrough':
+					element = document.createElement('s');
+					break;
+				default:
+					return;
+			}
+
+			element.textContent = selectedText;
+			range.deleteContents();
+			range.insertNode(element);
+			
+			// Update toolbar state
 			updateToolbarState();
 		}
 
-				async function insertLink() {
+		// Modern command execution with fallback
+		function execCommand(command, value = null) {
+			// Try modern approach first
+			if (command === 'bold') {
+				formatText('bold');
+				return;
+			}
+			if (command === 'italic') {
+				formatText('italic');
+				return;
+			}
+			if (command === 'underline') {
+				formatText('underline');
+				return;
+			}
+			if (command === 'strikeThrough') {
+				formatText('strikeThrough');
+				return;
+			}
+			
+			// Fallback to execCommand for other commands
+			if (document.execCommand) {
+				document.execCommand(command, false, value);
+			}
+			updateToolbarState();
+		}
+
+		async function insertLink() {
 			const url = await window.rtxApp.showInputDialog('Insert Link', 'Enter URL:', 'https://');
 			if (url) {
-				execCommand('createLink', url);
+				const editor = document.getElementById('emailEditor');
+				const selection = window.getSelection();
+				
+				if (selection.rangeCount > 0) {
+					const range = selection.getRangeAt(0);
+					const selectedText = range.toString();
+					
+					if (selectedText.length === 0) {
+						// Insert link with placeholder text
+						const linkElement = document.createElement('a');
+						linkElement.href = url;
+						linkElement.textContent = url;
+						linkElement.target = '_blank';
+						range.insertNode(linkElement);
+					} else {
+						// Wrap selected text in link
+						const linkElement = document.createElement('a');
+						linkElement.href = url;
+						linkElement.target = '_blank';
+						linkElement.textContent = selectedText;
+						range.deleteContents();
+						range.insertNode(linkElement);
+					}
+				}
 			}
 		}
 
 		async function insertImage() {
 			const url = await window.rtxApp.showInputDialog('Insert Image', 'Enter image URL:', 'https://');
 			if (url) {
-				execCommand('insertImage', url);
+				const editor = document.getElementById('emailEditor');
+				const selection = window.getSelection();
+				
+				if (selection.rangeCount > 0) {
+					const range = selection.getRangeAt(0);
+					const imgElement = document.createElement('img');
+					imgElement.src = url;
+					imgElement.alt = 'Inserted image';
+					imgElement.style.maxWidth = '100%';
+					imgElement.style.height = 'auto';
+					
+					range.insertNode(imgElement);
+				}
 			}
 		}
 
@@ -1643,22 +1963,50 @@
 			const cols = await window.rtxApp.showInputDialog('Insert Table', 'Enter number of columns:', '3');
 			
 			if (rows && cols) {
-				let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
-				for (let i = 0; i < parseInt(rows); i++) {
-					tableHTML += '<tr>';
-					for (let j = 0; j < parseInt(cols); j++) {
-						tableHTML += '<td style="padding: 8px; border: 1px solid #ddd;">Cell ' + (i + 1) + ',' + (j + 1) + '</td>';
-					}
-					tableHTML += '</tr>';
-				}
-				tableHTML += '</table>';
+				const editor = document.getElementById('emailEditor');
+				const selection = window.getSelection();
 				
-				execCommand('insertHTML', tableHTML);
+				if (selection.rangeCount > 0) {
+					const range = selection.getRangeAt(0);
+					
+					let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
+					for (let i = 0; i < parseInt(rows); i++) {
+						tableHTML += '<tr>';
+						for (let j = 0; j < parseInt(cols); j++) {
+							tableHTML += '<td style="padding: 8px; border: 1px solid #ddd;">Cell ' + (i + 1) + ',' + (j + 1) + '</td>';
+						}
+						tableHTML += '</tr>';
+					}
+					tableHTML += '</table>';
+					
+					// Create a temporary div to parse HTML
+					const tempDiv = document.createElement('div');
+					tempDiv.innerHTML = tableHTML;
+					const tableElement = tempDiv.firstElementChild;
+					
+					range.insertNode(tableElement);
+				}
 			}
 		}
 
 		function clearFormatting() {
-			execCommand('removeFormat');
+			const editor = document.getElementById('emailEditor');
+			if (!editor) return;
+
+			const selection = window.getSelection();
+			if (selection.rangeCount === 0) return;
+
+			const range = selection.getRangeAt(0);
+			const selectedText = range.toString();
+			
+			if (selectedText.length === 0) return;
+
+			// Remove formatting by creating a new text node
+			const textNode = document.createTextNode(selectedText);
+			range.deleteContents();
+			range.insertNode(textNode);
+			
+			updateToolbarState();
 		}
 
 		function toggleEditorMode() {
@@ -1680,8 +2028,114 @@
 		document.addEventListener('DOMContentLoaded', function() {
 			initEnhancedEditor();
 			startWordCount();
+			
+			// Setup local spreadsheet import
+			setupLocalSpreadsheetImport();
+			
+			// Setup signature management
+			setupSignatureManagement();
 		});
 		
+		// Local spreadsheet import functionality
+		function setupLocalSpreadsheetImport() {
+			const importBtn = document.getElementById('importLocalSheetBtn');
+			if (!importBtn) return;
+			
+			importBtn.addEventListener('click', async () => {
+				try {
+					if (!window.electronAPI || !window.electronAPI.showOpenDialog) {
+						alert('Local file import is only available in the desktop app');
+						return;
+					}
+					
+					const result = await window.electronAPI.showOpenDialog({
+						properties: ['openFile'],
+						filters: [
+							{ name: 'Spreadsheet Files', extensions: ['csv', 'xlsx', 'xls'] },
+							{ name: 'CSV Files', extensions: ['csv'] },
+							{ name: 'Excel Files', extensions: ['xlsx', 'xls'] },
+							{ name: 'All Files', extensions: ['*'] }
+						],
+						title: 'Select Spreadsheet File to Import'
+					});
+					
+					if (!result.canceled && result.filePaths.length > 0) {
+						const filePath = result.filePaths[0];
+						await importLocalSpreadsheet(filePath);
+					}
+				} catch (error) {
+					console.error('Error setting up local import:', error);
+					alert('Error setting up local import: ' + error.message);
+				}
+			});
+		}
+		
+		async function importLocalSpreadsheet(filePath) {
+			try {
+				if (!window.electronAPI || !window.electronAPI.loadLocalSpreadsheet) {
+					alert('Local spreadsheet loading not available');
+					return;
+				}
+				
+				// Show loading state
+				const importBtn = document.getElementById('importLocalSheetBtn');
+				const originalText = importBtn.innerHTML;
+				importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Importing...';
+				importBtn.disabled = true;
+				
+				const result = await window.electronAPI.loadLocalSpreadsheet(filePath);
+				
+				if (result.success) {
+					// Process the imported data
+					processImportedData(result.data);
+					
+					// Update UI to show imported data
+					document.getElementById('sheetsData').style.display = 'block';
+					document.getElementById('sheetsData').innerHTML = `
+						<div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+							<strong>✅ Local file imported successfully!</strong><br>
+							File: ${filePath.split('\\').pop().split('/').pop()}<br>
+							Rows: ${result.data.rows.length}<br>
+							Columns: ${result.data.headers.length}
+						</div>
+					`;
+					
+					// Enable refresh button
+					document.getElementById('refreshSheetsBtn').disabled = false;
+					
+					// Show success message
+					if (window.rtxApp && window.rtxApp.showSuccess) {
+						window.rtxApp.showSuccess(`Successfully imported ${result.data.rows.length} rows from local file`);
+					}
+				} else {
+					throw new Error(result.error || 'Failed to import file');
+				}
+			} catch (error) {
+				console.error('Import error:', error);
+				alert('Failed to import file: ' + error.message);
+			} finally {
+				// Restore button state
+				const importBtn = document.getElementById('importLocalSheetBtn');
+				importBtn.innerHTML = '<i class="fas fa-file-import"></i>Import Local File';
+				importBtn.disabled = false;
+			}
+		}
+		
+		function processImportedData(data) {
+			// Store the imported data globally for use in the app
+			window.importedSheetData = data;
+			
+			// Update placeholder chips
+			if (window.rtxApp && window.rtxApp.updatePlaceholderChips) {
+				window.rtxApp.updatePlaceholderChips(data.headers);
+			}
+			
+			// Update preview if available
+			if (window.rtxApp && window.rtxApp.updateDataPreview) {
+				window.rtxApp.updateDataPreview(data);
+			}
+		}
+
 		// Enhanced Placeholder System with @ dropdown
 		(function() {
 			const editor = document.getElementById('emailEditor');
@@ -2032,6 +2486,172 @@
 				if (icon) {
 					icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 				}
+			}
+		}
+
+		// Signature management functionality
+		function setupSignatureManagement() {
+			// Load saved signatures on page load
+			loadSignaturesList();
+		}
+		
+		async function saveSignature() {
+			try {
+				const nameInput = document.getElementById('signatureName');
+				const editor = document.getElementById('signatureEditor');
+				
+				if (!nameInput || !editor) {
+					alert('Signature elements not found');
+					return;
+				}
+				
+				const name = nameInput.value.trim();
+				if (!name) {
+					alert('Please enter a signature name');
+					return;
+				}
+				
+				const content = editor.innerHTML;
+				if (!content || content.trim() === '') {
+					alert('Please enter signature content');
+					return;
+				}
+				
+				if (!window.electronAPI || !window.electronAPI.saveSignature) {
+					alert('Signature saving not available');
+					return;
+				}
+				
+				const result = await window.electronAPI.saveSignature({
+					name: name,
+					html: content,
+					text: editor.textContent || ''
+				});
+				
+				if (result.success) {
+					alert('Signature saved successfully!');
+					loadSignaturesList(); // Refresh the list
+				} else {
+					alert('Failed to save signature: ' + (result.error || 'Unknown error'));
+				}
+			} catch (error) {
+				console.error('Error saving signature:', error);
+				alert('Error saving signature: ' + error.message);
+			}
+		}
+		
+		async function loadSignature() {
+			try {
+				if (!window.electronAPI || !window.electronAPI.signaturesList) {
+					alert('Signature loading not available');
+					return;
+				}
+				
+				const result = await window.electronAPI.signaturesList();
+				if (!result.success || !result.signatures || result.signatures.length === 0) {
+					alert('No saved signatures found');
+					return;
+				}
+				
+				// Show signatures list
+				showSignaturesList(result.signatures);
+			} catch (error) {
+				console.error('Error loading signatures:', error);
+				alert('Error loading signatures: ' + error.message);
+			}
+		}
+		
+		function clearSignature() {
+			const nameInput = document.getElementById('signatureName');
+			const editor = document.getElementById('signatureEditor');
+			
+			if (nameInput) nameInput.value = '';
+			if (editor) editor.innerHTML = '';
+		}
+		
+		async function loadSignaturesList() {
+			try {
+				if (!window.electronAPI || !window.electronAPI.signaturesList) {
+					return;
+				}
+				
+				const result = await window.electronAPI.signaturesList();
+				if (result.success && result.signatures && result.signatures.length > 0) {
+					showSignaturesList(result.signatures);
+				}
+			} catch (error) {
+				console.error('Error loading signatures list:', error);
+			}
+		}
+		
+		function showSignaturesList(signatures) {
+			const container = document.getElementById('signaturesContainer');
+			const listDiv = document.getElementById('signaturesList');
+			
+			if (!container || !listDiv) return;
+			
+			listDiv.style.display = 'block';
+			
+			container.innerHTML = signatures.map(sig => `
+				<div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border:1px solid #e5e5e7; border-radius:6px; margin-bottom:8px; background:#fff;">
+					<div>
+						<strong>${sig.name}</strong>
+						<small style="color:#8E8E93; margin-left:8px;">${new Date(sig.created).toLocaleDateString()}</small>
+					</div>
+					<div style="display:flex; gap:4px;">
+						<button onclick="loadSignatureContent('${sig.path}')" style="padding:4px 8px; background:#007AFF; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">Load</button>
+						<button onclick="deleteSignature('${sig.path}')" style="padding:4px 8px; background:#FF3B30; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">Delete</button>
+					</div>
+				</div>
+			`).join('');
+		}
+		
+		async function loadSignatureContent(signaturePath) {
+			try {
+				if (!window.electronAPI || !window.electronAPI.signaturesLoad) {
+					alert('Signature loading not available');
+					return;
+				}
+				
+				const result = await window.electronAPI.signaturesLoad(signaturePath);
+				if (result.success && result.signature) {
+					const nameInput = document.getElementById('signatureName');
+					const editor = document.getElementById('signatureEditor');
+					
+					if (nameInput) nameInput.value = result.signature.name;
+					if (editor) editor.innerHTML = result.signature.html || result.signature.text || '';
+					
+					alert('Signature loaded successfully!');
+				} else {
+					alert('Failed to load signature: ' + (result.error || 'Unknown error'));
+				}
+			} catch (error) {
+				console.error('Error loading signature content:', error);
+				alert('Error loading signature: ' + error.message);
+			}
+		}
+		
+		async function deleteSignature(signaturePath) {
+			try {
+				if (!confirm('Are you sure you want to delete this signature?')) {
+					return;
+				}
+				
+				if (!window.electronAPI || !window.electronAPI.signaturesDelete) {
+					alert('Signature deletion not available');
+					return;
+				}
+				
+				const result = await window.electronAPI.signaturesDelete(signaturePath);
+				if (result.success) {
+					alert('Signature deleted successfully!');
+					loadSignaturesList(); // Refresh the list
+				} else {
+					alert('Failed to delete signature: ' + (result.error || 'Unknown error'));
+				}
+			} catch (error) {
+				console.error('Error deleting signature:', error);
+				alert('Error deleting signature: ' + error.message);
 			}
 		}
 	</script>
