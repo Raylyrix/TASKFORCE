@@ -1951,8 +1951,19 @@
 			// Setup placeholder system
 			setupPlaceholderSystem();
 			
-			// Setup authentication modal
-			setupAuthenticationModal();
+			// Setup authentication modal - wait for RTX app to be ready
+			setTimeout(() => {
+				if (window.rtxApp && window.rtxApp.setupAuthenticationModal) {
+					window.rtxApp.setupAuthenticationModal();
+				} else {
+					console.warn('RTX App not ready yet, retrying...');
+					setTimeout(() => {
+						if (window.rtxApp && window.rtxApp.setupAuthenticationModal) {
+							window.rtxApp.setupAuthenticationModal();
+						}
+					}, 1000);
+				}
+			}, 100);
 			
 			// Setup event listeners
 			setupEventListeners();
