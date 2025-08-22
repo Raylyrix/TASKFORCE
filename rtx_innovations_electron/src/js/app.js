@@ -35,6 +35,7 @@ class RTXApp {
         this.setupEventListeners();
         this.setupRichEditor();
         this.setupMenuHandlers();
+        this.setupAuthenticationModal(); // Setup authentication modal
         this.loadSettings();
         this.populateAccountsDropdown();
         this.populateFromAddressDropdown();
@@ -4581,13 +4582,14 @@ class RTXApp {
             const subjectLine = document.getElementById(`subjectLine_${tabId}`);
             const emailEditor = document.getElementById(`emailEditor_${tabId}`);
             const signature = document.getElementById(`signature_${tabId}`);
+            const customSignature = document.getElementById(`customSignature_${tabId}`);
             const previewContent = document.getElementById(`previewContent_${tabId}`);
             
             if (!subjectLine || !emailEditor || !previewContent) return;
             
             const subject = subjectLine.value || 'No Subject';
             const content = emailEditor.innerHTML || 'No content';
-            const sig = signature.value || '';
+            const sig = signature.value || customSignature.value || '';
             
             previewContent.innerHTML = `
                 <div style="border-bottom: 1px solid #e5e5e7; padding-bottom: 12px; margin-bottom: 12px;">
@@ -4601,8 +4603,14 @@ class RTXApp {
                 </div>` : ''}
             `;
             
+            // Show the preview
+            const previewDiv = document.getElementById(`emailPreview_${tabId}`);
+            if (previewDiv) {
+                previewDiv.style.display = 'block';
+            }
+            
         } catch (error) {
-            console.error('Error refreshing email preview:', error);
+            console.error(`Error refreshing email preview for tab ${tabId}:`, error);
         }
     }
     
@@ -5072,6 +5080,82 @@ class RTXApp {
             
         } catch (error) {
             console.error(`Error refreshing email preview for tab ${tabId}:`, error);
+        }
+    }
+    
+    // Setup authentication modal
+    setupAuthenticationModal() {
+        try {
+            console.log('🔐 Setting up authentication modal...');
+            
+            // Get modal elements
+            const modal = document.getElementById('authModal');
+            const modalGoogleLoginBtn = document.getElementById('modalGoogleLoginBtn');
+            const modalUploadCredentialsBtn = document.getElementById('modalUploadCredentialsBtn');
+            const modalCredentialsFile = document.getElementById('modalCredentialsFile');
+            const selectedFileName = document.getElementById('selectedFileName');
+            
+            if (!modal) {
+                console.warn('⚠️ Authentication modal not found');
+                return;
+            }
+            
+            // Setup Google login button
+            if (modalGoogleLoginBtn) {
+                modalGoogleLoginBtn.addEventListener('click', () => {
+                    console.log('🔐 Modal Google login clicked');
+                    // Close modal and trigger authentication for current tab
+                    modal.style.display = 'none';
+                    // This will be handled by the tab-specific authentication
+                });
+            }
+            
+            // Setup credentials upload
+            if (modalUploadCredentialsBtn && modalCredentialsFile) {
+                modalUploadCredentialsBtn.addEventListener('click', () => {
+                    modalCredentialsFile.click();
+                });
+                
+                modalCredentialsFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        selectedFileName.textContent = `Selected: ${file.name}`;
+                        selectedFileName.style.color = '#34a853';
+                        
+                        // Auto-upload the credentials
+                        this.handleCredentialsUploadFromModal(file);
+                    }
+                });
+            }
+            
+            console.log('✅ Authentication modal setup complete');
+            
+        } catch (error) {
+            console.error('❌ Error setting up authentication modal:', error);
+        }
+    }
+    
+    // Handle credentials upload from modal
+    async handleCredentialsUploadFromModal(file) {
+        try {
+            console.log('📁 Handling credentials upload from modal:', file.name);
+            
+            this.showLoading('Processing credentials...');
+            
+            const credentials = await this.readCredentialsFile(file);
+            console.log('✅ Credentials parsed successfully');
+            
+            // Close the modal
+            const modal = document.getElementById('authModal');
+            if (modal) modal.style.display = 'none';
+            
+            // Authenticate with the credentials
+            await this.authenticateWithCredentials(credentials);
+            
+        } catch (error) {
+            console.error('❌ Error handling credentials upload from modal:', error);
+            this.showError('Failed to process credentials: ' + error.message);
+            this.hideLoading();
         }
     }
 }
