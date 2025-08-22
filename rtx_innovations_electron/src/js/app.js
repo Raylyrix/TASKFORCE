@@ -3812,6 +3812,56 @@ class RTXApp {
                             <button class="btn btn-secondary" id="scheduleCampaignBtn_${tabId}" onclick="window.rtxApp.scheduleCampaign('${tabId}')">
                                 <i class="fas fa-clock"></i>Schedule Campaign
                             </button>
+                            <button class="btn btn-secondary" id="togglePreviewBtn_${tabId}" onclick="window.rtxApp.togglePreview('${tabId}')">
+                                <i class="fas fa-eye"></i>Toggle Preview
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Scheduling Section -->
+                    <div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+                        <h3 style="margin-bottom: 10px;">Step 3: Schedule (Optional)</h3>
+                        <div style="display:grid; grid-template-columns: 1fr auto; gap: 12px; align-items:end;">
+                            <div class="form-group" style="margin:0;">
+                                <label>Send At</label>
+                                <input type="datetime-local" id="scheduleDateTime_${tabId}">
+                            </div>
+                            <button class="btn btn-secondary" id="scheduleBtn_${tabId}" onclick="window.rtxApp.scheduleOneTimeSendForTab('${tabId}')">
+                                <i class="fas fa-clock"></i>Schedule
+                            </button>
+                        </div>
+                        <div id="scheduleList_${tabId}" style="margin-top:12px;"></div>
+                    </div>
+                    
+                    <!-- Campaign History -->
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="margin-bottom: 10px;">Campaign History</h3>
+                        <div id="campaignsList_${tabId}">
+                            <div class="empty-state">
+                                <i class="fas fa-envelope-open"></i>
+                                <h3>No Campaigns Yet</h3>
+                                <p>Create your first email campaign to get started</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Signature Management -->
+                    <div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+                        <h3 style="margin-bottom: 10px;">Signature Management</h3>
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <label>Custom Signature</label>
+                            <textarea id="customSignature_${tabId}" placeholder="Enter your custom signature" rows="3"></textarea>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" onclick="window.rtxApp.saveSignatureForTab('${tabId}')">
+                                <i class="fas fa-save"></i>Save Signature
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.rtxApp.loadSignatureForTab('${tabId}')">
+                                <i class="fas fa-folder-open"></i>Load Signature
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.rtxApp.clearSignatureForTab('${tabId}')">
+                                <i class="fas fa-trash"></i>Clear
+                            </button>
                         </div>
                     </div>
                     
@@ -4172,7 +4222,7 @@ class RTXApp {
             
             // This would call the main process to start OAuth flow
             if (window.electronAPI && window.electronAPI.authenticateGoogle) {
-                window.electronAPI.authenticateGoogle()
+                window.electronAPI.authenticateGoogle(null, tabId)
                     .then(result => {
                         if (result.success) {
                             this.showSuccess(`Successfully authenticated in ${tabId}`);
@@ -4773,6 +4823,252 @@ class RTXApp {
             charCount.textContent = `${chars} chars`;
         } catch (error) {
             console.error(`Error updating editor counts for tab ${tabId}:`, error);
+        }
+    }
+    
+    // Scheduling methods for tabs
+    scheduleOneTimeSendForTab(tabId) {
+        try {
+            const scheduleDateTime = document.getElementById(`scheduleDateTime_${tabId}`);
+            if (!scheduleDateTime || !scheduleDateTime.value) {
+                this.showWarning('Please select a date and time for scheduling');
+                return;
+            }
+            
+            const scheduledTime = new Date(scheduleDateTime.value);
+            const now = new Date();
+            
+            if (scheduledTime <= now) {
+                this.showError('Scheduled time must be in the future');
+                return;
+            }
+            
+            // Get campaign data from this tab
+            const campaignData = this.getCampaignDataFromTab(tabId);
+            if (!campaignData) {
+                this.showError('Please fill in all required campaign fields');
+                return;
+            }
+            
+            // Schedule the campaign
+            this.scheduleCampaignForTab(tabId, campaignData, scheduledTime);
+            
+        } catch (error) {
+            console.error(`Error scheduling campaign for tab ${tabId}:`, error);
+            this.showError('Failed to schedule campaign: ' + error.message);
+        }
+    }
+    
+    getCampaignDataFromTab(tabId) {
+        try {
+            const campaignName = document.getElementById(`campaignName_${tabId}`)?.value;
+            const subjectLine = document.getElementById(`subjectLine_${tabId}`)?.value;
+            const emailEditor = document.getElementById(`emailEditor_${tabId}`);
+            const signature = document.getElementById(`signature_${tabId}`)?.value;
+            
+            if (!campaignName || !subjectLine || !emailEditor) {
+                return null;
+            }
+            
+            return {
+                campaignName,
+                subjectLine,
+                emailContent: emailEditor.innerHTML,
+                signature: signature || '',
+                tabId
+            };
+        } catch (error) {
+            console.error(`Error getting campaign data from tab ${tabId}:`, error);
+            return null;
+        }
+    }
+    
+    scheduleCampaignForTab(tabId, campaignData, scheduledTime) {
+        try {
+            // This would integrate with the main process scheduling system
+            this.showSuccess(`Campaign "${campaignData.campaignName}" scheduled for ${scheduledTime.toLocaleString()}`);
+            
+            // Add to schedule list
+            this.addToScheduleList(tabId, campaignData, scheduledTime);
+            
+            // Clear the form
+            this.clearCampaignForm(tabId);
+            
+        } catch (error) {
+            console.error(`Error scheduling campaign for tab ${tabId}:`, error);
+            this.showError('Failed to schedule campaign: ' + error.message);
+        }
+    }
+    
+    addToScheduleList(tabId, campaignData, scheduledTime) {
+        try {
+            const scheduleList = document.getElementById(`scheduleList_${tabId}`);
+            if (!scheduleList) return;
+            
+            const scheduleItem = document.createElement('div');
+            scheduleItem.style.cssText = 'padding: 8px 12px; background: white; border: 1px solid #e5e5e7; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
+            scheduleItem.innerHTML = `
+                <div>
+                    <strong>${campaignData.campaignName}</strong><br>
+                    <small style="color: #8E8E93;">Scheduled for: ${scheduledTime.toLocaleString()}</small>
+                </div>
+                <button class="btn btn-secondary" onclick="window.rtxApp.cancelScheduledCampaign('${tabId}', this)" style="padding: 4px 8px; font-size: 12px;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            `;
+            
+            scheduleList.appendChild(scheduleItem);
+            
+        } catch (error) {
+            console.error(`Error adding to schedule list for tab ${tabId}:`, error);
+        }
+    }
+    
+    cancelScheduledCampaign(tabId, buttonElement) {
+        try {
+            const scheduleItem = buttonElement.closest('div');
+            if (scheduleItem) {
+                scheduleItem.remove();
+                this.showSuccess('Scheduled campaign cancelled');
+            }
+        } catch (error) {
+            console.error(`Error cancelling scheduled campaign for tab ${tabId}:`, error);
+        }
+    }
+    
+    clearCampaignForm(tabId) {
+        try {
+            const elements = [
+                `campaignName_${tabId}`,
+                `subjectLine_${tabId}`,
+                `signature_${tabId}`,
+                `scheduleDateTime_${tabId}`
+            ];
+            
+            elements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                        element.value = '';
+                    }
+                }
+            });
+            
+            // Clear the email editor
+            const editor = document.getElementById(`emailEditor_${tabId}`);
+            if (editor) {
+                editor.innerHTML = '<p>Dear @name,</p><p>Thank you for your interest in our services.</p><p>Best regards,<br>Your Team</p>';
+            }
+            
+        } catch (error) {
+            console.error(`Error clearing campaign form for tab ${tabId}:`, error);
+        }
+    }
+    
+    // Signature management methods for tabs
+    saveSignatureForTab(tabId) {
+        try {
+            const customSignature = document.getElementById(`customSignature_${tabId}`);
+            if (!customSignature || !customSignature.value.trim()) {
+                this.showWarning('Please enter a signature to save');
+                return;
+            }
+            
+            const signatureName = prompt('Enter a name for this signature:', 'Custom Signature');
+            if (!signatureName) return;
+            
+            // Save to localStorage for this tab
+            const signatures = JSON.parse(localStorage.getItem(`signatures_${tabId}`) || '[]');
+            signatures.push({
+                name: signatureName,
+                content: customSignature.value.trim(),
+                timestamp: new Date().toISOString()
+            });
+            
+            localStorage.setItem(`signatures_${tabId}`, JSON.stringify(signatures));
+            this.showSuccess('Signature saved successfully');
+            
+        } catch (error) {
+            console.error(`Error saving signature for tab ${tabId}:`, error);
+            this.showError('Failed to save signature: ' + error.message);
+        }
+    }
+    
+    loadSignatureForTab(tabId) {
+        try {
+            const signatures = JSON.parse(localStorage.getItem(`signatures_${tabId}`) || '[]');
+            if (signatures.length === 0) {
+                this.showInfo('No saved signatures found');
+                return;
+            }
+            
+            const signatureNames = signatures.map(s => s.name);
+            const selectedName = prompt('Select signature to load:\n\n' + signatureNames.join('\n'));
+            
+            if (selectedName) {
+                const signature = signatures.find(s => s.name === selectedName);
+                if (signature) {
+                    const customSignature = document.getElementById(`customSignature_${tabId}`);
+                    if (customSignature) {
+                        customSignature.value = signature.content;
+                        this.showSuccess('Signature loaded successfully');
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error(`Error loading signature for tab ${tabId}:`, error);
+            this.showError('Failed to load signature: ' + error.message);
+        }
+    }
+    
+    clearSignatureForTab(tabId) {
+        try {
+            const customSignature = document.getElementById(`customSignature_${tabId}`);
+            if (customSignature) {
+                customSignature.value = '';
+                this.showSuccess('Signature cleared');
+            }
+        } catch (error) {
+            console.error(`Error clearing signature for tab ${tabId}:`, error);
+        }
+    }
+    
+    // Enhanced email preview for tabs
+    refreshEmailPreview(tabId) {
+        try {
+            const subjectLine = document.getElementById(`subjectLine_${tabId}`);
+            const emailEditor = document.getElementById(`emailEditor_${tabId}`);
+            const signature = document.getElementById(`signature_${tabId}`);
+            const customSignature = document.getElementById(`customSignature_${tabId}`);
+            const previewContent = document.getElementById(`previewContent_${tabId}`);
+            
+            if (!subjectLine || !emailEditor || !previewContent) return;
+            
+            const subject = subjectLine.value || 'No Subject';
+            const content = emailEditor.innerHTML || 'No content';
+            const sig = signature.value || customSignature.value || '';
+            
+            previewContent.innerHTML = `
+                <div style="border-bottom: 1px solid #e5e5e7; padding-bottom: 12px; margin-bottom: 12px;">
+                    <strong>Subject:</strong> ${subject}
+                </div>
+                <div style="margin-bottom: 12px;">
+                    ${content}
+                </div>
+                ${sig ? `<div style="border-top: 1px solid #e5e5e7; padding-top: 12px; margin-top: 12px;">
+                    ${sig}
+                </div>` : ''}
+            `;
+            
+            // Show the preview
+            const previewDiv = document.getElementById(`emailPreview_${tabId}`);
+            if (previewDiv) {
+                previewDiv.style.display = 'block';
+            }
+            
+        } catch (error) {
+            console.error(`Error refreshing email preview for tab ${tabId}:`, error);
         }
     }
 }

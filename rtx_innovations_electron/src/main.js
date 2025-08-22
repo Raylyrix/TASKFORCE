@@ -412,8 +412,30 @@ async function ensureServices() {
 	if (!sheetsService) sheetsService = google.sheets({ version: 'v4', auth: oauth2Client });
 }
 
+async function ensureServicesForTab(tabId, norm, token) {
+	const tabOAuthClient = buildOAuthClient(norm);
+	tabOAuthClient.setCredentials(token);
+	
+	// Clear any existing services for this tab to force re-auth if token changed
+	const tabGmailServiceKey = `gmailService_${tabId}`;
+	const tabSheetsServiceKey = `sheetsService_${tabId}`;
+	store.delete(tabGmailServiceKey);
+	store.delete(tabSheetsServiceKey);
+
+	store.set(tabGmailServiceKey, google.gmail({ version: 'v1', auth: tabOAuthClient }));
+	store.set(tabSheetsServiceKey, google.sheets({ version: 'v4', auth: tabOAuthClient }));
+}
+
+function getGmailServiceForTab(tabId) {
+	return store.get(`gmailService_${tabId}`);
+}
+
+function getSheetsServiceForTab(tabId) {
+	return store.get(`sheetsService_${tabId}`);
+}
+
 // Google API Integration
-async function authenticateGoogle(credentialsData) {
+async function authenticateGoogle(credentialsData, tabId = 'main') {
 	try {
 		let norm;
 		if (credentialsData && Object.keys(credentialsData || {}).length) {
@@ -429,55 +451,61 @@ async function authenticateGoogle(credentialsData) {
 			throw new Error('Invalid credentials: missing client_id or client_secret');
 		}
 		
-		store.set('googleCreds', norm);
+		// Store credentials per tab
+		const tabCredsKey = `googleCreds_${tabId}`;
+		store.set(tabCredsKey, norm);
 
-		// Check for existing valid token first
-		const existing = store.get('googleToken');
+		// Check for existing valid token for this tab
+		const tabTokenKey = `googleToken_${tabId}`;
+		const existing = store.get(tabTokenKey);
 		if (existing && existing.access_token) {
 			// Validate existing token
 			try {
-				oauth2Client = buildOAuthClient(norm);
-				oauth2Client.setCredentials(existing);
+				const tabOAuthClient = buildOAuthClient(norm);
+				tabOAuthClient.setCredentials(existing);
 				
 				// Quick token validation
-				const isValid = await validateToken(oauth2Client);
+				const isValid = await validateToken(tabOAuthClient);
 				if (isValid) {
 					// Token is still valid, use it immediately
 					try {
 						if (mainWindow && mainWindow.webContents) {
-							mainWindow.webContents.send('auth-success', { email: 'authenticated' });
+							mainWindow.webContents.send('auth-success', { email: 'authenticated', tabId: tabId });
 						}
 					} catch (_) {}
 					
-					// Background: ensure services and resolve profile
+					// Background: ensure services and resolve profile for this tab
 					;(async () => {
 						try {
-							await ensureServices();
+							await ensureServicesForTab(tabId, norm, existing);
 							let emailAddr = 'authenticated';
 							try {
-								const p = await Promise.race([
-									gmailService.users.getProfile({ userId: 'me' }),
-									new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
-								]);
-								if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
-								saveAccountEntry(emailAddr, norm, existing);
-								try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
-								try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr }); } catch (_) {}
-								logEvent('info', 'Authenticated with existing token', { email: emailAddr });
+								const gmailService = getGmailServiceForTab(tabId);
+								if (gmailService) {
+									const p = await Promise.race([
+										gmailService.users.getProfile({ userId: 'me' }),
+										new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+									]);
+									if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
+									saveAccountEntryForTab(tabId, emailAddr, norm, existing);
+									try { store.set(`app-settings_${tabId}`, { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
+									try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr, tabId: tabId }); } catch (_) {}
+									logEvent('info', `Authenticated with existing token for tab ${tabId}`, { email: emailAddr, tabId: tabId });
+								}
 							} catch (_) {}
 						} catch (_) {}
 					})();
 					
-					return { success: true, userEmail: 'authenticated', message: 'Using existing token' };
+					return { success: true, userEmail: 'authenticated', message: 'Using existing token', tabId: tabId };
 				}
 			} catch (error) {
-				logEvent('info', 'Existing token invalid, proceeding with new auth', { error: error.message });
+				logEvent('info', `Existing token invalid for tab ${tabId}, proceeding with new auth`, { error: error.message, tabId: tabId });
 				// Token is invalid, continue with new authentication
 			}
 		}
 
 		// Build OAuth client for new authentication
-		oauth2Client = buildOAuthClient(norm);
+		const tabOAuthClient = buildOAuthClient(norm);
 
 		const { shell } = require('electron');
 
@@ -507,12 +535,15 @@ async function authenticateGoogle(credentialsData) {
 						// Clear timeout since we got the code
 						clearTimeout(authTimeout);
                         
-                        const { tokens } = await oauth2Client.getToken(code);
-                        oauth2Client.setCredentials(tokens);
+                        const { tokens } = await tabOAuthClient.getToken(code);
+                        tabOAuthClient.setCredentials(tokens);
+                        
+                        // Store tokens for this specific tab
+                        store.set(tabTokenKey, tokens);
                         
                         try {
                             if (mainWindow && mainWindow.webContents) {
-                                mainWindow.webContents.send('auth-progress', { step: 'token-received' });
+                                mainWindow.webContents.send('auth-progress', { step: 'token-received', tabId: tabId });
                             }
                         } catch (_) {}
                         
@@ -533,8 +564,8 @@ async function authenticateGoogle(credentialsData) {
 				// Try to bind; if privileged or fails, fall back to random port and alternate host
 				const tryListen = (h, p) => server.listen(p, h, async () => {
 					try {
-						oauth2Client = buildOAuthClient(norm, `http://${h}:${server.address().port}${pathName}`);
-						const authUrl = oauth2Client.generateAuthUrl({ 
+						const tabOAuthClient = buildOAuthClient(norm, `http://${h}:${server.address().port}${pathName}`);
+						const authUrl = tabOAuthClient.generateAuthUrl({ 
 							access_type: 'offline', 
 							scope: SCOPES, 
 							prompt: 'consent',
@@ -544,7 +575,7 @@ async function authenticateGoogle(credentialsData) {
 						// Send progress update
 						try {
 							if (mainWindow && mainWindow.webContents) {
-								mainWindow.webContents.send('auth-progress', { step: 'opening-browser' });
+								mainWindow.webContents.send('auth-progress', { step: 'opening-browser', tabId: tabId });
 							}
 						} catch (_) {}
 						
@@ -879,6 +910,12 @@ function removeAccountEntry(userEmail) {
     store.set('accounts', map);
 }
 
+function saveAccountEntryForTab(tabId, userEmail, norm, token) {
+	const map = getAccountsMap();
+	map[userEmail] = { client_id: norm.client_id, creds: norm, token, tabId };
+	store.set('accounts', map);
+}
+
 // Global error handlers with guidance
 process.on('uncaughtException', (err) => {
 	logEvent('error', 'uncaught-exception', { error: err.message, stack: err.stack });
@@ -1202,7 +1239,7 @@ function cancelScheduledJob(id) {
 
 // IPC Handlers
 ipcMain.handle('updateClientCredentials', async (event, credentialsData) => updateClientCredentials(credentialsData));
-ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
+ipcMain.handle('authenticateGoogle', async (event, credentialsData, tabId = 'main') => authenticateGoogle(credentialsData, tabId));
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
