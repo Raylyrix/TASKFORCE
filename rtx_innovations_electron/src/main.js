@@ -45,7 +45,7 @@ function getEmbeddedDefaultCredentials() {
             token_uri: 'https://oauth2.googleapis.com/token',
             auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
             client_secret: secret,
-            redirect_uris: ['http://localhost:8080', 'http://127.0.0.1:8080']
+            redirect_uris: ['http://localhost:8080']
         }
     };
 }
@@ -469,7 +469,8 @@ function normalizeCredentials(raw) {
 	if (!creds) throw new Error('Invalid credentials file format');
 	if (!creds.client_id || !creds.client_secret) throw new Error('Missing client_id/client_secret in credentials');
 	const hasLocalhost = Array.isArray(creds.redirect_uris) && creds.redirect_uris.some(u => /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u));
-	return { client_id: creds.client_id, client_secret: creds.client_secret, redirect_uri: null, fixed: false, host: hasLocalhost ? 'localhost' : '127.0.0.1' };
+	const redirectUri = hasLocalhost && Array.isArray(creds.redirect_uris) ? creds.redirect_uris.find(u => /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u)) : null;
+	return { client_id: creds.client_id, client_secret: creds.client_secret, redirect_uri: redirectUri, fixed: false, host: hasLocalhost ? 'localhost' : '127.0.0.1' };
 }
 
 function buildOAuthClient(norm, redirectUriOverride) {
@@ -685,7 +686,8 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 				// Try to bind; if privileged or fails, fall back to random port and alternate host
 				const tryListen = (h, p) => server.listen(p, h, async () => {
 					try {
-						const tabOAuthClient = buildOAuthClient(norm, `http://${h}:${server.address().port}${pathName}`);
+						// Build OAuth client with the exact redirect URI from credentials
+						const tabOAuthClient = buildOAuthClient(norm);
 						const authUrl = tabOAuthClient.generateAuthUrl({ 
 							access_type: 'offline', 
 							scope: SCOPES, 
@@ -727,7 +729,7 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 				const pathName = parsed.pathname || '/';
 				startServer(host, port, pathName);
 			} else {
-				// Use fixed port for embedded credentials to match redirect_uri
+				// For embedded credentials, use port 8080 to match redirect_uri
 				const host = 'localhost';
 				const port = 8080;
 				const pathName = '/';
@@ -1425,19 +1427,32 @@ ipcMain.handle('auth-logout', async () => {
 });
 ipcMain.handle('sendTestEmail', async (event, emailData) => sendTestEmail(emailData));
 ipcMain.handle('sendEmail', async (event, emailData) => sendEmail(emailData));
-ipcMain.handle('getSendAsList', async (event) => {
+ipcMain.handle('getSendAsList', async (event, tabId = 'main') => {
     try {
         logEvent('info', 'Getting send-as list from Gmail');
         
-        if (isOAuthAvailable()) {
-            await ensureServices();
-            const gmail = google.gmail({ version: 'v1', auth: gmailService });
+        // Try to get tab-specific services first
+        let gmail = getGmailServiceForTab(tabId);
+        
+        if (gmail) {
+            // Use tab-specific service
             const response = await gmail.users.settings.sendAs.list({ userId: 'me' });
             
             const sendAsList = response.data.sendAs || [];
             const emails = sendAsList.map(sendAs => sendAs.verificationStatus === 'accepted' ? sendAs.sendAsEmail : null).filter(Boolean);
             
-            logEvent('info', 'Send-as list retrieved', { count: emails.length });
+            logEvent('info', 'Send-as list retrieved from tab service', { count: emails.length, tabId });
+            return emails;
+        } else if (isOAuthAvailable()) {
+            // Fallback to global services
+            await ensureServices();
+            gmail = google.gmail({ version: 'v1', auth: gmailService });
+            const response = await gmail.users.settings.sendAs.list({ userId: 'me' });
+            
+            const sendAsList = response.data.sendAs || [];
+            const emails = sendAsList.map(sendAs => sendAs.verificationStatus === 'accepted' ? sendAs.sendAsEmail : null).filter(Boolean);
+            
+            logEvent('info', 'Send-as list retrieved from global service', { count: emails.length });
             return emails;
         } else {
             // Fallback to SMTP mode
@@ -1449,7 +1464,7 @@ ipcMain.handle('getSendAsList', async (event) => {
         }
         
     } catch (error) {
-        logEvent('error', 'Failed to get send-as list', { error: error.message });
+        logEvent('error', 'Failed to get send-as list', { error: error.message, tabId });
         console.error('Failed to get send-as list:', error);
         return [];
     }

@@ -61,7 +61,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Gmail features
     listSendAs: () => wrapInvoke('gmail-list-send-as'),
     getGmailSignature: () => wrapInvoke('gmail-get-signature'),
-    getSendAsList: () => wrapInvoke('getSendAsList'),
+    getSendAsList: (tabId = 'main') => wrapInvoke('getSendAsList', tabId),
 
     // Sheets
     listSheetTabs: (sheetId) => wrapInvoke('sheets-list-tabs', sheetId),

@@ -2338,7 +2338,7 @@ class RTXApp {
                 return;
             }
             
-            const sendAsList = await window.electronAPI.getSendAsList();
+            const sendAsList = await window.electronAPI.getSendAsList('main');
             if (sendAsList && Array.isArray(sendAsList)) {
                 this.sendAsList = sendAsList;
                 console.log('📧 Send-as list loaded:', this.sendAsList);
