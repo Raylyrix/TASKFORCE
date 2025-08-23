@@ -475,8 +475,8 @@ function normalizeCredentials(raw) {
 
 function buildOAuthClient(norm, redirectUriOverride) {
 	// For desktop apps, use the exact redirect URI from credentials or a specific override
-	// If no redirect URI is specified, use localhost with port 8080
-	const redirect = redirectUriOverride || norm.redirect_uri || 'http://localhost:8080';
+	// If no redirect URI is specified, use localhost with port 80 to match credentials
+	const redirect = redirectUriOverride || norm.redirect_uri || 'http://localhost';
 	return new google.auth.OAuth2(norm.client_id, norm.client_secret, redirect);
 }
 
@@ -754,15 +754,15 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 			};
 
 			// Choose server binding based on credential type
-			if (norm.fixed && norm.redirect_uri) {
+			if (norm.redirect_uri) {
+				// Use the exact redirect URI from credentials
 				const parsed = new URL(norm.redirect_uri);
 				const host = parsed.hostname || 'localhost';
-				const port = parsed.port ? parseInt(parsed.port, 10) : 8080;
+				const port = parsed.port ? parseInt(parsed.port, 10) : 80;
 				const pathName = parsed.pathname || '/';
 				startServer(host, port, pathName);
 			} else {
-				// For embedded credentials, use port 8080 (non-privileged)
-				// Note: Google OAuth may be flexible about localhost port matching
+				// Fallback to port 8080 if no redirect URI specified
 				const host = 'localhost';
 				const port = 8080;
 				const pathName = '/';
