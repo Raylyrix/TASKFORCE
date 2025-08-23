@@ -1564,7 +1564,7 @@
 		</div>
 		<div class="form-group" style="margin-bottom:10px;">
 			<label>Signature Content</label>
-			<div id="signatureEditor" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff; border-radius:6px;" placeholder="Enter your signature content..."></div>
+			<div id="signatureEditorMain" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff; border-radius:6px;" placeholder="Enter your signature content..."></div>
 		</div>
 		<div style="display:flex; gap:8px; flex-wrap:wrap;">
 			<button class="btn btn-primary" id="saveSignatureBtn" onclick="saveSignature().catch(console.error)">
@@ -2508,15 +2508,8 @@
 
 		function setupEventListeners() {
 			// Connect main authentication buttons to show modal
-			const googleLoginBtn = document.getElementById('googleLoginBtn');
 			const uploadCredentialsBtn = document.getElementById('uploadCredentialsBtn');
 			const credentialsFile = document.getElementById('credentialsFile');
-
-			if (googleLoginBtn) {
-				googleLoginBtn.addEventListener('click', () => {
-					document.getElementById('authModal').style.display = 'block';
-				});
-			}
 
 			if (uploadCredentialsBtn) {
 				uploadCredentialsBtn.addEventListener('click', () => {
@@ -2567,7 +2560,7 @@
 		async function saveSignature() {
 			try {
 				const nameInput = document.getElementById('signatureName');
-				const editor = document.getElementById('signatureEditor');
+				const editor = document.getElementById('signatureEditorMain');
 				
 				if (!nameInput || !editor) {
 					alert('Signature elements not found');
@@ -2632,7 +2625,7 @@
 		
 		function clearSignature() {
 			const nameInput = document.getElementById('signatureName');
-			const editor = document.getElementById('signatureEditor');
+			const editor = document.getElementById('signatureEditorMain');
 			
 			if (nameInput) nameInput.value = '';
 			if (editor) editor.innerHTML = '';
@@ -2685,7 +2678,7 @@
 				const result = await window.electronAPI.loadSignature(signaturePath);
 				if (result.success && result.signature) {
 					const nameInput = document.getElementById('signatureName');
-					const editor = document.getElementById('signatureEditor');
+					const editor = document.getElementById('signatureEditorMain');
 					
 					if (nameInput) nameInput.value = result.signature.name;
 					if (editor) editor.innerHTML = result.signature.html || result.signature.text || '';
@@ -2702,7 +2695,7 @@
 
 		// Function to get current signature content and apply it to email
 		function getCurrentSignatureContent() {
-			const signatureEditor = document.getElementById('signatureEditor');
+			const signatureEditor = document.getElementById('signatureEditorMain');
 			if (signatureEditor && signatureEditor.innerHTML.trim()) {
 				return signatureEditor.innerHTML.trim();
 			}

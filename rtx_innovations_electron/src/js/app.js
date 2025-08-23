@@ -1563,13 +1563,13 @@ class RTXApp {
     }
 
     // Get current signature content from signature editor
-    getCurrentSignatureContent() {
-        const signatureEditor = document.getElementById('signatureEditor');
-        if (signatureEditor && signatureEditor.innerHTML.trim()) {
-            return signatureEditor.innerHTML.trim();
-        }
-        return '';
-    }
+    	getCurrentSignatureContent() {
+		const signatureEditor = document.getElementById('signatureEditorMain');
+		if (signatureEditor && signatureEditor.innerHTML.trim()) {
+			return signatureEditor.innerHTML.trim();
+		}
+		return '';
+	}
 
     async startCampaign() {
         console.log('Starting campaign');
