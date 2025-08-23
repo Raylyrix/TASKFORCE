@@ -11,6 +11,7 @@ const subscriptions = {
     onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_e, data) => cb && cb(data)),
     onAuthProgress: (cb) => ipcRenderer.on('auth-progress', (_e, data) => cb && cb(data)),
     onAuthSuccess: (cb) => ipcRenderer.on('auth-success', (_e, data) => cb && cb(data)),
+    onAuthError: (cb) => ipcRenderer.on('auth-error', (_e, data) => cb && cb(data)),
     onAppLog: (cb) => ipcRenderer.on('app-log', (_e, data) => cb && cb(data)),
 };
 
@@ -21,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onUpdateStatus: subscriptions.onUpdateStatus,
     onAuthProgress: subscriptions.onAuthProgress,
     onAuthSuccess: subscriptions.onAuthSuccess,
+    onAuthError: subscriptions.onAuthError,
     onAppLog: subscriptions.onAppLog,
 
     // Dialogs / FS

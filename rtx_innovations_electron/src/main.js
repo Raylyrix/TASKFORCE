@@ -511,10 +511,11 @@ async function ensureServices() {
 	if (!sheetsService) sheetsService = google.sheets({ version: 'v4', auth: oauth2Client });
 }
 
-// Store for tab-specific OAuth clients and tokens
+// Tab-specific OAuth clients and services storage
 const tabOAuthClients = new Map();
 const tabGmailServices = new Map();
 const tabSheetsServices = new Map();
+const tabTokens = new Map();
 
 async function ensureServicesForTab(tabId, norm, token) {
 	const tabOAuthClient = buildOAuthClient(norm);
@@ -565,37 +566,24 @@ function getSheetsServiceForTab(tabId) {
 }
 
 // Google API Integration
-async function authenticateGoogle(credentialsData, tabId = 'main') {
+async function authenticateGoogle(credentials, tabId = 'main') {
+	console.log(`🔐 Starting Google authentication for tab: ${tabId}`);
+	
 	try {
-		console.log(`🔐 Starting authentication for tab: ${tabId}`);
-		console.log(`📋 Credentials data:`, credentialsData ? 'provided' : 'using defaults');
-		
-		let norm;
-		if (credentialsData && Object.keys(credentialsData || {}).length) {
-			console.log(`✅ Using provided credentials for tab ${tabId}`);
-			norm = normalizeCredentials(credentialsData);
-		} else {
-			console.log(`🔄 Loading default credentials for tab ${tabId}`);
-			const def = (typeof loadDefaultOAuthCredentials === 'function') ? loadDefaultOAuthCredentials() : null;
-			if (!def) {
-				console.error(`❌ No default OAuth credentials available for tab ${tabId}`);
-				throw new Error('Default OAuth credentials not configured');
-			}
-			norm = normalizeCredentials(def);
+		// Handle null credentials (use default)
+		let credsToUse = credentials;
+		if (!credsToUse) {
+			console.log(`🔄 Using default credentials for tab ${tabId}`);
+			credsToUse = getEmbeddedDefaultCredentials();
 		}
 		
-		// Validate credentials before proceeding
-		if (!norm.client_id || !norm.client_secret) {
-			console.error(`❌ Invalid credentials for tab ${tabId}:`, { 
-				hasClientId: !!norm.client_id, 
-				hasClientSecret: !!norm.client_secret 
-			});
-			throw new Error('Invalid credentials: missing client_id or client_secret');
+		// Normalize credentials
+		const norm = normalizeCredentials(credsToUse);
+		if (!norm) {
+			throw new Error('Invalid credentials format');
 		}
-		
-		console.log(`✅ Credentials validated for tab ${tabId}, client_id: ${norm.client_id.substring(0, 10)}...`);
-		
-		// Store credentials per tab
+
+		// Store credentials for this specific tab
 		const tabCredsKey = `googleCreds_${tabId}`;
 		store.set(tabCredsKey, norm);
 		console.log(`💾 Credentials stored for tab ${tabId}`);
@@ -778,57 +766,57 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 			}, 180000); // 3 minutes
 		});
 
-        // Persist token and client binding
-        try { store.delete('smtp.activeEmail'); } catch (_) {}
-        store.set('googleToken', token);
-        store.set('googleTokenClientId', norm.client_id);
+        // Store the OAuth client for this tab
+        tabOAuthClients.set(tabId, tabOAuthClient);
+        tabTokens.set(tabId, token);
         
-        // INSTANT SUCCESS - Don't wait for profile fetch
-        try { if (mainWindow && mainWindow.webContents) { mainWindow.webContents.send('auth-success', { email: 'authenticated' }); try { if (!mainWindow.isVisible()) mainWindow.show(); mainWindow.focus(); } catch (_) {} } } catch (_) {}
+        // Ensure services for this specific tab
+        await ensureServicesForTab(tabId, norm, token);
         
-        // Background: ensure services and resolve profile with timeout
-        ;(async () => {
-            try {
-                await ensureServices();
-                let emailAddr = 'authenticated';
-                try {
-                    const p = await Promise.race([
-                        gmailService.users.getProfile({ userId: 'me' }),
-                        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-                    ]);
-                    if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
-                    saveAccountEntry(emailAddr, norm, token);
-                    try { store.set('app-settings', { isAuthenticated: true, currentAccount: emailAddr }); } catch(_) {}
-                    try { if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('auth-success', { email: emailAddr }); } catch (_) {}
-                    logEvent('info', 'Authenticated and token stored', { email: emailAddr });
-                } catch (_) {}
-            } catch (_) {}
-        })();
+        // Get user profile for this tab
+        let emailAddr = 'authenticated';
+        try {
+            const gmailService = getGmailServiceForTab(tabId);
+            if (gmailService) {
+                const p = await Promise.race([
+                    gmailService.users.getProfile({ userId: 'me' }),
+                    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+                ]);
+                if (p && p.data && p.data.emailAddress) emailAddr = p.data.emailAddress;
+                saveAccountEntryForTab(tabId, emailAddr, norm, token);
+            }
+        } catch (error) {
+            console.error(`❌ Failed to get profile for tab ${tabId}:`, error);
+        }
         
-        // Return immediately
-        return { success: true, userEmail: 'authenticated' };
+        // Save tab-specific settings
+        try { 
+            store.set(`app-settings_${tabId}`, { isAuthenticated: true, currentAccount: emailAddr }); 
+        } catch(_) {}
+        
+        // Send success message for this specific tab
+        try { 
+            if (mainWindow && mainWindow.webContents) {
+                mainWindow.webContents.send('auth-success', { email: emailAddr, tabId: tabId });
+            }
+        } catch (_) {}
+        
+        logEvent('info', `Authentication successful for tab ${tabId}`, { email: emailAddr, tabId: tabId });
+        
+        return { success: true, userEmail: emailAddr, message: 'Authentication successful', tabId: tabId };
+        
 	} catch (error) {
-		console.error('Authentication error:', error);
-		logEvent('error', 'Authentication error', { error: error.message });
-		// Authentication error logged
-		// If token invalid for this client (401/unauthorized_client), purge and ask user to try again
-		if (/unauthorized_client|invalid_grant|invalid_client/i.test(error.message)) {
-			try { store.delete('googleToken'); } catch (_) {}
-		}
+		console.error(`❌ Authentication failed for tab ${tabId}:`, error);
+		logEvent('error', `Authentication failed for tab ${tabId}`, { error: error.message, tabId: tabId });
 		
-		// Provide more helpful error messages for desktop apps
-		let errorMessage = error.message;
-		if (error.message.includes('unauthorized_client')) {
-			errorMessage = 'Unauthorized client. Please check your Google OAuth credentials. Make sure you downloaded the credentials for a "Desktop application" type from Google Cloud Console.';
-		} else if (error.message.includes('invalid_client')) {
-			errorMessage = 'Invalid client. Please check your client ID and client secret in the credentials file.';
-		} else if (error.message.includes('access_denied')) {
-			errorMessage = 'Access denied. Please make sure you have enabled the required APIs (Gmail API and Google Sheets API) in your Google Cloud project.';
-		} else if (error.message.includes('redirect_uri_mismatch')) {
-			errorMessage = 'Redirect URI mismatch. For desktop apps, this should be handled automatically. Please try updating your credentials.';
-		}
+		// Send error message for this specific tab
+		try { 
+			if (mainWindow && mainWindow.webContents) {
+				mainWindow.webContents.send('auth-error', { error: error.message, tabId: tabId });
+			}
+		} catch (_) {}
 		
-		return { success: false, error: errorMessage };
+		return { success: false, error: error.message, tabId: tabId };
 	}
 }
 

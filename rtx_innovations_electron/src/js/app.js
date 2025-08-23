@@ -1065,11 +1065,48 @@ class RTXApp {
             // React to auth-success from main
             if (window.electronAPI.onAuthSuccess) {
                 window.electronAPI.onAuthSuccess((data) => {
+                    // Handle tab-specific authentication
+                    const tabId = data.tabId || 'main';
+                    console.log(`🔐 Auth success for tab: ${tabId}, email: ${data.email}`);
+                    
+                    // Update authentication state for this specific tab
+                    if (this.tabs.has(tabId)) {
+                        const tab = this.tabs.get(tabId);
+                        tab.isAuthenticated = true;
+                        tab.currentAccount = data.email;
+                        tab.credentials = this.currentCredentials;
+                        
+                        // Update tab UI to show authenticated state
+                        this.updateTabAuthenticationState(tabId, true, data.email);
+                    }
+                    
+                    // If this is the main tab, update global state
+                    if (tabId === 'main') {
+                        this.isAuthenticated = true;
+                        this.selectedFrom = data.email;
+                        this.onAuthenticationSuccess(data.email || 'authenticated');
+                    }
+                    
                     // Always dismiss any loader and close modal on auth-success
                     this.hideLoading();
                     const modal = document.getElementById('loginModal');
                     if (modal) modal.style.display = 'none';
-                    this.onAuthenticationSuccess(data?.email || 'authenticated');
+                });
+            }
+
+            // React to auth-error from main
+            if (window.electronAPI.onAuthError) {
+                window.electronAPI.onAuthError((data) => {
+                    const tabId = data.tabId || 'main';
+                    console.log(`❌ Auth error for tab: ${tabId}, error: ${data.error}`);
+                    
+                    // Show error for this specific tab
+                    this.showError(`Authentication failed for tab ${tabId}: ${data.error}`);
+                    
+                    // Hide loading and close modal
+                    this.hideLoading();
+                    const modal = document.getElementById('loginModal');
+                    if (modal) modal.style.display = 'none';
                 });
             }
 
@@ -5345,6 +5382,26 @@ class RTXApp {
             console.error('❌ Error handling credentials upload from modal:', error);
             this.showError('Failed to process credentials: ' + error.message);
             this.hideLoading();
+        }
+    }
+    
+    // Update tab authentication state in UI
+    updateTabAuthenticationState(tabId, isAuthenticated, email) {
+        // Update tab authentication state in UI
+        const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
+        if (tabElement) {
+            const authIndicator = tabElement.querySelector('.tab-auth-indicator');
+            if (authIndicator) {
+                authIndicator.textContent = isAuthenticated ? `✅ ${email}` : '❌ Not authenticated';
+                authIndicator.className = `tab-auth-indicator ${isAuthenticated ? 'authenticated' : 'not-authenticated'}`;
+            }
+        }
+        
+        // Also update the tab object in memory
+        if (this.tabs.has(tabId)) {
+            const tab = this.tabs.get(tabId);
+            tab.isAuthenticated = isAuthenticated;
+            tab.currentAccount = email;
         }
     }
 }
