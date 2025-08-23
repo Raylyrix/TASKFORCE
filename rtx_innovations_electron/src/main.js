@@ -34,7 +34,7 @@ let mainWindow = null;
 
 // Embedded default OAuth credentials (obfuscated pieces)
 function getEmbeddedDefaultCredentials() {
-    // Use the exact credentials provided by the user
+    // Use the exact credentials provided by the user, but with port 8080 to avoid privileged port issues
     const id = ['817286133901-77vi2ruk7k8etatv2hfeeshaqmc85e5h','.apps.googleusercontent.com'].join('');
     const secret = ['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'].join('');
     return {
@@ -45,7 +45,7 @@ function getEmbeddedDefaultCredentials() {
             token_uri: 'https://oauth2.googleapis.com/token',
             auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
             client_secret: secret,
-            redirect_uris: ['http://localhost:8080']
+            redirect_uris: ['http://localhost']
         }
     };
 }
@@ -474,9 +474,9 @@ function normalizeCredentials(raw) {
 }
 
 function buildOAuthClient(norm, redirectUriOverride) {
-	// For desktop apps, Google automatically handles redirect URIs
-	// Use the redirect URI from credentials or default to localhost
-	const redirect = redirectUriOverride || norm.redirect_uri || 'http://localhost';
+	// For desktop apps, use the exact redirect URI from credentials or a specific override
+	// If no redirect URI is specified, use localhost with port 8080
+	const redirect = redirectUriOverride || norm.redirect_uri || 'http://localhost:8080';
 	return new google.auth.OAuth2(norm.client_id, norm.client_secret, redirect);
 }
 
@@ -511,26 +511,57 @@ async function ensureServices() {
 	if (!sheetsService) sheetsService = google.sheets({ version: 'v4', auth: oauth2Client });
 }
 
+// Store for tab-specific OAuth clients and tokens
+const tabOAuthClients = new Map();
+const tabGmailServices = new Map();
+const tabSheetsServices = new Map();
+
 async function ensureServicesForTab(tabId, norm, token) {
 	const tabOAuthClient = buildOAuthClient(norm);
 	tabOAuthClient.setCredentials(token);
 	
-	// Clear any existing services for this tab to force re-auth if token changed
-	const tabGmailServiceKey = `gmailService_${tabId}`;
-	const tabSheetsServiceKey = `sheetsService_${tabId}`;
-	store.delete(tabGmailServiceKey);
-	store.delete(tabSheetsServiceKey);
-
-	store.set(tabGmailServiceKey, google.gmail({ version: 'v1', auth: tabOAuthClient }));
-	store.set(tabSheetsServiceKey, google.sheets({ version: 'v4', auth: tabOAuthClient }));
+	// Store the OAuth client and create services
+	tabOAuthClients.set(tabId, tabOAuthClient);
+	tabGmailServices.set(tabId, google.gmail({ version: 'v1', auth: tabOAuthClient }));
+	tabSheetsServices.set(tabId, google.sheets({ version: 'v4', auth: tabOAuthClient }));
+	
+	// Also store credentials for persistence
+	store.set(`googleCreds_${tabId}`, norm);
+	store.set(`googleToken_${tabId}`, token);
 }
 
 function getGmailServiceForTab(tabId) {
-	return store.get(`gmailService_${tabId}`);
+	let service = tabGmailServices.get(tabId);
+	if (!service) {
+		// Try to recreate service from stored credentials
+		const norm = store.get(`googleCreds_${tabId}`);
+		const token = store.get(`googleToken_${tabId}`);
+		if (norm && token) {
+			const tabOAuthClient = buildOAuthClient(norm);
+			tabOAuthClient.setCredentials(token);
+			service = google.gmail({ version: 'v1', auth: tabOAuthClient });
+			tabGmailServices.set(tabId, service);
+			tabOAuthClients.set(tabId, tabOAuthClient);
+		}
+	}
+	return service;
 }
 
 function getSheetsServiceForTab(tabId) {
-	return store.get(`sheetsService_${tabId}`);
+	let service = tabSheetsServices.get(tabId);
+	if (!service) {
+		// Try to recreate service from stored credentials
+		const norm = store.get(`googleCreds_${tabId}`);
+		const token = store.get(`googleToken_${tabId}`);
+		if (norm && token) {
+			const tabOAuthClient = buildOAuthClient(norm);
+			tabOAuthClient.setCredentials(token);
+			service = google.sheets({ version: 'v4', auth: tabOAuthClient });
+			tabSheetsServices.set(tabId, service);
+			tabOAuthClients.set(tabId, tabOAuthClient);
+		}
+	}
+	return service;
 }
 
 // Google API Integration
@@ -686,8 +717,9 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 				// Try to bind; if privileged or fails, fall back to random port and alternate host
 				const tryListen = (h, p) => server.listen(p, h, async () => {
 					try {
-						// Build OAuth client with the exact redirect URI from credentials
-						const tabOAuthClient = buildOAuthClient(norm);
+						// Build OAuth client with the exact redirect URI that matches the server
+						const serverRedirectUri = `http://${h}:${p}${pathName}`;
+						const tabOAuthClient = buildOAuthClient(norm, serverRedirectUri);
 						const authUrl = tabOAuthClient.generateAuthUrl({ 
 							access_type: 'offline', 
 							scope: SCOPES, 
@@ -729,7 +761,8 @@ async function authenticateGoogle(credentialsData, tabId = 'main') {
 				const pathName = parsed.pathname || '/';
 				startServer(host, port, pathName);
 			} else {
-				// For embedded credentials, use port 8080 to match redirect_uri
+				// For embedded credentials, use port 8080 (non-privileged)
+				// Note: Google OAuth may be flexible about localhost port matching
 				const host = 'localhost';
 				const port = 8080;
 				const pathName = '/';

@@ -817,15 +817,13 @@
 						<div class="tab-header">
 							<h2 class="tab-title">Email Campaign Manager</h2>
 							<div class="tab-actions">
-								<button class="btn btn-secondary" id="importSheetBtn1"><i class="fas fa-file-import"></i>Import Spreadsheet</button>
 								<button class="btn btn-secondary" id="togglePreviewBtn1"><i class="fas fa-table"></i>Toggle Data Preview</button>
 								<button class="btn btn-secondary" id="logsBtn1"><i class="fas fa-list"></i>Logs</button>
 							</div>
 						</div>
 					<h2 style="margin-bottom: 16px; color: #1d1d1f;">Email Campaign Manager</h2>
 					<div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-						<!-- These buttons now live in the top bar, keeping here for keyboard access if needed -->
-						<button class="btn btn-secondary" id="importSheetBtn" style="display:none;"><i class="fas fa-file-import"></i>Import Spreadsheet</button>
+						<!-- Import functionality is available in the top toolbar -->
 						<button class="btn btn-secondary" id="togglePreviewBtn" style="display:none;"><i class="fas fa-table"></i>Toggle Data Preview</button>
 						<button class="btn btn-secondary" id="logsBtn" style="display:none;"><i class="fas fa-list"></i>Logs</button>
             </div>
@@ -851,11 +849,8 @@
 						<h3 style="margin-bottom: 10px;"><i class="fas fa-shield-alt"></i> Google Authentication</h3>
 						<p style="margin-bottom: 12px; color: #666;">Connect your Google account to access Gmail and Google Sheets:</p>
 						<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-							<button id="googleLoginBtn" class="btn btn-primary">
-								<i class="fab fa-google"></i> Sign in with Google
-							</button>
 							<div style="display: flex; align-items: center; gap: 8px;">
-								<span style="color: #666;">or</span>
+								<span style="color: #666;">Use the Sign In button in the top toolbar</span>
 								<div style="display: flex; flex-direction: column; gap: 4px;">
 									<input type="file" id="credentialsFile" accept=".json" style="display: none;">
 									<button id="uploadCredentialsBtn" class="btn btn-secondary">
