@@ -49,11 +49,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     useAccount: (email) => wrapInvoke('accounts-use', email),
 
     // Auth (OAuth)
-    authenticateGoogle: (credentials, tabId) => wrapInvoke('authenticateGoogle', credentials, tabId),
+    authenticateGoogle: (credentials, tabId) => wrapInvoke('authenticate-google', tabId),
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),
-    getCurrentAuth: () => wrapInvoke('auth-current-user'),
-    logout: () => wrapInvoke('auth-logout'),
+    getCurrentAuth: (tabId) => wrapInvoke('get-current-auth', tabId),
+    logout: (tabId) => wrapInvoke('logout', tabId),
 
     // SMTP/App Password mode
     smtpSaveCreds: ({ email, appPassword }) => wrapInvoke('smtp-save-creds', { email, appPassword }),
