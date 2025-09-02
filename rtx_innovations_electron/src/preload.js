@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Logs (telemetry disabled)
     appendLog: (payload) => wrapInvoke('app-log-append', payload),
     readSessionLog: () => wrapInvoke('app-log-read'),
+    clearSessionLog: () => wrapInvoke('app-log-clear'),
 
     // Store
     storeGet: (key) => wrapInvoke('storeGet', key),
@@ -48,6 +49,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Auth (OAuth)
     authenticateGoogle: (credentials) => wrapInvoke('authenticateGoogle', credentials),
+    authenticateGoogleWithTab: (credentials, tabId) => wrapInvoke('authenticateGoogleWithTab', credentials, tabId),
+    sendEmailWithTab: (emailData, tabId) => wrapInvoke('sendEmailWithTab', emailData, tabId),
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),
     getCurrentAuth: () => wrapInvoke('auth-current-user'),

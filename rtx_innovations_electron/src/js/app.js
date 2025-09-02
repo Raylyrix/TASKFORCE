@@ -22,6 +22,7 @@ class RTXApp {
         this.selectedSheetId = null;
         this.selectedSheetTitle = null;
         this.templates = [];
+        this.currentTabId = null;
         this.init();
     }
 
@@ -648,14 +649,25 @@ class RTXApp {
         try {
             console.log('Authenticating with credentials...');
             
-            // Use Electron's Google auth
-            if (window.electronAPI && window.electronAPI.authenticateGoogle) {
+            // Use tab-based authentication if tab manager is available
+            if (window.tabManager && this.currentTabId) {
+                const result = await window.tabManager.authenticateTab(this.currentTabId, credentials);
+                if (result.success) {
+                    this.onAuthenticationSuccess(result.userEmail || 'authenticated');
+                    this.initializeServices(credentials)
+                        .then(() => console.log('Services ready'))
+                        .catch(err => {
+                            console.error('Service init failed:', err);
+                            this.showError('Connected, but failed to initialize services: ' + err.message);
+                        });
+                } else {
+                    throw new Error(result.error || 'Authentication failed');
+                }
+            } else if (window.electronAPI && window.electronAPI.authenticateGoogle) {
+                // Fallback to original authentication
                 const result = await window.electronAPI.authenticateGoogle(credentials);
                 if (result.success) {
-                    // Immediately update UI and close spinner/modal
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
-
-                    // Initialize services in the background (non-blocking)
                     this.initializeServices(credentials)
                         .then(() => console.log('Services ready'))
                         .catch(err => {
@@ -674,7 +686,6 @@ class RTXApp {
             this.showError(error.message || 'Authentication failed');
             throw error;
         } finally {
-            // Ensure overlay never stays stuck
             this.hideLoading();
         }
     }
@@ -1002,14 +1013,22 @@ class RTXApp {
                 finalHtml = `<div>${htmlContent}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
             }
             
-            const result = await window.electronAPI.sendTestEmail({
+            const emailData = {
                 to: testEmail,
                 subject: campaignData.subject,
                 content: finalContent,
                 html: finalHtml,
                 from,
                 attachmentsPaths: this.attachmentsPaths
-            });
+            };
+            
+            let result;
+            // Use tab-based sending if available
+            if (window.tabManager && this.currentTabId) {
+                result = await window.tabManager.sendEmailFromTab(this.currentTabId, emailData);
+            } else {
+                result = await window.electronAPI.sendTestEmail(emailData);
+            }
             if (result.success) this.showSuccess('Test email sent successfully!'); else throw new Error(result.error || 'Failed to send test email');
         } catch (error) {
             this.hideLoading();
@@ -1084,16 +1103,29 @@ class RTXApp {
             if (!data) return;
             const when = document.getElementById('scheduleDateTime')?.value;
             if (!when) { this.showError('Pick date & time'); return; }
+            
+            // Get HTML content from editor
+            const htmlContent = this.getEditorHtml({});
+            const signatureHtml = this.gmailSignature || '';
+            
+            // Combine content and signature with proper HTML structure
+            let finalHtml = htmlContent;
+            if (signatureHtml && data.useSig) {
+                finalHtml = `<div>${htmlContent}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
+            }
+            
             const params = {
                 startAt: when,
                 sheetId: this.selectedSheetId,
                 sheetTitle: this.selectedSheetTitle,
                 subject: data.subject,
                 content: data.content,
+                html: finalHtml, // Pass HTML content to scheduler
                 from: this.selectedFrom || undefined,
                 attachmentsPaths: this.attachmentsPaths,
                 delaySeconds: parseInt(document.getElementById('emailDelay')?.value) || 5,
-                useSignature: !!data.useSig
+                useSignature: !!data.useSig,
+                tabId: this.currentTabId // Pass current tab ID for tab-based scheduling
             };
             const res = await window.electronAPI.scheduleOneTime(params);
             if (res?.id) {

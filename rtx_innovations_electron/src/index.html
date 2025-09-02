@@ -56,6 +56,93 @@
             overflow-y: auto;
         }
         
+        /* Tab Styles */
+        .tab-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e7;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+        
+        .tab-list {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+        
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f5f5f7;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 120px;
+            max-width: 200px;
+            position: relative;
+        }
+        
+        .tab:hover {
+            background: #e8e8ed;
+        }
+        
+        .tab.active {
+            background: #ffffff;
+            border-bottom: 1px solid #ffffff;
+            z-index: 1;
+        }
+        
+        .tab-email {
+            font-size: 12px;
+            color: #8E8E93;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .tab-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #8E8E93;
+        }
+        
+        .tab-status.authenticated {
+            background: #34C759;
+        }
+        
+        .tab-status.authenticating {
+            background: #FF9500;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .tab-close {
+            background: none;
+            border: none;
+            color: #8E8E93;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+        
+        .tab-close:hover {
+            background: #e5e5e7;
+            color: #1d1d1f;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
         .mailer-interface {
             background: #ffffff;
             border-radius: 12px;
@@ -351,6 +438,16 @@
             </div>
             
 		<div class="main-content" style="width:100%;">
+			<!-- Tab Bar -->
+			<div class="tab-bar" style="background: #ffffff; border-bottom: 1px solid #e5e5e7; padding: 0 16px; display: flex; align-items: center; gap: 8px; min-height: 48px;">
+				<div class="tab-list" id="tabList" style="display: flex; gap: 4px; flex: 1;">
+					<!-- Tabs will be dynamically added here -->
+				</div>
+				<button class="btn btn-primary" id="newTabBtn" style="padding: 6px 12px; font-size: 12px; margin-left: auto;">
+					<i class="fas fa-plus"></i> New Tab
+				</button>
+			</div>
+			
 			<div class="content-area" style="padding:16px;">
 				<div class="mailer-interface" style="max-width:unset; width:100%;">
 					<h2 style="margin-bottom: 16px; color: #1d1d1f;">Email Campaign Manager</h2>
@@ -696,7 +793,12 @@
 		<div class="modal-content" style="max-width: 900px; width: 90%;">
 			<div class="modal-header">
 				<h3>Session Logs</h3>
-				<button class="modal-close" onclick="document.getElementById('logsModal').style.display='none'">&times;</button>
+				<div style="display: flex; gap: 8px; align-items: center;">
+					<button class="btn btn-secondary" id="clearLogsBtn" style="padding: 6px 12px; font-size: 12px;">
+						<i class="fas fa-trash"></i> Clear Logs
+					</button>
+					<button class="modal-close" onclick="document.getElementById('logsModal').style.display='none'">&times;</button>
+				</div>
                             </div>
 			<div class="modal-body">
 				<pre id="logsContent" style="white-space:pre-wrap; max-height:70vh; overflow:auto; background:#0b0b0f; color:#d7d7db; padding:16px; border-radius:8px; font-size:12px;"></pre>
@@ -905,6 +1007,20 @@
 				window.rtxApp.showError('Failed to read logs: ' + out.error);
 			}
 		});
+		
+		// Clear logs button
+		document.getElementById('clearLogsBtn')?.addEventListener('click', async () => {
+			if (confirm('Are you sure you want to clear all session logs? This action cannot be undone.')) {
+				const out = await window.electronAPI.clearSessionLog();
+				if (out.success) {
+					document.getElementById('logsContent').textContent = '';
+					window.rtxApp.showSuccess('Session logs cleared successfully');
+				} else {
+					window.rtxApp.showError('Failed to clear logs: ' + out.error);
+				}
+			}
+		});
+		
 		window.electronAPI.onAppLog?.((d) => {
 			const el = document.getElementById('logsContent');
 			if (el && document.getElementById('logsModal').style.display === 'block') {
@@ -1184,5 +1300,8 @@
 			startWordCount();
 		});
 	</script>
+	
+	<!-- Tab Management Script -->
+	<script src="js/tabs.js"></script>
 </body>
 </html> 

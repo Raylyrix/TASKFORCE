@@ -32,6 +32,9 @@ let gmailService = null;
 let sheetsService = null;
 let mainWindow = null;
 
+// Tab-based service management
+const tabServices = new Map(); // tabId -> { oauth2Client, gmailService, sheetsService, email }
+
 // Embedded default OAuth credentials (obfuscated pieces)
 function getEmbeddedDefaultCredentials() {
     const id = ['81728','6133901-77vi2r','uk7k8etatv2hfeeshaqmc85e5h','.apps.googleusercontent.com'].join('');
@@ -400,6 +403,158 @@ async function ensureServices() {
 }
 
 // Google API Integration
+// Tab-based authentication function
+async function authenticateGoogleWithTab(credentialsData, tabId) {
+	try {
+		let norm;
+		if (credentialsData && Object.keys(credentialsData || {}).length) {
+			norm = normalizeCredentials(credentialsData);
+		} else {
+			const def = (typeof loadDefaultOAuthCredentials === 'function') ? loadDefaultOAuthCredentials() : null;
+			if (!def) throw new Error('Default OAuth credentials not configured');
+			norm = normalizeCredentials(def);
+		}
+
+		// Create tab-specific OAuth client
+		const tabOAuth2Client = buildOAuthClient(norm);
+		
+		// Check for existing token for this tab
+		const existingToken = store.get(`googleToken_${tabId}`);
+		if (existingToken) {
+			tabOAuth2Client.setCredentials(existingToken);
+			
+			// Create tab services
+			const tabGmailService = google.gmail({ version: 'v1', auth: tabOAuth2Client });
+			const tabSheetsService = google.sheets({ version: 'v4', auth: tabOAuth2Client });
+			
+			// Store tab services
+			tabServices.set(tabId, {
+				oauth2Client: tabOAuth2Client,
+				gmailService: tabGmailService,
+				sheetsService: tabSheetsService,
+				email: 'authenticated'
+			});
+			
+			// Background: resolve profile
+			;(async () => {
+				try {
+					let emailAddr = 'authenticated';
+					try {
+						const p = await Promise.race([
+							tabGmailService.users.getProfile({ userId: 'me' }),
+							new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+						]);
+						if (p && p.data && p.data.emailAddress) {
+							emailAddr = p.data.emailAddress;
+							// Update tab services with actual email
+							const tabData = tabServices.get(tabId);
+							if (tabData) {
+								tabData.email = emailAddr;
+								tabServices.set(tabId, tabData);
+							}
+						}
+						logEvent('info', 'Tab authenticated and token stored', { email: emailAddr, tabId });
+					} catch (_) {}
+				} catch (_) {}
+			})();
+			
+			return { success: true, userEmail: 'authenticated' };
+		}
+
+		// Perform OAuth flow for new authentication
+		const { shell } = require('electron');
+		const token = await new Promise((resolve, reject) => {
+			let settled = false;
+			const server = http.createServer((req, res) => {
+				if (settled) return;
+				settled = true;
+				const urlParts = url.parse(req.url, true);
+				const code = urlParts.query.code;
+				if (code) {
+					res.writeHead(200, { 'Content-Type': 'text/html' });
+					res.end('<html><body><h1>Authentication successful!</h1><p>You can close this window.</p></body></html>');
+					server.close();
+					resolve(code);
+				} else {
+					res.writeHead(400, { 'Content-Type': 'text/html' });
+					res.end('<html><body><h1>Authentication failed</h1><p>Please try again.</p></body></html>');
+					server.close();
+					reject(new Error('No authorization code received'));
+				}
+			});
+			
+			server.listen(0, 'localhost', () => {
+				const port = server.address().port;
+				const authUrl = tabOAuth2Client.generateAuthUrl({
+					access_type: 'offline',
+					scope: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/spreadsheets'],
+					redirect_uri: `http://localhost:${port}`
+				});
+				shell.openExternal(authUrl);
+			});
+			
+			server.on('error', (err) => {
+				if (!settled) {
+					settled = true;
+					reject(err);
+				}
+			});
+		});
+
+		const { tokens } = await tabOAuth2Client.getToken({
+			code: token,
+			redirect_uri: `http://localhost:${port}`
+		});
+		
+		tabOAuth2Client.setCredentials(tokens);
+		
+		// Store tab-specific token
+		store.set(`googleToken_${tabId}`, tokens);
+		store.set(`googleCreds_${tabId}`, norm);
+		store.set(`googleTokenClientId_${tabId}`, norm.client_id);
+		
+		// Create tab services
+		const tabGmailService = google.gmail({ version: 'v1', auth: tabOAuth2Client });
+		const tabSheetsService = google.sheets({ version: 'v4', auth: tabOAuth2Client });
+		
+		// Store tab services
+		tabServices.set(tabId, {
+			oauth2Client: tabOAuth2Client,
+			gmailService: tabGmailService,
+			sheetsService: tabSheetsService,
+			email: 'authenticated'
+		});
+		
+		// Background: resolve profile
+		;(async () => {
+			try {
+				let emailAddr = 'authenticated';
+				try {
+					const p = await Promise.race([
+						tabGmailService.users.getProfile({ userId: 'me' }),
+						new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+					]);
+					if (p && p.data && p.data.emailAddress) {
+						emailAddr = p.data.emailAddress;
+						// Update tab services with actual email
+						const tabData = tabServices.get(tabId);
+						if (tabData) {
+							tabData.email = emailAddr;
+							tabServices.set(tabId, tabData);
+						}
+					}
+					logEvent('info', 'Tab authenticated and token stored', { email: emailAddr, tabId });
+				} catch (_) {}
+			} catch (_) {}
+		})();
+		
+		return { success: true, userEmail: 'authenticated' };
+	} catch (error) {
+		console.error('Tab authentication error:', error);
+		return { success: false, error: error.message };
+	}
+}
+
 async function authenticateGoogle(credentialsData) {
 	try {
 		let norm;
@@ -850,6 +1005,16 @@ ipcMain.handle('app-log-read', async () => {
 		return { success: true, content };
 	} catch (e) { return { success: false, error: e.message }; }
 });
+ipcMain.handle('app-log-clear', async () => {
+	try {
+		if (fs.existsSync(sessionLogFile)) {
+			fs.writeFileSync(sessionLogFile, '', 'utf8');
+		}
+		// Log the clear action
+		logEvent('info', 'Session logs cleared by user');
+		return { success: true };
+	} catch (e) { return { success: false, error: e.message }; }
+});
 
 // Auto-update wiring
 function initAutoUpdater() {
@@ -1021,6 +1186,110 @@ async function sendTestEmail(emailData) {
 	}
 }
 
+// Tab-based email sending function
+async function sendEmailWithTab(emailData, tabId) {
+	try {
+		const tabData = tabServices.get(tabId);
+		if (!tabData || !tabData.gmailService) {
+			return { success: false, error: 'Tab not authenticated' };
+		}
+		
+		logEvent('info', 'Sending email from tab (OAuth)', { to: emailData.to, attachments: (emailData.attachmentsPaths || []).length, tabId });
+		const rawStr = buildRawEmail({
+			from: emailData.from,
+			to: emailData.to,
+			subject: emailData.subject,
+			text: emailData.content,
+			html: emailData.html,
+			attachments: emailData.attachmentsPaths || []
+		});
+		const res = await tabData.gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
+		logEvent('info', 'Email sent from tab', { to: emailData.to, id: res.data.id, tabId });
+		return { success: true, messageId: res.data.id };
+	} catch (error) {
+		console.error('Tab email sending error:', error);
+		logEvent('error', 'Tab email sending error', { error: error.message, to: emailData?.to, tabId });
+		return { success: false, error: error.message };
+	}
+}
+
+// Tab-based campaign execution
+async function executeCampaignRunWithTab(params, tabId) {
+	const tabData = tabServices.get(tabId);
+	if (!tabData || !tabData.gmailService || !tabData.sheetsService) {
+		throw new Error('Tab not authenticated or services not available');
+	}
+	
+	const { sheetId, sheetTitle, subject, content, html, from, attachmentsPaths, delaySeconds, useSignature } = params;
+	const range = sheetTitle ? `${sheetTitle}!A:Z` : 'A:Z';
+	const res = await tabData.sheetsService.spreadsheets.values.get({ spreadsheetId: sheetId, range });
+	const values = res.data.values || [];
+	if (!values.length) throw new Error('No data found in sheet');
+	const headers = values[0];
+	const rows = values.slice(1);
+	const emailIdx = findEmailColumnIndex(headers);
+	if (emailIdx < 0) throw new Error('No Email column found');
+	
+	// Get signature for HTML emails
+	const signatureHtml = useSignature ? await getPrimarySignature() : '';
+	
+	for (let i = 0; i < rows.length; i++) {
+		const row = rows[i];
+		const to = row[emailIdx];
+		if (!to) continue;
+		
+		// Process content with placeholders
+		const text = renderWithRow(content, headers, row, '');
+		
+		// Process HTML content with placeholders and signature
+		let finalHtml = '';
+		if (html) {
+			// Replace placeholders in HTML content
+			let processedHtml = html;
+			headers.forEach((header, idx) => {
+				const value = row[idx] || '';
+				const placeholder = `((${header}))`;
+				processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+			});
+			
+			// Add signature if enabled
+			if (signatureHtml && useSignature) {
+				finalHtml = `<div>${processedHtml}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
+			} else {
+				finalHtml = processedHtml;
+			}
+		}
+		
+		// Add signature to text content if enabled
+		let finalText = text;
+		if (signatureHtml && useSignature) {
+			// Convert HTML signature to plain text for text version
+			const textSignature = signatureHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+			finalText = `${text}\n\n${textSignature}`;
+		}
+		
+		const rawStr = buildRawEmail({ 
+			from, 
+			to, 
+			subject, 
+			text: finalText, 
+			html: finalHtml, 
+			attachments: attachmentsPaths || [] 
+		});
+		
+		await tabData.gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
+		
+		try {
+			await updateSheetStatus(sheetId, sheetTitle || 'Sheet1', headers, i, 'SENT');
+		} catch (_) {}
+		
+		const jitter = Math.floor(Math.random() * 2000);
+		await new Promise(r => setTimeout(r, (delaySeconds || 5) * 1000 + jitter));
+	}
+	
+	logEvent('info', 'Tab campaign completed', { recipients: rows.length, tabId });
+}
+
 async function sendEmail(emailData) {
 	try {
 		if (isOAuthAvailable()) {
@@ -1077,7 +1346,7 @@ function renderWithRow(content, headers, row, signature) {
 
 async function executeCampaignRun(params) {
 	await ensureServices();
-	const { sheetId, sheetTitle, subject, content, from, attachmentsPaths, delaySeconds, useSignature } = params;
+	const { sheetId, sheetTitle, subject, content, html, from, attachmentsPaths, delaySeconds, useSignature } = params;
 	const range = sheetTitle ? `${sheetTitle}!A:Z` : 'A:Z';
 	const res = await sheetsService.spreadsheets.values.get({ spreadsheetId: sheetId, range });
 	const values = res.data.values || [];
@@ -1086,17 +1355,60 @@ async function executeCampaignRun(params) {
 	const rows = values.slice(1);
 	const emailIdx = findEmailColumnIndex(headers);
 	if (emailIdx < 0) throw new Error('No Email column found');
-	const signature = useSignature ? await getPrimarySignature() : '';
+	
+	// Get signature for HTML emails
+	const signatureHtml = useSignature ? await getPrimarySignature() : '';
+	
 	for (let i = 0; i < rows.length; i++) {
 		const row = rows[i];
 		const to = row[emailIdx];
 		if (!to) continue;
-		const text = renderWithRow(content, headers, row, signature);
-		const rawStr = buildRawEmail({ from, to, subject, text, attachments: attachmentsPaths || [] });
+		
+		// Process content with placeholders
+		const text = renderWithRow(content, headers, row, '');
+		
+		// Process HTML content with placeholders and signature
+		let finalHtml = '';
+		if (html) {
+			// Replace placeholders in HTML content
+			let processedHtml = html;
+			headers.forEach((header, idx) => {
+				const value = row[idx] || '';
+				const placeholder = `((${header}))`;
+				processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+			});
+			
+			// Add signature if enabled
+			if (signatureHtml && useSignature) {
+				finalHtml = `<div>${processedHtml}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
+			} else {
+				finalHtml = processedHtml;
+			}
+		}
+		
+		// Add signature to text content if enabled
+		let finalText = text;
+		if (signatureHtml && useSignature) {
+			// Convert HTML signature to plain text for text version
+			const textSignature = signatureHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+			finalText = `${text}\n\n${textSignature}`;
+		}
+		
+		const rawStr = buildRawEmail({ 
+			from, 
+			to, 
+			subject, 
+			text: finalText, 
+			html: finalHtml, 
+			attachments: attachmentsPaths || [] 
+		});
+		
 		await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
+		
 		try {
 			await updateSheetStatus(sheetId, sheetTitle || 'Sheet1', headers, i, 'SENT');
 		} catch (_) {}
+		
 		const jitter = Math.floor(Math.random() * 2000);
 		await new Promise(r => setTimeout(r, (delaySeconds || 5) * 1000 + jitter));
 	}
@@ -1110,7 +1422,16 @@ function scheduleOneTimeCampaign(params) {
 	const now = Date.now();
 	const ms = Math.max(0, startAt - now);
 	const timer = setTimeout(async () => {
-		try { await executeCampaignRun(params); } catch (e) { console.error('Scheduled run failed:', e); logEvent('error', 'Scheduled run failed', { error: e.message }); }
+		try { 
+			if (params.tabId) {
+				await executeCampaignRunWithTab(params, params.tabId);
+			} else {
+				await executeCampaignRun(params);
+			}
+		} catch (e) { 
+			console.error('Scheduled run failed:', e); 
+			logEvent('error', 'Scheduled run failed', { error: e.message, tabId: params.tabId }); 
+		}
 		finally { getJobsMap().delete(id); }
 	}, ms);
 	getJobsMap().set(id, { id, type: 'one-time', startAt, params, timer });
@@ -1135,6 +1456,8 @@ function cancelScheduledJob(id) {
 // IPC Handlers
 ipcMain.handle('updateClientCredentials', async (event, credentialsData) => updateClientCredentials(credentialsData));
 ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
+ipcMain.handle('authenticateGoogleWithTab', async (event, credentialsData, tabId) => authenticateGoogleWithTab(credentialsData, tabId));
+ipcMain.handle('sendEmailWithTab', async (event, emailData, tabId) => sendEmailWithTab(emailData, tabId));
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
