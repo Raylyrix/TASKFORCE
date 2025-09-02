@@ -56,6 +56,93 @@
             overflow-y: auto;
         }
         
+        /* Tab Styles */
+        .tab-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e7;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+        
+        .tab-list {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+        
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f5f5f7;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 120px;
+            max-width: 200px;
+            position: relative;
+        }
+        
+        .tab:hover {
+            background: #e8e8ed;
+        }
+        
+        .tab.active {
+            background: #ffffff;
+            border-bottom: 1px solid #ffffff;
+            z-index: 1;
+        }
+        
+        .tab-email {
+            font-size: 12px;
+            color: #8E8E93;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .tab-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #8E8E93;
+        }
+        
+        .tab-status.authenticated {
+            background: #34C759;
+        }
+        
+        .tab-status.authenticating {
+            background: #FF9500;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .tab-close {
+            background: none;
+            border: none;
+            color: #8E8E93;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+        
+        .tab-close:hover {
+            background: #e5e5e7;
+            color: #1d1d1f;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
         .mailer-interface {
             background: #ffffff;
             border-radius: 12px;
@@ -72,27 +159,26 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
+            font-weight: 600;
             color: #1d1d1f;
         }
         
         .form-group input,
-        .form-group select,
-        .form-group textarea {
+        .form-group textarea,
+        .form-group select {
             width: 100%;
             padding: 12px 16px;
-            border: 1px solid #e5e5e7;
+            border: 2px solid #e5e5e7;
             border-radius: 8px;
             font-size: 14px;
-            transition: border-color 0.2s ease;
+            transition: border-color 0.3s ease;
         }
         
         .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
+        .form-group textarea:focus,
+        .form-group select:focus {
             outline: none;
             border-color: #007AFF;
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
         }
         
         .btn {
@@ -100,13 +186,13 @@
             border: none;
             border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            text-decoration: none;
         }
         
         .btn-primary {
@@ -122,21 +208,10 @@
         .btn-secondary {
             background: #f2f2f7;
             color: #1d1d1f;
-            border: 1px solid #e5e5e7;
         }
         
         .btn-secondary:hover {
-            background: #e5e5ea;
-            border-color: #d1d1d6;
-        }
-        
-        .btn-success {
-            background: #34C759;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #28A745;
+            background: #e5e5e7;
         }
         
         .btn-danger {
@@ -145,104 +220,15 @@
         }
         
         .btn-danger:hover {
-            background: #DC3545;
+            background: #D70015;
         }
         
-        /* Toolbar button active states */
-        .toolbar-group button.active {
-            background: #007AFF !important;
-            color: white !important;
-            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
-        }
-        
-        .toolbar-group button.active:hover {
-            background: #0056CC !important;
-        }
-        
-        /* Tab styles */
-        .tab-container {
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .tab-header {
-            background: #f8f9fa;
-            border-bottom: 1px solid #e5e5e7;
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .tab-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1d1d1f;
-            margin: 0;
-        }
-        
-        .tab-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .tab-list {
-            display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e5e5e7;
-            overflow-x: auto;
-        }
-        
-        .tab-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            user-select: none;
-            position: relative;
-        }
-        
-        .tab-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .tab-item.active {
-            border-bottom-color: #007AFF;
-            background: #ffffff;
-        }
-        
-        .tab-item .tab-close {
-            margin-left: 8px;
-            padding: 2px 6px;
-            border-radius: 50%;
-            background: #e5e5e7;
-            color: #8E8E93;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .tab-item .tab-close:hover {
-            background: #ff3b30;
-            color: white;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* Status indicators */
         .status-indicator {
             width: 12px;
             height: 12px;
             border-radius: 50%;
             display: inline-block;
+            margin-right: 8px;
         }
         
         .status-indicator.connected {
@@ -251,77 +237,6 @@
         
         .status-indicator.disconnected {
             background: #FF3B30;
-        }
-        
-        .status-indicator.connecting {
-            background: #FF9500;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        /* Table styles */
-        .table-container {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #e5e5e7;
-            border-radius: 8px;
-        }
-        
-        .table-container table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .table-container th,
-        .table-container td {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #e5e5e7;
-        }
-        
-        .table-container th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #1d1d1f;
-        }
-        
-        .table-container tr:hover {
-            background: #f8f9fa;
-        }
-        
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                position: fixed;
-                top: 0;
-                left: -100%;
-                transition: left 0.3s ease;
-                z-index: 1000;
-            }
-            
-            .sidebar.open {
-                left: 0;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .mailer-interface {
-                padding: 20px;
-                margin: 0;
-            }
-            
-            .btn {
-                padding: 10px 16px;
-                font-size: 13px;
-            }
         }
         
         .loading-overlay {
@@ -369,41 +284,31 @@
             background: #FF3B30;
         }
         
-        .notification-warning {
-            background: #FF9500;
-            border-left: 4px solid #fd7e14;
-        }
-        
-        .notification-info {
-            background: #007AFF;
-            border-left: 4px solid #0056CC;
-        }
-        
-        .notification:hover {
-            transform: translateX(0);
-        }
-        
-        .notification .close-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            opacity: 0.8;
-        }
-        
-        .notification .close-btn:hover {
-            opacity: 1;
-        }
-        
         .data-preview {
             margin-top: 20px;
             border: 1px solid #e5e5e7;
             border-radius: 8px;
             overflow: hidden;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e5e7;
+        }
+        
+        th {
+            background: #f2f2f7;
+            font-weight: 600;
         }
         
         .campaigns-grid {
@@ -490,73 +395,6 @@
             cursor: pointer;
             color: #8E8E93;
         }
-
-        /* Authentication styles */
-        .auth-options {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .auth-option {
-            text-align: center;
-            padding: 24px;
-            border: 2px solid #f2f2f7;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .auth-option:hover {
-            border-color: #007AFF;
-            background: #f8f9fa;
-        }
-
-        .auth-option h4 {
-            margin: 0 0 12px 0;
-            color: #1d1d1f;
-            font-size: 18px;
-        }
-
-        .auth-option p {
-            margin: 0 0 20px 0;
-            color: #666;
-            line-height: 1.5;
-        }
-
-        .auth-divider {
-            position: relative;
-            text-align: center;
-            margin: 16px 0;
-        }
-
-        .auth-divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #e5e5e7;
-        }
-
-        .auth-divider span {
-            background: white;
-            padding: 0 16px;
-            color: #8E8E93;
-            font-size: 14px;
-        }
-
-        .credentials-upload {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-
-        #selectedFileName {
-            min-height: 20px;
-            font-style: italic;
-        }
         
         .empty-state {
             text-align: center;
@@ -568,305 +406,10 @@
             font-size: 48px;
             margin-bottom: 20px;
         }
-        
-        /* Tab Management Styles */
-        .tab-container {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e5e7;
-            padding: 0 30px;
-        }
-        
-        .tab-list {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            border-bottom: 1px solid #e5e5e7;
-        }
-        
-        .tab-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            user-select: none;
-            position: relative;
-        }
-        
-        .tab-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .tab-item.active {
-            border-bottom-color: #007AFF;
-            background: #ffffff;
-        }
-        
-        .tab-item .tab-close {
-            margin-left: 8px;
-            padding: 2px 6px;
-            border-radius: 50%;
-            background: #e5e5e7;
-            color: #8E8E93;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .tab-item .tab-close:hover {
-            background: #ff3b30;
-            color: white;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .add-tab-btn {
-            padding: 12px 16px;
-            background: #f2f2f7;
-            border: 1px dashed #c7c7cc;
-            border-radius: 8px;
-            color: #8E8E93;
-            cursor: pointer;
-            margin: 8px 0;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .add-tab-btn:hover {
-            background: #e5e5e7;
-            border-color: #8E8E93;
-            color: #1d1d1f;
-        }
-        
-        .tab-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        
-        .tab-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1d1d1f;
-        }
-        
-        .tab-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        /* Dark Theme Support */
-        body.theme-dark {
-            background: #1d1d1f;
-            color: #f5f5f7;
-        }
-        
-        body.theme-dark .header,
-        body.theme-dark .tab-container {
-            background: #2c2c2e;
-            border-color: #3a3a3c;
-        }
-        
-        body.theme-dark .mailer-interface {
-            background: #2c2c2e;
-            color: #f5f5f7;
-        }
-        
-        body.theme-dark .form-group label {
-            color: #f5f5f7;
-        }
-        
-        body.theme-dark .form-group input,
-        body.theme-dark .form-group textarea,
-        body.theme-dark .form-group select {
-            background: #3a3a3c;
-            border-color: #48484a;
-            color: #f5f5f7;
-        }
-        
-        body.theme-dark .btn-secondary {
-            background: #3a3a3c;
-            color: #f5f5f7;
-            border-color: #48484a;
-        }
-        
-        body.theme-dark .btn-secondary:hover {
-            background: #48484a;
-        }
-        
-        /* Enhanced Notifications */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            z-index: 10000;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            max-width: 400px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .notification.show {
-            transform: translateX(0);
-        }
-        
-        .notification-success {
-            background: #34C759;
-            border-left: 4px solid #28a745;
-        }
-        
-        .notification-error {
-            background: #FF3B30;
-            border-left: 4px solid #dc3545;
-        }
-        
-        .notification-warning {
-            background: #FF9500;
-            border-left: 4px solid #fd7e14;
-        }
-        
-        .notification-info {
-            background: #007AFF;
-            border-left: 4px solid #0056CC;
-        }
-        
-        .notification:hover {
-            transform: translateX(0);
-        }
-        
-        .notification .close-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            opacity: 0.8;
-        }
-        
-        .notification .close-btn:hover {
-            opacity: 1;
-        }
-        
-        /* Tab Styles */
-        .tab-bar {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e5e7;
-            padding: 0 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-height: 48px;
-        }
-        
-        .tab-list {
-            display: flex;
-            gap: 4px;
-            flex: 1;
-        }
-        
-        .tab {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: #f5f5f7;
-            border: 1px solid #e5e5e7;
-            border-radius: 8px 8px 0 0;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            min-width: 120px;
-            max-width: 200px;
-            position: relative;
-        }
-        
-        .tab:hover {
-            background: #e8e8ed;
-        }
-        
-        .tab.active {
-            background: #ffffff;
-            border-bottom: 1px solid #ffffff;
-            z-index: 1;
-        }
-        
-        .tab-status {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #d1d1d6;
-        }
-        
-        .tab-status.authenticated {
-            background: #34c759;
-        }
-        
-        .tab-status.authenticating {
-            background: #ff9500;
-            animation: pulse 1s infinite;
-        }
-        
-        .tab-email {
-            flex: 1;
-            font-size: 12px;
-            color: #1d1d1f;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .tab-close {
-            background: none;
-            border: none;
-            color: #8e8e93;
-            cursor: pointer;
-            font-size: 16px;
-            padding: 0;
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .tab-close:hover {
-            color: #ff3b30;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
     </style>
 </head>
 <body>
 	<div class="app-container" style="display:block; height:auto; min-height:100vh;">
-				<!-- Tab Management - Above Navbar -->
-		<!-- Tab Bar -->
-		<div class="tab-bar" style="background: #ffffff; border-bottom: 1px solid #e5e5e7; padding: 0 16px; display: flex; align-items: center; gap: 8px; min-height: 48px;">
-			<div class="tab-list" id="tabList" style="display: flex; gap: 4px; flex: 1;">
-				<!-- Tabs will be dynamically added here -->
-			</div>
-			<button class="btn btn-primary" id="newTabBtn" style="padding: 6px 12px; font-size: 12px; margin-left: auto;">
-				<i class="fas fa-plus"></i> New Tab
-			</button>
-		</div>
-		
 		<!-- Top Navigation Bar -->
 		<div class="header" style="position: sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #e5e5e7; display:flex; align-items:center; justify-content:space-between; padding:10px 16px;">
 			<div style="display:flex; align-items:center; gap:12px;">
@@ -895,20 +438,22 @@
             </div>
             
 		<div class="main-content" style="width:100%;">
+			<!-- Tab Bar -->
+			<div class="tab-bar" style="background: #ffffff; border-bottom: 1px solid #e5e5e7; padding: 0 16px; display: flex; align-items: center; gap: 8px; min-height: 48px;">
+				<div class="tab-list" id="tabList" style="display: flex; gap: 4px; flex: 1;">
+					<!-- Tabs will be dynamically added here -->
+				</div>
+				<button class="btn btn-primary" id="newTabBtn" style="padding: 6px 12px; font-size: 12px; margin-left: auto;">
+					<i class="fas fa-plus"></i> New Tab
+				</button>
+			</div>
+			
 			<div class="content-area" style="padding:16px;">
-				<!-- Tab 1 Content -->
-				<div id="tab1" class="tab-content active">
 				<div class="mailer-interface" style="max-width:unset; width:100%;">
-						<div class="tab-header">
-							<h2 class="tab-title">Email Campaign Manager</h2>
-							<div class="tab-actions">
-								<button class="btn btn-secondary" id="togglePreviewBtn1"><i class="fas fa-table"></i>Toggle Data Preview</button>
-								<button class="btn btn-secondary" id="logsBtn1"><i class="fas fa-list"></i>Logs</button>
-							</div>
-						</div>
 					<h2 style="margin-bottom: 16px; color: #1d1d1f;">Email Campaign Manager</h2>
 					<div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-						<!-- Import functionality is available in the top toolbar -->
+						<!-- These buttons now live in the top bar, keeping here for keyboard access if needed -->
+						<button class="btn btn-secondary" id="importSheetBtn" style="display:none;"><i class="fas fa-file-import"></i>Import Spreadsheet</button>
 						<button class="btn btn-secondary" id="togglePreviewBtn" style="display:none;"><i class="fas fa-table"></i>Toggle Data Preview</button>
 						<button class="btn btn-secondary" id="logsBtn" style="display:none;"><i class="fas fa-list"></i>Logs</button>
             </div>
@@ -925,24 +470,6 @@
 							<div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
 								<input type="text" id="fromOverride" placeholder="Or type a custom From email" style="flex:1;">
 								<small style="color:#8E8E93;">Use a verified alias for best deliverability</small>
-                    </div>
-                </div>
-            </div>
-
-					<!-- Google OAuth Authentication -->
-					<div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
-						<h3 style="margin-bottom: 10px;"><i class="fas fa-shield-alt"></i> Google Authentication</h3>
-						<p style="margin-bottom: 12px; color: #666;">Connect your Google account to access Gmail and Google Sheets:</p>
-						<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-							<div style="display: flex; align-items: center; gap: 8px;">
-								<span style="color: #666;">Use the Sign In button in the top toolbar</span>
-								<div style="display: flex; flex-direction: column; gap: 4px;">
-									<input type="file" id="credentialsFile" accept=".json" style="display: none;">
-									<button id="uploadCredentialsBtn" class="btn btn-secondary">
-										<i class="fas fa-upload"></i> Upload Credentials
-									</button>
-									<small style="color: #8E8E93; font-size: 11px;">Upload your Google API credentials JSON file</small>
-								</div>
                     </div>
                 </div>
             </div>
@@ -973,17 +500,12 @@
 							<input type="text" id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/d/...">
                             </div>
 						<div id="sheetTabsContainer" class="form-group" style="margin-bottom:10px;"></div>
-						<div style="display:flex; gap:8px; flex-wrap:wrap;">
-							<button class="btn btn-primary" id="connectSheetsBtn2">
-								<i class="fas fa-link"></i>Connect Sheets
-							</button>
-							<button class="btn btn-secondary" id="refreshSheetsBtn" disabled>
-								<i class="fas fa-sync"></i>Refresh Data
-							</button>
-							<button class="btn btn-secondary" id="importLocalSheetBtn">
-								<i class="fas fa-file-import"></i>Import Local File
-							</button>
-						</div>
+						<button class="btn btn-primary" id="connectSheetsBtn2">
+							<i class="fas fa-link"></i>Connect Sheets
+						</button>
+						<button class="btn btn-secondary" id="refreshSheetsBtn" disabled>
+							<i class="fas fa-sync"></i>Refresh Data
+						</button>
 						<div id="sheetsData" style="display: none; margin-top: 12px;"></div>
                         </div>
                         
@@ -994,31 +516,9 @@
 							<label>Campaign Name</label>
 							<input type="text" id="campaignName" placeholder="Enter campaign name">
                             </div>
-							
-						<!-- Email Preview Section -->
-						<div class="form-group" style="margin-bottom: 20px;">
-							<label style="display: flex; align-items: center; justify-content: space-between;">
-								<span>Email Preview</span>
-								<button type="button" class="btn btn-secondary" id="refreshPreviewBtn" style="font-size: 12px;">
-									<i class="fas fa-sync-alt"></i> Refresh Preview
-								</button>
-							</label>
-							<div id="emailPreview" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 16px; background: #f8f9fa; min-height: 200px; max-height: 400px; overflow-y: auto;">
-								<div style="text-align: center; color: #8E8E93; padding: 40px 20px;">
-									<i class="fas fa-eye" style="font-size: 32px; margin-bottom: 16px; display: block;"></i>
-									<p>Preview will appear here after you fill in the campaign details</p>
-									<small>Click "Refresh Preview" to update the preview with current content</small>
-								</div>
-							</div>
-                            </div>
 						<div class="form-group">
 							<label>Subject Line</label>
-							<div style="display: flex; gap: 8px; align-items: center;">
-								<input type="text" id="campaignSubject" placeholder="Enter email subject" style="flex: 1;">
-								<button type="button" class="btn btn-secondary" id="subjectPlaceholdersBtn" style="white-space: nowrap;">
-									<i class="fas fa-tags"></i> Placeholders
-								</button>
-							</div>
+							<input type="text" id="campaignSubject" placeholder="Enter email subject">
                             </div>
 						<div class="form-group">
 							<label>From Name</label>
@@ -1029,6 +529,8 @@
 								<span>Email Content</span>
 								<span style="font-size:12px; color:#8E8E93;">Click any column chip or cell to insert placeholders</span>
 							</label>
+                            <div class="form-group">
+                            <label>Email Content</label>
                             <div id="emailEditorContainer" style="border:1px solid #e1e5e9; border-top:none; border-radius:0 0 12px 12px; min-height:400px; background:#fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow:hidden;">
                                 <!-- Editor Header Bar -->
                                 <div style="background:#f8f9fa; border-bottom:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; gap:12px; font-size:13px; color:#5f6368;">
@@ -1059,7 +561,7 @@
                                             <option value="Georgia, serif">Georgia</option>
                                             <option value="Verdana, sans-serif">Verdana</option>
                                             <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-									</select>
+                                        </select>
                                         <select id="fontSize" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:60px;">
                                             <option value="1">8pt</option>
                                             <option value="2">10pt</option>
@@ -1068,19 +570,19 @@
                                             <option value="5">16pt</option>
                                             <option value="6">18pt</option>
                                             <option value="7">24pt</option>
-									</select>
-							</div>
-
-                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
-                                        <button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="formatText('bold')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
-                                        <button type="button" id="italicBtn" title="Italic (Ctrl+I)" onclick="formatText('italic')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-style:italic; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">I</button>
-                                        <button type="button" id="underlineBtn" title="Underline (Ctrl+U)" onclick="formatText('underline')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:underline; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">U</button>
+                                        </select>
                                     </div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
-                                        <button type="button" id="strikeBtn" title="Strikethrough" onclick="formatText('strikeThrough')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:line-through; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">S</button>
+                                        <button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="execCommand('bold')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
+                                        <button type="button" id="italicBtn" title="Italic (Ctrl+I)" onclick="execCommand('italic')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-style:italic; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">I</button>
+                                        <button type="button" id="underlineBtn" title="Underline (Ctrl+U)" onclick="execCommand('underline')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:underline; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">U</button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="strikeBtn" title="Strikethrough" onclick="execCommand('strikeThrough')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:line-through; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">S</button>
                                         <button type="button" id="superscriptBtn" title="Superscript" onclick="execCommand('superscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X²</button>
-                                        <button type="button" id="subscriptBtn" title="Subscript" onclick="execCommand('subscript')" style="padding:8px; border:none; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X₂</button>
+                                        <button type="button" id="subscriptBtn" title="Subscript" onclick="execCommand('subscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X₂</button>
                                     </div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
@@ -1097,9 +599,9 @@
                                     </div>
 
                                     <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
-                                        <button type="button" id="linkBtn" title="Insert Link (Ctrl+K)" onclick="insertLink().catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
-                                        <button type="button" id="imageBtn" title="Insert Image" onclick="insertImage().catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
-                                        <button type="button" id="tableBtn" title="Insert Table" onclick="insertTable().catch(console.error)" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
+                                        <button type="button" id="linkBtn" title="Insert Link (Ctrl+K)" onclick="insertLink()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
+                                        <button type="button" id="imageBtn" title="Insert Image" onclick="insertImage()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
+                                        <button type="button" id="tableBtn" title="Insert Table" onclick="insertTable()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
                                         <button type="button" id="hrBtn" title="Insert Horizontal Rule" onclick="execCommand('insertHorizontalRule')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-minus"></i></button>
                                     </div>
 
@@ -1110,20 +612,8 @@
                                     </div>
                                 </div>
 
-                                                                 <!-- Editor Content Area -->
-                                 <div id="emailEditor" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Type @ to see available placeholders"></div>
-                                 
-                                 <!-- Placeholder Dropdown -->
-                                 <div id="placeholderDropdown" style="display:none; position:absolute; background:white; border:1px solid #e5e5e7; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); max-height:200px; overflow-y:auto; z-index:1000; min-width:200px;">
-                                     <div style="padding:8px 12px; background:#f8f9fa; border-bottom:1px solid #e5e5e7; font-weight:600; color:#1d1d1f;">
-                                         <i class="fas fa-tags"></i> Available Placeholders
-                                     </div>
-                                     <div id="placeholderList" style="padding:8px 0;">
-                                         <!-- Placeholders will be populated here -->
-                                     </div>
-                                 </div>
-
-
+                                <!-- Editor Content Area -->
+                                <div id="emailEditor" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Click any column chip or cell to insert placeholders like ((Name)), ((Company)), etc."></div>
 
                                 <!-- Editor Footer -->
                                 <div style="background:#f8f9fa; border-top:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#5f6368;">
@@ -1151,32 +641,13 @@
 							<button class="btn btn-secondary" id="previewEmailBtn"><i class="fas fa-eye"></i>Preview</button>
                             </div>
 						<div class="form-group">
-							<label style="display: flex; align-items: center; gap: 8px;">
-								<span>📎 Attachments (Required by Default)</span>
-								<label style="font-size: 12px; font-weight: normal; color: #8E8E93; margin-left: auto;">
-									<input type="checkbox" id="sendWithoutAttachments" style="margin-right: 4px;">
-									Send without attachments
-								</label>
-							</label>
-							<div id="campaignAttachments" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; background: #f8f9fa; min-height: 80px;">
-								<div style="text-align: center; color: #8E8E93;">
-									<i class="fas fa-paperclip" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
-									<p>No attachments selected</p>
-									<small style="font-size: 11px; color: #c7c7cc;">Attachments are required by default</small>
+							<label>Attachments</label>
+							<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+								<button class="btn btn-secondary" id="pickAttachmentsBtn"><i class="fas fa-paperclip"></i>Choose Files</button>
+								<button class="btn btn-danger" id="clearAttachmentsBtn"><i class="fas fa-trash"></i>Clear All</button>
+								<span id="attachmentsLabel" style="color:#8E8E93;">No files selected</span>
 							</div>
-							</div>
-							<div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
-								<button type="button" class="btn btn-primary" id="addCampaignAttachmentBtn">
-									<i class="fas fa-plus"></i> Add Attachment
-								</button>
-								<button type="button" class="btn btn-secondary" id="removeAllCampaignAttachmentsBtn">
-									<i class="fas fa-trash"></i> Remove All
-								</button>
-								<div style="margin-left: auto; font-size: 12px; color: #8E8E93;">
-									<i class="fas fa-info-circle"></i> 
-									<span id="attachmentStatus">Required</span>
-								</div>
-							</div>
+							<div id="attachmentsList" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
 						</div>
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
 							<div class="form-group">
@@ -1317,47 +788,17 @@
 			<p id="loadingMessage">Loading...</p>
                     </div>
                         </div>
-
-	<!-- Authentication Modal -->
-	<div id="authModal" class="modal">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h3><i class="fas fa-shield-alt"></i> Google Authentication</h3>
-				<button class="modal-close" onclick="document.getElementById('authModal').style.display='none'">&times;"></button>
-			</div>
-			<div class="modal-body">
-				<div class="auth-options">
-					<div class="auth-option">
-						<h4><i class="fab fa-google"></i> Sign in with Google</h4>
-						<p>Use your Google account to access Gmail and Google Sheets</p>
-						<button id="modalGoogleLoginBtn" class="btn btn-primary">
-							<i class="fab fa-google"></i> Continue with Google
-						</button>
-					</div>
-					<div class="auth-divider">
-						<span>or</span>
-					</div>
-					<div class="auth-option">
-						<h4><i class="fab fa-key"></i> Upload Credentials</h4>
-						<p>Upload your Google API credentials JSON file</p>
-						<div class="credentials-upload">
-							<input type="file" id="modalCredentialsFile" accept=".json" style="display: none;">
-							<button id="modalUploadCredentialsBtn" class="btn btn-secondary">
-								<i class="fas fa-upload"></i> Choose File
-							</button>
-							<div id="selectedFileName" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-                    </div>
-                        </div>
                         
 	<div class="modal" id="logsModal" style="display:none;">
 		<div class="modal-content" style="max-width: 900px; width: 90%;">
 			<div class="modal-header">
 				<h3>Session Logs</h3>
-				<button class="modal-close" onclick="document.getElementById('logsModal').style.display='none'">&times;</button>
+				<div style="display: flex; gap: 8px; align-items: center;">
+					<button class="btn btn-secondary" id="clearLogsBtn" style="padding: 6px 12px; font-size: 12px;">
+						<i class="fas fa-trash"></i> Clear Logs
+					</button>
+					<button class="modal-close" onclick="document.getElementById('logsModal').style.display='none'">&times;</button>
+				</div>
                             </div>
 			<div class="modal-body">
 				<pre id="logsContent" style="white-space:pre-wrap; max-height:70vh; overflow:auto; background:#0b0b0f; color:#d7d7db; padding:16px; border-radius:8px; font-size:12px;"></pre>
@@ -1390,7 +831,7 @@
 								<button type="button" onclick="execCommand('insertUnorderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">•</button>
 								<button type="button" onclick="execCommand('insertOrderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">1.</button>
 								<button type="button" onclick="execCommand('createLink')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🔗</button>
-								<button type="button" onclick="insertImage().catch(console.error)" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🖼️</button>
+								<button type="button" onclick="insertImage()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🖼️</button>
 								<button type="button" onclick="clearFormatting()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🧹</button>
 							</div>
 							<div id="signatureEditor" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff;" placeholder="Enter your signature content..."></div>
@@ -1399,7 +840,7 @@
 							<button class="btn btn-primary" onclick="saveSignature()"><i class="fas fa-save"></i>Save Signature</button>
 							<button class="btn btn-secondary" onclick="loadSignature()"><i class="fas fa-download"></i>Load</button>
 							<button class="btn btn-danger" onclick="deleteSignature()"><i class="fas fa-trash"></i>Delete</button>
-							<button class="btn btn-secondary" onclick="applySignatureToEmail()"><i class="fas fa-check"></i>Use in Emails</button>
+							<button class="btn btn-secondary" onclick="applySignature()"><i class="fas fa-check"></i>Use in Emails</button>
 						</div>
 					</div>
 					
@@ -1448,10 +889,10 @@
 					<textarea id="sigHtml" rows="10" placeholder="Paste or edit HTML (images with absolute URLs)"></textarea>
                     </div>
 				<div style="display:flex; gap:8px; flex-wrap:wrap;">
-					
+					<button class="btn btn-primary" id="saveSignatureBtn"><i class="fas fa-save"></i>Save</button>
 					<button class="btn btn-secondary" id="loadSignatureBtn"><i class="fas fa-download"></i>Load</button>
 					<button class="btn btn-danger" id="deleteSignatureBtn"><i class="fas fa-trash"></i>Delete</button>
-					<button class="btn btn-secondary" id="applySignatureBtn" onclick="applySignatureToEmail()"><i class="fas fa-check"></i>Use in emails</button>
+					<button class="btn btn-secondary" id="applySignatureBtn"><i class="fas fa-check"></i>Use in emails</button>
                     </div>
 				<div style="margin-top:12px; border:1px solid #e5e5e7; border-radius:8px; padding:10px;">
 					<div id="sigPreview" style="min-height:80px;">Signature Preview</div>
@@ -1536,138 +977,6 @@
 		</div>
 	</div>
 
-
-
-	<!-- Email Sending Progress Modal -->
-	<div id="emailProgressModal" class="modal">
-		<div class="modal-content" style="max-width: 500px;">
-			<div class="modal-header">
-				<h3><i class="fas fa-paper-plane"></i> Sending Emails</h3>
-			</div>
-			<div class="modal-body">
-				<div id="emailProgressStatus" style="text-align: center; margin-bottom: 20px;">
-					<p>Preparing to send emails...</p>
-				</div>
-				
-				<div style="margin-bottom: 20px;">
-					<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-						<span>Progress</span>
-						<span id="emailProgressText">0/0</span>
-					</div>
-					<div style="width: 100%; height: 12px; background: #e5e5e7; border-radius: 6px; overflow: hidden;">
-						<div id="emailProgressBar" style="height: 100%; background: #34C759; width: 0%; transition: width 0.3s;"></div>
-					</div>
-				</div>
-				
-				<div id="emailProgressDetails" style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;">
-					<div style="font-size: 12px; color: #8E8E93;">Waiting for emails to start...</div>
-				</div>
-				
-				<div style="display: flex; gap: 8px; justify-content: center;">
-					<button class="btn btn-danger" id="cancelEmailSendingBtn">
-						<i class="fas fa-times"></i> Cancel Sending
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Attachment Modal -->
-	<div id="attachmentModal" class="modal">
-		<div class="modal-content" style="max-width: 600px;">
-			<div class="modal-header">
-				<h3><i class="fas fa-paperclip"></i> Email Attachments</h3>
-				<button class="btn btn-secondary" id="closeAttachmentModal">&times;</button>
-			</div>
-			<div class="modal-body">
-				<div class="form-group" style="margin-bottom: 16px;">
-					<label>Attachments</label>
-					<div id="attachmentList" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; min-height: 100px; background: #f8f9fa;">
-						<div style="text-align: center; color: #8E8E93;">
-							<i class="fas fa-paperclip" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
-							<p>No attachments selected</p>
-						</div>
-					</div>
-				</div>
-				
-				<div style="display: flex; gap: 8px; margin-bottom: 16px;">
-					<button class="btn btn-secondary" id="addAttachmentBtn">
-						<i class="fas fa-plus"></i> Add Attachment
-					</button>
-					<button class="btn btn-secondary" id="removeAllAttachmentsBtn">
-						<i class="fas fa-trash"></i> Remove All
-					</button>
-				</div>
-				
-				<div style="display: flex; gap: 8px; justify-content: center;">
-					<button class="btn btn-secondary" id="continueWithoutAttachmentsBtn">
-						<i class="fas fa-paper-plane"></i> Continue Without Attachments
-					</button>
-					<button class="btn btn-primary" id="confirmAttachmentsBtn">
-						<i class="fas fa-check"></i> Confirm Attachments
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Subject Line Placeholders Modal -->
-	<div id="subjectPlaceholdersModal" class="modal">
-		<div class="modal-content" style="max-width: 500px;">
-			<div class="modal-header">
-				<h3><i class="fas fa-tags"></i> Subject Line Placeholders</h3>
-				<button class="btn btn-secondary" id="closeSubjectPlaceholdersModal">&times;</button>
-			</div>
-			<div class="modal-body">
-				<div class="form-group" style="margin-bottom: 16px;">
-					<label>Available Placeholders</label>
-					<div id="subjectPlaceholdersList" style="border: 1px solid #e5e5e7; border-radius: 6px; padding: 12px; max-height: 300px; overflow-y: auto;">
-						<!-- Placeholders will be populated here -->
-					</div>
-				</div>
-				
-				<div class="form-group" style="margin-bottom: 16px;">
-					<label>Subject Line Preview</label>
-					<input type="text" id="subjectPreviewInput" placeholder="Subject line with placeholders..." style="width: 100%;">
-				</div>
-				
-				<div style="display: flex; gap: 8px; justify-content: center;">
-					<button class="btn btn-primary" id="insertSubjectPlaceholderBtn">
-						<i class="fas fa-plus"></i> Insert Selected
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Signature Management -->
-	<div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
-		<h3 style="margin-bottom: 10px;"><i class="fas fa-signature"></i> Email Signature</h3>
-		<div class="form-group" style="margin-bottom:10px;">
-			<label>Signature Name</label>
-			<input type="text" id="signatureName" placeholder="Enter signature name">
-		</div>
-		<div class="form-group" style="margin-bottom:10px;">
-			<label>Signature Content</label>
-			<div id="signatureEditorMain" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff; border-radius:6px;" placeholder="Enter your signature content..."></div>
-		</div>
-		<div style="display:flex; gap:8px; flex-wrap:wrap;">
-			<button class="btn btn-primary" id="saveSignatureBtn" onclick="saveSignature().catch(console.error)">
-				<i class="fas fa-save"></i>Save Signature
-			</button>
-			<button class="btn btn-secondary" id="loadSignatureBtn" onclick="loadSignature().catch(console.error)">
-				<i class="fas fa-folder-open"></i>Load Signature
-			</button>
-			<button class="btn btn-secondary" id="clearSignatureBtn" onclick="clearSignature()">
-				<i class="fas fa-eraser"></i>Clear
-			</button>
-		</div>
-		<div id="signaturesList" style="margin-top:12px; display:none;">
-			<h4 style="margin-bottom:8px;">Saved Signatures</h4>
-			<div id="signaturesContainer"></div>
-		</div>
-	</div>
-
 	<script>
 		// Theme toggle behavior
 		document.getElementById('themeToggle')?.addEventListener('click', () => {
@@ -1698,6 +1007,20 @@
 				window.rtxApp.showError('Failed to read logs: ' + out.error);
 			}
 		});
+		
+		// Clear logs button
+		document.getElementById('clearLogsBtn')?.addEventListener('click', async () => {
+			if (confirm('Are you sure you want to clear all session logs? This action cannot be undone.')) {
+				const out = await window.electronAPI.clearSessionLog();
+				if (out.success) {
+					document.getElementById('logsContent').textContent = '';
+					window.rtxApp.showSuccess('Session logs cleared successfully');
+				} else {
+					window.rtxApp.showError('Failed to clear logs: ' + out.error);
+				}
+			}
+		});
+		
 		window.electronAPI.onAppLog?.((d) => {
 			const el = document.getElementById('logsContent');
 			if (el && document.getElementById('logsModal').style.display === 'block') {
@@ -1865,17 +1188,17 @@
 				// Ctrl+B for bold
 				if (e.ctrlKey && e.key === 'b') {
 					e.preventDefault();
-					formatText('bold');
+					execCommand('bold');
 				}
 				// Ctrl+I for italic
 				if (e.ctrlKey && e.key === 'i') {
 					e.preventDefault();
-					formatText('italic');
+					execCommand('italic');
 				}
 				// Ctrl+U for underline
 				if (e.ctrlKey && e.key === 'u') {
 					e.preventDefault();
-					formatText('underline');
+					execCommand('underline');
 				}
 				// Ctrl+K for link
 				if (e.ctrlKey && e.key === 'k') {
@@ -1887,22 +1210,6 @@
 			// Update toolbar state based on selection
 			editor.addEventListener('mouseup', updateToolbarState);
 			editor.addEventListener('keyup', updateToolbarState);
-
-			// Add font family and size change handlers
-			const fontFamilySelect = document.getElementById('fontFamily');
-			const fontSizeSelect = document.getElementById('fontSize');
-			
-			if (fontFamilySelect) {
-				fontFamilySelect.addEventListener('change', function() {
-					formatFontFamily(this.value);
-				});
-			}
-			
-			if (fontSizeSelect) {
-				fontSizeSelect.addEventListener('change', function() {
-					formatFontSize(this.value);
-				});
-			}
 		}
 
 		function startWordCount() {
@@ -1921,246 +1228,55 @@
 
 		function updateToolbarState() {
 			const editor = document.getElementById('emailEditor');
-			if (!editor) return;
+			if (!editor || !document.queryCommandState) return;
 
 			// Update button states based on current selection
-			const selection = window.getSelection();
-			if (selection.rangeCount > 0) {
-				const range = selection.getRangeAt(0);
-				const parentElement = range.commonAncestorContainer.nodeType === Node.TEXT_NODE ? 
-					range.commonAncestorContainer.parentElement : range.commonAncestorContainer;
-				
-				// Check if parent is a formatting element
-				document.getElementById('boldBtn').classList.toggle('active', parentElement.tagName === 'B' || parentElement.tagName === 'STRONG');
-				document.getElementById('italicBtn').classList.toggle('active', parentElement.tagName === 'I' || parentElement.tagName === 'EM');
-				document.getElementById('underlineBtn').classList.toggle('active', parentElement.style.textDecoration === 'underline');
-				document.getElementById('strikeBtn').classList.toggle('active', parentElement.tagName === 'S' || parentElement.tagName === 'STRIKE');
-			}
+			document.getElementById('boldBtn').classList.toggle('active', document.queryCommandState('bold'));
+			document.getElementById('italicBtn').classList.toggle('active', document.queryCommandState('italic'));
+			document.getElementById('underlineBtn').classList.toggle('active', document.queryCommandState('underline'));
+			document.getElementById('strikeBtn').classList.toggle('active', document.queryCommandState('strikeThrough'));
 		}
 
-		// Modern text formatting functions
-		function formatText(command) {
-			const editor = document.getElementById('emailEditor');
-			if (!editor) return;
-
-			const selection = window.getSelection();
-			if (selection.rangeCount === 0) return;
-
-			const range = selection.getRangeAt(0);
-			const selectedText = range.toString();
-			
-			if (selectedText.length === 0) return;
-
-			let element;
-			switch (command) {
-				case 'bold':
-					element = document.createElement('strong');
-					break;
-				case 'italic':
-					element = document.createElement('em');
-					break;
-				case 'underline':
-					element = document.createElement('span');
-					element.style.textDecoration = 'underline';
-					break;
-				case 'strikeThrough':
-					element = document.createElement('s');
-					break;
-				default:
-					return;
-			}
-
-			element.textContent = selectedText;
-			range.deleteContents();
-			range.insertNode(element);
-			
-			// Update toolbar state
-			updateToolbarState();
-		}
-
-		// Modern command execution with fallback
 		function execCommand(command, value = null) {
-			// Try modern approach first
-			if (command === 'bold') {
-				formatText('bold');
-				return;
-			}
-			if (command === 'italic') {
-				formatText('italic');
-				return;
-			}
-			if (command === 'underline') {
-				formatText('underline');
-				return;
-			}
-			if (command === 'strikeThrough') {
-				formatText('strikeThrough');
-				return;
-			}
-			
-			// Fallback to execCommand for other commands
-			if (document.execCommand) {
-				document.execCommand(command, false, value);
-			}
+			document.execCommand(command, false, value);
 			updateToolbarState();
 		}
 
-		// Modern font formatting functions
-		function formatFontFamily(fontFamily) {
-			const editor = document.getElementById('emailEditor');
-			if (!editor) return;
-
-			const selection = window.getSelection();
-			if (selection.rangeCount === 0) return;
-
-			const range = selection.getRangeAt(0);
-			const selectedText = range.toString();
-			
-			if (selectedText.length === 0) return;
-
-			const span = document.createElement('span');
-			span.style.fontFamily = fontFamily;
-			span.textContent = selectedText;
-			
-			range.deleteContents();
-			range.insertNode(span);
-			
-			updateToolbarState();
-		}
-
-		function formatFontSize(fontSize) {
-			const editor = document.getElementById('emailEditor');
-			if (!editor) return;
-
-			const selection = window.getSelection();
-			if (selection.rangeCount === 0) return;
-
-			const range = selection.getRangeAt(0);
-			const selectedText = range.toString();
-			
-			if (selectedText.length === 0) return;
-
-			// Convert font size number to actual size
-			const sizeMap = {
-				'1': '8px',
-				'2': '10px',
-				'3': '12px',
-				'4': '14px',
-				'5': '16px',
-				'6': '18px',
-				'7': '24px'
-			};
-			
-			const actualSize = sizeMap[fontSize] || '12px';
-			
-			const span = document.createElement('span');
-			span.style.fontSize = actualSize;
-			span.textContent = selectedText;
-			
-			range.deleteContents();
-			range.insertNode(span);
-			
-			updateToolbarState();
-		}
-
-		async function insertLink() {
-			const url = await window.rtxApp.showInputDialog('Insert Link', 'Enter URL:', 'https://');
+		function insertLink() {
+			const url = prompt('Enter URL:', 'https://');
 			if (url) {
-				const editor = document.getElementById('emailEditor');
-				const selection = window.getSelection();
-				
-				if (selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0);
-					const selectedText = range.toString();
-					
-					if (selectedText.length === 0) {
-						// Insert link with placeholder text
-						const linkElement = document.createElement('a');
-						linkElement.href = url;
-						linkElement.textContent = url;
-						linkElement.target = '_blank';
-						range.insertNode(linkElement);
-					} else {
-						// Wrap selected text in link
-						const linkElement = document.createElement('a');
-						linkElement.href = url;
-						linkElement.target = '_blank';
-						linkElement.textContent = selectedText;
-						range.deleteContents();
-						range.insertNode(linkElement);
-					}
-				}
+				execCommand('createLink', url);
 			}
 		}
 
-		async function insertImage() {
-			const url = await window.rtxApp.showInputDialog('Insert Image', 'Enter image URL:', 'https://');
+		function insertImage() {
+			const url = prompt('Enter image URL:', 'https://');
 			if (url) {
-				const editor = document.getElementById('emailEditor');
-				const selection = window.getSelection();
-				
-				if (selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0);
-					const imgElement = document.createElement('img');
-					imgElement.src = url;
-					imgElement.alt = 'Inserted image';
-					imgElement.style.maxWidth = '100%';
-					imgElement.style.height = 'auto';
-					
-					range.insertNode(imgElement);
-				}
+				execCommand('insertImage', url);
 			}
 		}
 
-		async function insertTable() {
-			const rows = await window.rtxApp.showInputDialog('Insert Table', 'Enter number of rows:', '3');
-			const cols = await window.rtxApp.showInputDialog('Insert Table', 'Enter number of columns:', '3');
+		function insertTable() {
+			const rows = prompt('Enter number of rows:', '3');
+			const cols = prompt('Enter number of columns:', '3');
 			
 			if (rows && cols) {
-				const editor = document.getElementById('emailEditor');
-				const selection = window.getSelection();
-				
-				if (selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0);
-					
-					let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
-					for (let i = 0; i < parseInt(rows); i++) {
-						tableHTML += '<tr>';
-						for (let j = 0; j < parseInt(cols); j++) {
-							tableHTML += '<td style="padding: 8px; border: 1px solid #ddd;">Cell ' + (i + 1) + ',' + (j + 1) + '</td>';
-						}
-						tableHTML += '</tr>';
+				let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+				for (let i = 0; i < parseInt(rows); i++) {
+					tableHTML += '<tr>';
+					for (let j = 0; j < parseInt(cols); j++) {
+						tableHTML += '<td style="padding: 8px; border: 1px solid #ddd;">Cell ' + (i + 1) + ',' + (j + 1) + '</td>';
 					}
-					tableHTML += '</table>';
-					
-					// Create a temporary div to parse HTML
-					const tempDiv = document.createElement('div');
-					tempDiv.innerHTML = tableHTML;
-					const tableElement = tempDiv.firstElementChild;
-					
-					range.insertNode(tableElement);
+					tableHTML += '</tr>';
 				}
+				tableHTML += '</table>';
+				
+				execCommand('insertHTML', tableHTML);
 			}
 		}
 
 		function clearFormatting() {
-			const editor = document.getElementById('emailEditor');
-			if (!editor) return;
-
-			const selection = window.getSelection();
-			if (selection.rangeCount === 0) return;
-
-			const range = selection.getRangeAt(0);
-			const selectedText = range.toString();
-			
-			if (selectedText.length === 0) return;
-
-			// Remove formatting by creating a new text node
-			const textNode = document.createTextNode(selectedText);
-			range.deleteContents();
-			range.insertNode(textNode);
-			
-			updateToolbarState();
+			execCommand('removeFormat');
 		}
 
 		function toggleEditorMode() {
@@ -2182,660 +1298,7 @@
 		document.addEventListener('DOMContentLoaded', function() {
 			initEnhancedEditor();
 			startWordCount();
-			
-			// Setup local spreadsheet import
-			setupLocalSpreadsheetImport();
-			
-			// Setup signature management
-			setupSignatureManagement();
 		});
-		
-		// Local spreadsheet import functionality
-		function setupLocalSpreadsheetImport() {
-			const importBtn = document.getElementById('importLocalSheetBtn');
-			if (!importBtn) return;
-			
-			importBtn.addEventListener('click', async () => {
-				try {
-					if (!window.electronAPI || !window.electronAPI.showOpenDialog) {
-						alert('Local file import is only available in the desktop app');
-						return;
-					}
-					
-					const result = await window.electronAPI.showOpenDialog({
-						properties: ['openFile'],
-						filters: [
-							{ name: 'Spreadsheet Files', extensions: ['csv', 'xlsx', 'xls'] },
-							{ name: 'CSV Files', extensions: ['csv'] },
-							{ name: 'Excel Files', extensions: ['xlsx', 'xls'] },
-							{ name: 'All Files', extensions: ['*'] }
-						],
-						title: 'Select Spreadsheet File to Import'
-					});
-					
-					if (!result.canceled && result.filePaths.length > 0) {
-						const filePath = result.filePaths[0];
-						await importLocalSpreadsheet(filePath);
-					}
-				} catch (error) {
-					console.error('Error setting up local import:', error);
-					alert('Error setting up local import: ' + error.message);
-				}
-			});
-		}
-		
-		async function importLocalSpreadsheet(filePath) {
-			try {
-				if (!window.electronAPI || !window.electronAPI.loadLocalSpreadsheet) {
-					alert('Local spreadsheet loading not available');
-					return;
-				}
-				
-				// Show loading state
-				const importBtn = document.getElementById('importLocalSheetBtn');
-				const originalText = importBtn.innerHTML;
-				importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Importing...';
-				importBtn.disabled = true;
-				
-				const result = await window.electronAPI.loadLocalSpreadsheet(filePath);
-				
-				if (result.success) {
-					// Process the imported data
-					processImportedData(result.data);
-					
-					// Update UI to show imported data
-					document.getElementById('sheetsData').style.display = 'block';
-					document.getElementById('sheetsData').innerHTML = `
-						<div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
-							<strong>✅ Local file imported successfully!</strong><br>
-							File: ${filePath.split('\\').pop().split('/').pop()}<br>
-							Rows: ${result.data.rows.length}<br>
-							Columns: ${result.data.headers.length}
-						</div>
-					`;
-					
-					// Enable refresh button
-					document.getElementById('refreshSheetsBtn').disabled = false;
-					
-					// Show success message
-					if (window.rtxApp && window.rtxApp.showSuccess) {
-						window.rtxApp.showSuccess(`Successfully imported ${result.data.rows.length} rows from local file`);
-					}
-				} else {
-					throw new Error(result.error || 'Failed to import file');
-				}
-			} catch (error) {
-				console.error('Import error:', error);
-				alert('Failed to import file: ' + error.message);
-			} finally {
-				// Restore button state
-				const importBtn = document.getElementById('importLocalSheetBtn');
-				importBtn.innerHTML = '<i class="fas fa-file-import"></i>Import Local File';
-				importBtn.disabled = false;
-			}
-		}
-		
-		function processImportedData(data) {
-			// Store the imported data globally for use in the app
-			window.importedSheetData = data;
-			
-			// Update placeholder chips
-			if (window.rtxApp && window.rtxApp.updatePlaceholderChips) {
-				window.rtxApp.updatePlaceholderChips(data.headers);
-			}
-			
-			// Update preview if available
-			if (window.rtxApp && window.rtxApp.updateDataPreview) {
-				window.rtxApp.updateDataPreview(data);
-			}
-		}
-
-		// Enhanced Placeholder System with @ dropdown
-		(function() {
-			const editor = document.getElementById('emailEditor');
-			const dropdown = document.getElementById('placeholderDropdown');
-			const placeholderList = document.getElementById('placeholderList');
-			let currentPlaceholders = [];
-			
-			if (editor && dropdown) {
-				editor.addEventListener('input', function(e) {
-					const text = editor.textContent || '';
-					const cursorPosition = getCaretPosition(editor);
-					const beforeCursor = text.substring(0, cursorPosition);
-					
-					// Check if user typed @
-					if (beforeCursor.endsWith('@')) {
-						showPlaceholderDropdown();
-					} else if (beforeCursor.includes('@') && !beforeCursor.endsWith('@')) {
-						// User typed something after @, hide dropdown
-						hidePlaceholderDropdown();
-					}
-				});
-				
-				// Hide dropdown when clicking outside
-				document.addEventListener('click', function(e) {
-					if (!editor.contains(e.target) && !dropdown.contains(e.target)) {
-						hidePlaceholderDropdown();
-					}
-				});
-			}
-			
-			function showPlaceholderDropdown() {
-				if (currentPlaceholders.length === 0) {
-					// Populate with sample placeholders (in real app, these come from Google Sheets)
-					currentPlaceholders = ['Name', 'Email', 'Company', 'Position', 'Phone', 'Address', 'City', 'State', 'Country'];
-				}
-				
-				placeholderList.innerHTML = currentPlaceholders.map(placeholder => 
-					`<div class="placeholder-item" onclick="insertPlaceholder('${placeholder}')" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f0f0f0; transition:background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'">
-						<i class="fas fa-tag" style="color:#007AFF; margin-right:8px;"></i>
-						${placeholder}
-					</div>`
-				).join('');
-				
-				// Position dropdown near cursor
-				const selection = window.getSelection();
-				if (selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0);
-					const rect = range.getBoundingClientRect();
-					dropdown.style.left = rect.left + 'px';
-					dropdown.style.top = (rect.bottom + 5) + 'px';
-				}
-				
-				dropdown.style.display = 'block';
-			}
-			
-			function hidePlaceholderDropdown() {
-				dropdown.style.display = 'none';
-			}
-			
-			window.insertPlaceholder = function(placeholder) {
-				const selection = window.getSelection();
-				if (selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0);
-					// Remove the @ symbol
-					const text = editor.textContent || '';
-					const cursorPos = getCaretPosition(editor);
-					const beforeAt = text.substring(0, cursorPos - 1);
-					const afterAt = text.substring(cursorPos);
-					
-					editor.textContent = beforeAt + `((${placeholder}))` + afterAt;
-					
-					// Set cursor after placeholder
-					const newPos = beforeAt.length + `((${placeholder}))`.length;
-					setCaretPosition(editor, newPos);
-				}
-				hidePlaceholderDropdown();
-			};
-			
-			function getCaretPosition(element) {
-				const selection = window.getSelection();
-				if (selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0);
-					const preCaretRange = range.cloneRange();
-					preCaretRange.selectNodeContents(element);
-					preCaretRange.setEnd(range.endContainer, range.endOffset);
-					return preCaretRange.toString().length;
-				}
-				return 0;
-			}
-			
-			function setCaretPosition(element, position) {
-				const range = document.createRange();
-				const selection = window.getSelection();
-				const textNode = element.firstChild || element;
-				range.setStart(textNode, Math.min(position, textNode.length));
-				range.collapse(true);
-				selection.removeAllRanges();
-				selection.addRange(range);
-			}
-		})();
-
-		// Authentication Modal Setup
-		(function() {
-			const authModal = document.getElementById('authModal');
-			const modalGoogleLoginBtn = document.getElementById('modalGoogleLoginBtn');
-			const modalUploadCredentialsBtn = document.getElementById('modalUploadCredentialsBtn');
-			const modalCredentialsFile = document.getElementById('modalCredentialsFile');
-			const selectedFileName = document.getElementById('selectedFileName');
-
-			// Show auth modal when login button is clicked
-			if (modalGoogleLoginBtn) {
-				modalGoogleLoginBtn.addEventListener('click', async () => {
-					try {
-						// Use default credentials for Google OAuth
-						const result = await window.electronAPI.authenticateGoogle({});
-						if (result.success) {
-							authModal.style.display = 'none';
-							showSuccess('Authentication successful! Setting up services...');
-						} else {
-							showError('Authentication failed: ' + result.error);
-						}
-					} catch (error) {
-						showError('Authentication error: ' + error.message);
-					}
-				});
-			}
-
-			// Handle credentials file selection
-			if (modalUploadCredentialsBtn) {
-				modalUploadCredentialsBtn.addEventListener('click', () => {
-					modalCredentialsFile.click();
-				});
-			}
-
-			// Handle file selection
-			if (modalCredentialsFile) {
-				modalCredentialsFile.addEventListener('change', async (e) => {
-					const file = e.target.files[0];
-					if (file) {
-						selectedFileName.textContent = `Selected: ${file.name}`;
-						
-						try {
-							const credentials = await readCredentialsFile(file);
-							const result = await window.electronAPI.authenticateGoogle(credentials);
-							if (result.success) {
-								authModal.style.display = 'none';
-								showSuccess('Credentials uploaded successfully! Setting up services...');
-							} else {
-								showError('Authentication failed: ' + result.error);
-							}
-						} catch (error) {
-							showError('Failed to process credentials: ' + error.message);
-						}
-					}
-				});
-			}
-
-			// Helper function to read credentials file
-			function readCredentialsFile(file) {
-				return new Promise((resolve, reject) => {
-					const reader = new FileReader();
-					reader.onload = (e) => {
-						try {
-							const credentials = JSON.parse(e.target.result);
-							resolve(credentials);
-						} catch (error) {
-							reject(new Error('Invalid JSON file'));
-						}
-					};
-					reader.onerror = () => reject(new Error('Failed to read file'));
-					reader.readAsText(file);
-				});
-			}
-		})();
-		
-		// Enhanced Theme Toggle
-		(function() {
-			const themeToggle = document.getElementById('themeToggle');
-			const body = document.body;
-			
-			// Load saved theme
-			const savedTheme = localStorage.getItem('theme') || 'light';
-			body.classList.add(`theme-${savedTheme}`);
-			updateThemeIcon(savedTheme);
-			
-			themeToggle.addEventListener('click', function() {
-				const currentTheme = body.classList.contains('theme-dark') ? 'dark' : 'light';
-				const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-				
-				body.classList.remove(`theme-${currentTheme}`);
-				body.classList.add(`theme-${newTheme}`);
-				
-				localStorage.setItem('theme', newTheme);
-				updateThemeIcon(newTheme);
-				
-				// Show notification
-				showNotification(`Switched to ${newTheme} theme`, 'info');
-			});
-			
-			function updateThemeIcon(theme) {
-				const icon = themeToggle.querySelector('i');
-				if (icon) {
-					icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-				}
-			}
-		})();
-		
-		// Enhanced Notification System
-		window.showNotification = function(message, type = 'info', duration = 10000) {
-			const notification = document.createElement('div');
-			notification.className = `notification notification-${type}`;
-			notification.innerHTML = `
-				${message}
-				<button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
-			`;
-			
-			document.body.appendChild(notification);
-			
-			// Show notification
-			setTimeout(() => notification.classList.add('show'), 100);
-			
-			// Auto-hide after duration (unless hovered)
-			let hideTimeout = setTimeout(() => {
-				if (notification.parentElement) {
-					notification.classList.remove('show');
-					setTimeout(() => notification.remove(), 300);
-				}
-			}, duration);
-			
-			// Pause auto-hide on hover
-			notification.addEventListener('mouseenter', () => {
-				clearTimeout(hideTimeout);
-			});
-			
-			notification.addEventListener('mouseleave', () => {
-				hideTimeout = setTimeout(() => {
-					if (notification.parentElement) {
-						notification.classList.remove('show');
-						setTimeout(() => notification.remove(), 300);
-					}
-				}, 10000); // 10 seconds after leaving
-			});
-		};
-
-		// Notification helper functions for the app
-		window.showSuccess = function(message) {
-			window.showNotification(message, 'success', 5000);
-		};
-
-		window.showError = function(message) {
-			window.showNotification(message, 'error', 8000);
-		};
-
-		window.showWarning = function(message) {
-			window.showNotification(message, 'warning', 6000);
-		};
-
-		window.showInfo = function(message) {
-			window.showNotification(message, 'info', 4000);
-		};
-
-		// Main App Initialization
-		document.addEventListener('DOMContentLoaded', function() {
-			// Initialize theme
-			initializeTheme();
-			
-			// Setup placeholder system
-			setupPlaceholderSystem();
-			
-			// Setup authentication modal - wait for RTX app to be ready
-			setTimeout(() => {
-				if (window.rtxApp && window.rtxApp.setupAuthenticationModal) {
-					window.rtxApp.setupAuthenticationModal();
-				} else {
-					console.warn('RTX App not ready yet, retrying...');
-					setTimeout(() => {
-						if (window.rtxApp && window.rtxApp.setupAuthenticationModal) {
-							window.rtxApp.setupAuthenticationModal();
-						}
-					}, 1000);
-				}
-			}, 100);
-			
-			// Setup event listeners
-			setupEventListeners();
-			
-			// Initialize tab system
-			initializeTabSystem();
-		});
-
-		// Helper functions for app initialization
-		function initializeTheme() {
-			const savedTheme = localStorage.getItem('theme') || 'light';
-			document.body.classList.add(`theme-${savedTheme}`);
-			updateThemeIcon(savedTheme);
-		}
-
-		function setupPlaceholderSystem() {
-			// Placeholder system is already initialized in the IIFE above
-		}
-
-		function setupEventListeners() {
-			// Connect main authentication buttons to show modal
-			const uploadCredentialsBtn = document.getElementById('uploadCredentialsBtn');
-			const credentialsFile = document.getElementById('credentialsFile');
-
-			if (uploadCredentialsBtn) {
-				uploadCredentialsBtn.addEventListener('click', () => {
-					credentialsFile.click();
-				});
-			}
-
-			if (credentialsFile) {
-				credentialsFile.addEventListener('change', async (e) => {
-					const file = e.target.files[0];
-					if (file) {
-						try {
-							const credentials = await readCredentialsFile(file);
-							const result = await window.electronAPI.authenticateGoogle(credentials);
-							if (result.success) {
-								showSuccess('Credentials uploaded successfully! Setting up services...');
-							} else {
-								showError('Authentication failed: ' + result.error);
-							}
-						} catch (error) {
-							showError('Failed to process credentials: ' + error.message);
-						}
-					}
-				});
-			}
-		}
-
-		function initializeTabSystem() {
-			// Tab system is already initialized in the IIFE above
-		}
-
-		function updateThemeIcon(theme) {
-			const themeToggle = document.getElementById('themeToggle');
-			if (themeToggle) {
-				const icon = themeToggle.querySelector('i');
-				if (icon) {
-					icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-				}
-			}
-		}
-
-		// Signature management functionality
-		function setupSignatureManagement() {
-			// Load saved signatures on page load
-			loadSignaturesList();
-		}
-		
-		async function saveSignature() {
-			try {
-				const nameInput = document.getElementById('signatureName');
-				const editor = document.getElementById('signatureEditorMain');
-				
-				if (!nameInput || !editor) {
-					alert('Signature elements not found');
-					return;
-				}
-				
-				const name = nameInput.value.trim();
-				if (!name) {
-					alert('Please enter a signature name');
-					return;
-				}
-				
-				const content = editor.innerHTML;
-				if (!content || content.trim() === '') {
-					alert('Please enter signature content');
-					return;
-				}
-				
-				if (!window.electronAPI || !window.electronAPI.saveSignature) {
-					alert('Signature saving not available');
-					return;
-				}
-				
-				const result = await window.electronAPI.saveSignature(
-					name,
-					content,
-					editor.textContent || ''
-				);
-				
-				if (result.success) {
-					alert('Signature saved successfully!');
-					loadSignaturesList(); // Refresh the list
-				} else {
-					alert('Failed to save signature: ' + (result.error || 'Unknown error'));
-				}
-			} catch (error) {
-				console.error('Error saving signature:', error);
-				alert('Error saving signature: ' + error.message);
-			}
-		}
-		
-		async function loadSignature() {
-			try {
-				if (!window.electronAPI || !window.electronAPI.signaturesList) {
-					alert('Signature loading not available');
-					return;
-				}
-				
-				const result = await window.electronAPI.signaturesList();
-				if (!result.success || !result.signatures || result.signatures.length === 0) {
-					alert('No saved signatures found');
-					return;
-				}
-				
-				// Show signatures list
-				showSignaturesList(result.signatures);
-			} catch (error) {
-				console.error('Error loading signatures:', error);
-				alert('Error loading signatures: ' + error.message);
-			}
-		}
-		
-		function clearSignature() {
-			const nameInput = document.getElementById('signatureName');
-			const editor = document.getElementById('signatureEditorMain');
-			
-			if (nameInput) nameInput.value = '';
-			if (editor) editor.innerHTML = '';
-		}
-		
-		async function loadSignaturesList() {
-			try {
-				if (!window.electronAPI || !window.electronAPI.signaturesList) {
-					return;
-				}
-				
-				const result = await window.electronAPI.signaturesList();
-				if (result.success && result.signatures && result.signatures.length > 0) {
-					showSignaturesList(result.signatures);
-				}
-			} catch (error) {
-				console.error('Error loading signatures list:', error);
-			}
-		}
-		
-		function showSignaturesList(signatures) {
-			const container = document.getElementById('signaturesContainer');
-			const listDiv = document.getElementById('signaturesList');
-			
-			if (!container || !listDiv) return;
-			
-			listDiv.style.display = 'block';
-			
-			container.innerHTML = signatures.map(sig => `
-				<div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border:1px solid #e5e5e7; border-radius:6px; margin-bottom:8px; background:#fff;">
-					<div>
-						<strong>${sig.name}</strong>
-						<small style="color:#8E8E93; margin-left:8px;">${new Date(sig.created).toLocaleDateString()}</small>
-					</div>
-					<div style="display:flex; gap:4px;">
-						<button onclick="loadSignatureContent('${sig.path}')" style="padding:4px 8px; background:#007AFF; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">Load</button>
-						<button onclick="deleteSignature('${sig.path}')" style="padding:4px 8px; background:#FF3B30; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">Delete</button>
-					</div>
-				</div>
-			`).join('');
-		}
-		
-				async function loadSignatureContent(signaturePath) {
-			try {
-				if (!window.electronAPI || !window.electronAPI.loadSignature) {
-					alert('Signature loading not available');
-					return;
-				}
-				
-				const result = await window.electronAPI.loadSignature(signaturePath);
-				if (result.success && result.signature) {
-					const nameInput = document.getElementById('signatureName');
-					const editor = document.getElementById('signatureEditorMain');
-					
-					if (nameInput) nameInput.value = result.signature.name;
-					if (editor) editor.innerHTML = result.signature.html || result.signature.text || '';
-					
-					alert('Signature loaded successfully!');
-				} else {
-					alert('Failed to load signature: ' + (result.error || 'Unknown error'));
-				}
-			} catch (error) {
-				console.error('Error loading signature content:', error);
-				alert('Error loading signature: ' + error.message);
-			}
-		}
-
-		// Function to get current signature content and apply it to email
-		function getCurrentSignatureContent() {
-			const signatureEditor = document.getElementById('signatureEditorMain');
-			if (signatureEditor && signatureEditor.innerHTML.trim()) {
-				return signatureEditor.innerHTML.trim();
-			}
-			return '';
-		}
-
-		// Function to apply signature to email editor
-		function applySignatureToEmail() {
-			const emailEditor = document.getElementById('emailEditor');
-			const signatureContent = getCurrentSignatureContent();
-			
-			if (!emailEditor || !signatureContent) {
-				alert('No signature content to apply or email editor not found');
-				return;
-			}
-			
-			// Insert signature at the end of the email
-			const signatureHtml = '<br><br>' + signatureContent;
-			emailEditor.innerHTML += signatureHtml;
-			
-			// Move cursor to end
-			const range = document.createRange();
-			const sel = window.getSelection();
-			range.selectNodeContents(emailEditor);
-			range.collapse(false);
-			sel.removeAllRanges();
-			sel.addRange(range);
-			emailEditor.focus();
-			
-			alert('Signature applied to email!');
-		}
-		
-		async function deleteSignature(signaturePath) {
-			try {
-				if (!confirm('Are you sure you want to delete this signature?')) {
-					return;
-				}
-				
-				if (!window.electronAPI || !window.electronAPI.signaturesDelete) {
-					alert('Signature deletion not available');
-					return;
-				}
-				
-				const result = await window.electronAPI.signaturesDelete(signaturePath);
-				if (result.success) {
-					alert('Signature deleted successfully!');
-					loadSignaturesList(); // Refresh the list
-				} else {
-					alert('Failed to delete signature: ' + (result.error || 'Unknown error'));
-				}
-			} catch (error) {
-				console.error('Error deleting signature:', error);
-				alert('Error deleting signature: ' + error.message);
-			}
-		}
 	</script>
 	
 	<!-- Tab Management Script -->

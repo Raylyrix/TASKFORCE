@@ -253,3 +253,5 @@ class TabManager {
 document.addEventListener('DOMContentLoaded', () => {
     window.tabManager = new TabManager();
 });
+
+

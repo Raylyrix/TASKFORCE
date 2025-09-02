@@ -11,7 +11,6 @@ const subscriptions = {
     onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_e, data) => cb && cb(data)),
     onAuthProgress: (cb) => ipcRenderer.on('auth-progress', (_e, data) => cb && cb(data)),
     onAuthSuccess: (cb) => ipcRenderer.on('auth-success', (_e, data) => cb && cb(data)),
-    onAuthError: (cb) => ipcRenderer.on('auth-error', (_e, data) => cb && cb(data)),
     onAppLog: (cb) => ipcRenderer.on('app-log', (_e, data) => cb && cb(data)),
 };
 
@@ -22,7 +21,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onUpdateStatus: subscriptions.onUpdateStatus,
     onAuthProgress: subscriptions.onAuthProgress,
     onAuthSuccess: subscriptions.onAuthSuccess,
-    onAuthError: subscriptions.onAuthError,
     onAppLog: subscriptions.onAppLog,
 
     // Dialogs / FS
@@ -38,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Logs (telemetry disabled)
     appendLog: (payload) => wrapInvoke('app-log-append', payload),
     readSessionLog: () => wrapInvoke('app-log-read'),
+    clearSessionLog: () => wrapInvoke('app-log-clear'),
 
     // Store
     storeGet: (key) => wrapInvoke('storeGet', key),
@@ -49,11 +48,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     useAccount: (email) => wrapInvoke('accounts-use', email),
 
     // Auth (OAuth)
-    authenticateGoogle: (credentials, tabId) => wrapInvoke('authenticate-google', tabId),
+    authenticateGoogle: (credentials) => wrapInvoke('authenticateGoogle', credentials),
+    authenticateGoogleWithTab: (credentials, tabId) => wrapInvoke('authenticateGoogleWithTab', credentials, tabId),
+    sendEmailWithTab: (emailData, tabId) => wrapInvoke('sendEmailWithTab', emailData, tabId),
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),
-    getCurrentAuth: (tabId) => wrapInvoke('get-current-auth', tabId),
-    logout: (tabId) => wrapInvoke('logout', tabId),
+    getCurrentAuth: () => wrapInvoke('auth-current-user'),
+    logout: () => wrapInvoke('auth-logout'),
 
     // SMTP/App Password mode
     smtpSaveCreds: ({ email, appPassword }) => wrapInvoke('smtp-save-creds', { email, appPassword }),
@@ -61,9 +62,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     smtpExtractSignature: (email) => wrapInvoke('smtp-extract-signature', email),
 
     // Gmail features
-    listSendAs: (tabId = 'main') => wrapInvoke('gmail-list-send-as', tabId),
+    listSendAs: () => wrapInvoke('gmail-list-send-as'),
     getGmailSignature: () => wrapInvoke('gmail-get-signature'),
-    getSendAsList: (tabId = 'main') => wrapInvoke('getSendAsList', tabId),
 
     // Sheets
     listSheetTabs: (sheetId) => wrapInvoke('sheets-list-tabs', sheetId),
@@ -90,7 +90,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     loadSignature: (path) => wrapInvoke('signatures-load', path),
     deleteSignature: (path) => wrapInvoke('signatures-delete', path),
     getDefaultSignature: () => wrapInvoke('signatures-get-default'),
-    getCurrentSignature: () => wrapInvoke('signatures-get-current'),
 
     // Scheduler
     scheduleOneTime: (params) => wrapInvoke('schedule-campaign-one-time', params),
