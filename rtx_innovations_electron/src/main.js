@@ -363,6 +363,10 @@ ipcMain.handle('download-update', () => {
   return { success: false, message: 'Updates disabled' };
 });
 
+ipcMain.handle('update-check', () => {
+  return { success: false, message: 'Updates disabled' };
+});
+
 // Dialog handlers
 ipcMain.handle('show-open-dialog', async (event, options) => {
   const result = await dialog.showOpenDialog(options);

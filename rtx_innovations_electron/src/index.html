@@ -762,24 +762,109 @@
         .notification .close-btn:hover {
             opacity: 1;
         }
+        
+        /* Tab Styles */
+        .tab-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e7;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+        
+        .tab-list {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+        
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f5f5f7;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 120px;
+            max-width: 200px;
+            position: relative;
+        }
+        
+        .tab:hover {
+            background: #e8e8ed;
+        }
+        
+        .tab.active {
+            background: #ffffff;
+            border-bottom: 1px solid #ffffff;
+            z-index: 1;
+        }
+        
+        .tab-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #d1d1d6;
+        }
+        
+        .tab-status.authenticated {
+            background: #34c759;
+        }
+        
+        .tab-status.authenticating {
+            background: #ff9500;
+            animation: pulse 1s infinite;
+        }
+        
+        .tab-email {
+            flex: 1;
+            font-size: 12px;
+            color: #1d1d1f;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .tab-close {
+            background: none;
+            border: none;
+            color: #8e8e93;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tab-close:hover {
+            color: #ff3b30;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
 	<div class="app-container" style="display:block; height:auto; min-height:100vh;">
 				<!-- Tab Management - Above Navbar -->
-		<div class="tab-container" style="position: sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid #e5e5e7; padding:8px 16px;">
-			<div style="display:flex; align-items:center; justify-content:space-between;">
-				<ul class="tab-list" id="tabList" style="display:flex; list-style:none; margin:0; padding:0; gap:8px;">
-					<li class="tab-item active" data-tab="tab1" style="padding:8px 16px; background:#007AFF; color:#fff; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:8px;">
-						Campaign 1
-						<span class="tab-close" onclick="window.rtxApp.closeTab('tab1')" style="cursor:pointer; font-weight:bold;">&times;</span>
-					</li>
-				</ul>
-				<div class="add-tab-btn" onclick="window.rtxApp.addNewTab()" style="padding:8px 16px; background:#34C759; color:#fff; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:8px;">
-					<i class="fas fa-plus"></i>
-					Add New Campaign Tab
-				</div>
+		<!-- Tab Bar -->
+		<div class="tab-bar" style="background: #ffffff; border-bottom: 1px solid #e5e5e7; padding: 0 16px; display: flex; align-items: center; gap: 8px; min-height: 48px;">
+			<div class="tab-list" id="tabList" style="display: flex; gap: 4px; flex: 1;">
+				<!-- Tabs will be dynamically added here -->
 			</div>
+			<button class="btn btn-primary" id="newTabBtn" style="padding: 6px 12px; font-size: 12px; margin-left: auto;">
+				<i class="fas fa-plus"></i> New Tab
+			</button>
 		</div>
 		
 		<!-- Top Navigation Bar -->
@@ -2752,5 +2837,8 @@
 			}
 		}
 	</script>
+	
+	<!-- Tab Management Script -->
+	<script src="js/tabs.js"></script>
 </body>
 </html> 
