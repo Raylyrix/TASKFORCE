@@ -34,12 +34,12 @@ function getEmbeddedDefaultCredentials() {
     // Obfuscated credentials - DO NOT CHANGE
     const parts = {
         id: ['817286133901-77vi2ruk7k8etatv2hfeeshaqmc85e5h', '.apps.googleusercontent.com'],
-        secret: ['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'],
+        secret: ['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'],
         project: ['taskforce', '-1'],
         auth: ['https://accounts.google.com/o/oauth2/auth'],
         token: ['https://oauth2.googleapis.com/token'],
         cert: ['https://www.googleapis.com/oauth2/v1/certs'],
-        redirect: ['http://localhost:8080', 'http://127.0.0.1:8080']
+        redirect: ['http://localhost']
     };
     
     return {
