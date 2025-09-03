@@ -1397,82 +1397,80 @@ function renderWithRow(content, headers, row, signature) {
 }
 
 async function executeCampaignRun(params) {
-	await ensureServices();
-	const { sheetId, sheetTitle, subject, content, html, from, attachmentsPaths, delaySeconds, useSignature } = params;
-	const range = sheetTitle ? `${sheetTitle}!A:Z` : 'A:Z';
-	const res = await sheetsService.spreadsheets.values.get({ spreadsheetId: sheetId, range });
-	const values = res.data.values || [];
-	if (!values.length) throw new Error('No data found in sheet');
-	const headers = values[0];
-	const rows = values.slice(1);
-	const emailIdx = findEmailColumnIndex(headers);
-	if (emailIdx < 0) throw new Error('No Email column found');
-	
-	// Get signature for HTML emails
-	const signatureHtml = useSignature ? await getPrimarySignature() : '';
-	
-	for (let i = 0; i < rows.length; i++) {
-		const row = rows[i];
-		const to = row[emailIdx];
-		if (!to) continue;
+	try {
+		await ensureServices();
+		const { sheetId, sheetTitle, subject, content, html, from, attachmentsPaths, delaySeconds, useSignature } = params;
+		const range = sheetTitle ? `${sheetTitle}!A:Z` : 'A:Z';
+		const res = await sheetsService.spreadsheets.values.get({ spreadsheetId: sheetId, range });
+		const values = res.data.values || [];
+		if (!values.length) throw new Error('No data found in sheet');
+		const headers = values[0];
+		const rows = values.slice(1);
+		const emailIdx = findEmailColumnIndex(headers);
+		if (emailIdx < 0) throw new Error('No Email column found');
 		
-		// Process content with placeholders
-		const text = renderWithRow(content, headers, row, '');
+		// Get signature for HTML emails
+		const signatureHtml = useSignature ? await getPrimarySignature() : '';
 		
-		// Process HTML content with placeholders and signature
-		let finalHtml = '';
-		if (html) {
-			// Replace placeholders in HTML content
-			let processedHtml = html;
-			headers.forEach((header, idx) => {
-				const value = row[idx] || '';
-				const placeholder = `((${header}))`;
-				processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+		for (let i = 0; i < rows.length; i++) {
+			const row = rows[i];
+			const to = row[emailIdx];
+			if (!to) continue;
+			
+			// Process content with placeholders
+			const text = renderWithRow(content, headers, row, '');
+			
+			// Process HTML content with placeholders and signature
+			let finalHtml = '';
+			if (html) {
+				// Replace placeholders in HTML content
+				let processedHtml = html;
+				headers.forEach((header, idx) => {
+					const value = row[idx] || '';
+					const placeholder = `((${header}))`;
+					processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+				});
+				
+				// Add signature if enabled
+				if (signatureHtml && useSignature) {
+					finalHtml = `<div>${processedHtml}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
+				} else {
+					finalHtml = processedHtml;
+				}
+			}
+			
+			// Add signature to text content if enabled
+			let finalText = text;
+			if (signatureHtml && useSignature) {
+				// Convert HTML signature to plain text for text version
+				const textSignature = signatureHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+				finalText = `${text}\n\n${textSignature}`;
+			}
+			
+			const rawStr = buildRawEmail({ 
+				from, 
+				to, 
+				subject, 
+				text: finalText, 
+				html: finalHtml, 
+				attachments: attachmentsPaths || [] 
 			});
 			
-			// Add signature if enabled
-			if (signatureHtml && useSignature) {
-				finalHtml = `<div>${processedHtml}</div><div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px;">${signatureHtml}</div>`;
-			} else {
-				finalHtml = processedHtml;
-			}
+			await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
+			
+			try {
+				await updateSheetStatus(sheetId, sheetTitle || 'Sheet1', headers, i, 'SENT');
+			} catch (_) {}
+			
+			const jitter = Math.floor(Math.random() * 2000);
+			await new Promise(r => setTimeout(r, (delaySeconds || 5) * 1000 + jitter));
 		}
 		
-		// Add signature to text content if enabled
-		let finalText = text;
-		if (signatureHtml && useSignature) {
-			// Convert HTML signature to plain text for text version
-			const textSignature = signatureHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-			finalText = `${text}\n\n${textSignature}`;
-		}
-		
-		const rawStr = buildRawEmail({ 
-			from, 
-			to, 
-			subject, 
-			text: finalText, 
-			html: finalHtml, 
-			attachments: attachmentsPaths || [] 
-		});
-		
-		await gmailService.users.messages.send({ userId: 'me', requestBody: { raw: toBase64Url(rawStr) } });
-		
-		try {
-			await updateSheetStatus(sheetId, sheetTitle || 'Sheet1', headers, i, 'SENT');
-		} catch (_) {}
-		
-		const jitter = Math.floor(Math.random() * 2000);
-		await new Promise(r => setTimeout(r, (delaySeconds || 5) * 1000 + jitter));
-	}
 		// Campaign run
-		logEvent('info', 'Campaign completed', { recipients: rows.length, tabId });
+		logEvent('info', 'Campaign completed', { recipients: rows.length });
 	} catch (error) {
-		logEvent('error', 'Campaign failed', { error: error.message, tabId });
+		logEvent('error', 'Campaign failed', { error: error.message });
 		throw error;
-	} finally {
-		// Mark tab as not running campaign
-		tabOps.isScheduling = false;
-		tabOperations.set(tabId, tabOps);
 	}
 }
 
