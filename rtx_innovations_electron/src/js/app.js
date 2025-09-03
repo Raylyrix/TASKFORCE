@@ -775,7 +775,7 @@ class RTXApp {
         try {
             if (!window.electronAPI) return;
             if (window.electronAPI.listSendAs) {
-                this.sendAsList = await window.electronAPI.listSendAs();
+                this.sendAsList = await window.electronAPI.listSendAs(this.currentTabId);
                 const fromSelect = document.getElementById('fromAddress');
                 if (fromSelect) {
                     fromSelect.innerHTML = '';

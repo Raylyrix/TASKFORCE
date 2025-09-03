@@ -62,7 +62,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     smtpExtractSignature: (email) => wrapInvoke('smtp-extract-signature', email),
 
     // Gmail features
-    listSendAs: () => wrapInvoke('gmail-list-send-as'),
+    listSendAs: (tabId) => wrapInvoke('gmail-list-send-as', tabId),
     getGmailSignature: () => wrapInvoke('gmail-get-signature'),
 
     // Sheets

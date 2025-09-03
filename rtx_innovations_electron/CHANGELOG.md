@@ -2,6 +2,43 @@
 
 All notable changes to TASK FORCE will be documented in this file.
 
+## [3.0.7] - 2025-01-02
+
+### 🔧 Critical Multi-Tab & Authentication Fixes
+
+#### Tab Management System
+- **FIXED**: Tab manager initialization issues - tabs.js now loads properly
+- **FIXED**: New tab button functionality restored with proper event handling
+- **ENHANCED**: Tab manager initialization with better debugging and error handling
+- **IMPROVED**: Tab switching and state synchronization between tabs
+
+#### Authentication System
+- **FIXED**: OAuth authentication issues causing "invalid_grant" and "invalid_client" errors
+- **ADDED**: buildOAuthClientForTab function for proper tab-specific OAuth client creation
+- **ENHANCED**: Tab-based authentication with proper credential handling
+- **IMPROVED**: Authentication flow for multiple Google accounts in different tabs
+
+#### Gmail Integration
+- **FIXED**: listSendAs function now supports tab-specific services
+- **ENHANCED**: Gmail context fetching with proper tab ID passing
+- **IMPROVED**: Error handling for Gmail API calls in tab context
+- **FIXED**: Authentication state management across tabs
+
+#### Multi-Account Support
+- **ENHANCED**: Complete isolation of authentication sessions per tab
+- **IMPROVED**: Tab-specific OAuth token storage and management
+- **FIXED**: Credential file upload now works properly for all tabs
+- **ENHANCED**: Browser-based Google login for multiple accounts
+
+### 🎯 What's Fixed
+- **Issue**: tabs.js file not found error
+- **Issue**: Tab manager not initializing properly
+- **Issue**: New tab button not working
+- **Issue**: Authentication failing with invalid_grant/invalid_client errors
+- **Issue**: Gmail context fetching failing in tab context
+- **Fix**: Complete tab management system with proper authentication
+- **Result**: Full multi-tab functionality with isolated authentication and mailing
+
 ## [3.0.6] - 2025-01-02
 
 ### 🐛 Critical Syntax Error Fix #2

@@ -394,6 +394,17 @@ function buildOAuthClient(norm, redirectUriOverride) {
 	return new google.auth.OAuth2(norm.client_id, norm.client_secret, redirect);
 }
 
+function buildOAuthClientForTab(tabId, credentials = null) {
+	// Use provided credentials or default credentials
+	const creds = credentials || getEmbeddedDefaultCredentials().installed;
+	const oauth2Client = new google.auth.OAuth2(
+		creds.client_id,
+		creds.client_secret,
+		creds.redirect_uris[0] || 'http://localhost'
+	);
+	return oauth2Client;
+}
+
 async function ensureServices() {
 	if (!oauth2Client) {
 		const token = store.get('googleToken');
@@ -426,7 +437,7 @@ async function authenticateGoogleWithTab(credentialsData, tabId) {
 		}
 
 		// Create tab-specific OAuth client
-		const tabOAuth2Client = buildOAuthClient(norm);
+		const tabOAuth2Client = buildOAuthClientForTab(tabId, norm);
 		
 		// Check for existing token for this tab
 		const existingToken = store.get(`googleToken_${tabId}`);
@@ -837,21 +848,43 @@ function toBase64Url(str) {
 	return Buffer.from(str).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function listSendAs() {
-	if (isOAuthAvailable()) {
-		await ensureServices();
-		const res = await gmailService.users.settings.sendAs.list({ userId: 'me' });
-		return (res.data.sendAs || []).map(s => ({
-			email: s.sendAsEmail,
-			name: s.displayName || '',
-			isPrimary: !!s.isPrimary,
-			verificationStatus: s.verificationStatus,
-			signature: s.signature || ''
-		}));
+async function listSendAs(tabId = null) {
+	try {
+		if (tabId && tabServices.has(tabId)) {
+			// Use tab-specific service
+			const tabData = tabServices.get(tabId);
+			if (tabData && tabData.gmailService) {
+				const res = await tabData.gmailService.users.settings.sendAs.list({ userId: 'me' });
+				return (res.data.sendAs || []).map(s => ({
+					email: s.sendAsEmail,
+					name: s.displayName || '',
+					isPrimary: !!s.isPrimary,
+					verificationStatus: s.verificationStatus,
+					signature: s.signature || ''
+				}));
+			}
+		}
+		
+		if (isOAuthAvailable()) {
+			await ensureServices();
+			const res = await gmailService.users.settings.sendAs.list({ userId: 'me' });
+			return (res.data.sendAs || []).map(s => ({
+				email: s.sendAsEmail,
+				name: s.displayName || '',
+				isPrimary: !!s.isPrimary,
+				verificationStatus: s.verificationStatus,
+				signature: s.signature || ''
+			}));
+		}
+		
+		const email = getActiveSmtpEmail();
+		if (email) return [{ email, name: '', isPrimary: true, verificationStatus: 'accepted', signature: (store.get(`smtp.signature.${email}`) || '') }];
+		return [];
+	} catch (error) {
+		console.error('Error listing send-as addresses:', error);
+		logEvent('error', 'Failed to list send-as addresses', { error: error.message, tabId });
+		return [];
 	}
-	const email = getActiveSmtpEmail();
-	if (email) return [{ email, name: '', isPrimary: true, verificationStatus: 'accepted', signature: (store.get(`smtp.signature.${email}`) || '') }];
-	return [];
 }
 
 async function getPrimarySignature() {
@@ -1533,7 +1566,7 @@ ipcMain.handle('auth-logout', async () => {
 });
 ipcMain.handle('sendTestEmail', async (event, emailData) => sendTestEmail(emailData));
 ipcMain.handle('sendEmail', async (event, emailData) => sendEmail(emailData));
-ipcMain.handle('gmail-list-send-as', async () => listSendAs());
+ipcMain.handle('gmail-list-send-as', async (event, tabId) => listSendAs(tabId));
 ipcMain.handle('gmail-get-signature', async () => getPrimarySignature());
 ipcMain.handle('sheets-list-tabs', async (e, sheetId) => listSheets(sheetId));
 ipcMain.handle('sheets-update-status', async (e, args) => updateSheetStatus(args.sheetId, args.sheetTitle, args.headers, args.rowIndexZeroBased, args.status));

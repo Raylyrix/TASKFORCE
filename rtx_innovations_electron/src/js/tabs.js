@@ -251,7 +251,9 @@ class TabManager {
 
 // Initialize tab manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM loaded, initializing TabManager...');
     window.tabManager = new TabManager();
+    console.log('✅ TabManager created and assigned to window.tabManager');
 });
 
 
