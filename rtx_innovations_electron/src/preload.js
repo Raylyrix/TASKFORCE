@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     authenticateGoogle: (credentials) => wrapInvoke('authenticateGoogle', credentials),
     authenticateGoogleWithTab: (credentials, tabId) => wrapInvoke('authenticateGoogleWithTab', credentials, tabId),
     sendEmailWithTab: (emailData, tabId) => wrapInvoke('sendEmailWithTab', emailData, tabId),
+    createNewWindow: (windowId) => wrapInvoke('createNewWindow', windowId),
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),
     getCurrentAuth: () => wrapInvoke('auth-current-user'),
@@ -97,7 +98,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     cancelSchedule: (id) => wrapInvoke('schedule-cancel', id),
 
     // Import local spreadsheets
-    loadLocalSpreadsheet: (filePath) => wrapInvoke('load-local-spreadsheet', filePath),
+    loadLocalSpreadsheet: (filePath) => wrapInvoke('loadLocalSpreadsheet', filePath),
 
     // Updates
     checkForUpdates: () => wrapInvoke('update-check'),
@@ -164,7 +165,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	cancelSchedule: (id) => ipcRenderer.invoke('schedule-cancel', id),
 
 	// Local files and logs
-	loadLocalSpreadsheet: (filePath) => ipcRenderer.invoke('load-local-spreadsheet', filePath),
+	loadLocalSpreadsheet: (filePath) => ipcRenderer.invoke('loadLocalSpreadsheet', filePath),
 	appendLog: (payload) => ipcRenderer.invoke('app-log-append', payload),
 	readSessionLog: () => ipcRenderer.invoke('app-log-read'),
 	onAppLog: (callback) => ipcRenderer.on('app-log', (_e, data) => callback(data)),

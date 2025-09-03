@@ -6,10 +6,10 @@ import '../styles/components.css';
 console.log('🚀 CSS files imported successfully');
 console.log('🚀 app.js is loading...');
 
-// RTX Innovations - AutoMailer Pro
-class RTXApp {
+// Task Force - AutoMailer Pro
+class TaskForceApp {
     constructor() {
-        console.log('🚀 RTXApp constructor called');
+        console.log('🚀 TaskForceApp constructor called');
         this.isAuthenticated = false;
         this.currentAccount = null;
         this.sheetData = null;
@@ -27,10 +27,10 @@ class RTXApp {
     }
 
     init() {
-        console.log('🚀 RTX Innovations AutoMailer Pro initializing...');
+        console.log('🚀 Task Force AutoMailer Pro initializing...');
         
         // Test that we can access the DOM
-        document.title = 'RTX Innovations - AutoMailer Pro (LOADED)';
+        document.title = 'Task Force - AutoMailer Pro (LOADED)';
         console.log('✅ DOM access confirmed - title updated');
         
         this.setupEventListeners();
@@ -43,7 +43,7 @@ class RTXApp {
         // Wait for tab manager to be ready
         this.waitForTabManager();
         
-        console.log('✅ RTX Innovations AutoMailer Pro initialized successfully!');
+        console.log('✅ Task Force AutoMailer Pro initialized successfully!');
         
         // Show a success message on the page
         this.showSuccess('AutoMailer Pro loaded successfully!');
@@ -55,11 +55,11 @@ class RTXApp {
     waitForTabManager() {
         const checkTabManager = () => {
             if (window.tabManager && window.tabManager.isInitialized) {
-                console.log('✅ Simple tab manager found, setting current tab ID');
-                this.currentTabId = window.tabManager.activeTabId;
-                console.log('✅ Current virtual tab ID set to:', this.currentTabId);
+                console.log('✅ New window tab manager found');
+                this.currentTabId = 'main_window';
+                console.log('✅ Current window ID set to:', this.currentTabId);
             } else {
-                console.log('⏳ Waiting for simple tab manager...');
+                console.log('⏳ Waiting for new window tab manager...');
                 setTimeout(checkTabManager, 100);
             }
         };
@@ -380,21 +380,44 @@ class RTXApp {
         }
         if (uploadCredentialsBtn) {
             console.log('Upload credentials button found, adding listener');
-            uploadCredentialsBtn.addEventListener('click', () => this.handleCredentialsUpload());
+            // Remove any existing listeners first
+            uploadCredentialsBtn.onclick = null;
+            uploadCredentialsBtn.addEventListener('click', (event) => {
+                console.log('Upload credentials button clicked');
+                event.preventDefault();
+                event.stopPropagation();
+                this.handleCredentialsUpload();
+            });
         } else {
             console.error('Upload credentials button not found!');
         }
 
         // Google Sheets connection buttons
         const connectSheetsBtn = document.getElementById('connectSheetsBtn');
-        const connectSheetsBtn2 = document.getElementById('connectSheetsBtn2');
         if (connectSheetsBtn) {
-            console.log('Connect sheets button 1 found, adding listener');
+            console.log('Connect sheets button found, adding listener');
             connectSheetsBtn.addEventListener('click', () => this.connectToSheets());
         }
-        if (connectSheetsBtn2) {
-            console.log('Connect sheets button 2 found, adding listener');
-            connectSheetsBtn2.addEventListener('click', () => this.connectToSheets());
+
+        // Import spreadsheet button
+        const importSheetBtn = document.getElementById('importSheetBtn');
+        if (importSheetBtn) {
+            console.log('Import sheet button found, adding listener');
+            importSheetBtn.addEventListener('click', () => this.importLocalSpreadsheet());
+        }
+
+        // Logs button
+        const logsBtn = document.getElementById('logsBtn');
+        if (logsBtn) {
+            console.log('Logs button found, adding listener');
+            logsBtn.addEventListener('click', () => this.showLogs());
+        }
+
+        // Toggle preview button
+        const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+        if (togglePreviewBtn) {
+            console.log('Toggle preview button found, adding listener');
+            togglePreviewBtn.addEventListener('click', () => this.toggleDataPreview());
         }
 
         // Email campaign buttons
@@ -631,19 +654,25 @@ class RTXApp {
 
     async handleCredentialsUpload() {
         console.log('Handling credentials upload');
-        const fileInput = document.getElementById('credentialsFile');
-        if (fileInput && fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            try {
+        try {
+            const fileInput = document.getElementById('credentialsFile');
+            if (!fileInput) {
+                this.showError('Credentials file input not found');
+                return;
+            }
+            
+            if (fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
                 this.showLoading('Processing credentials...');
                 const credentials = await this.readCredentialsFile(file);
                 await this.authenticateWithCredentials(credentials);
-            } catch (error) {
-                this.hideLoading();
-                this.showError('Failed to process credentials: ' + error.message);
+            } else {
+                this.showError('Please select a credentials file first');
             }
-        } else {
-            this.showError('Please select a credentials file first');
+        } catch (error) {
+            console.error('Error handling credentials upload:', error);
+            this.hideLoading();
+            this.showError('Failed to process credentials: ' + error.message);
         }
     }
 
@@ -667,21 +696,8 @@ class RTXApp {
         try {
             console.log('Authenticating with credentials...');
             
-            // Use virtual tab-based authentication if tab manager is available
-            if (window.tabManager && this.currentTabId) {
-                const result = await window.tabManager.authenticateTab(this.currentTabId, credentials);
-                if (result.success) {
-                    this.onAuthenticationSuccess(result.userEmail || 'authenticated');
-                    this.initializeServices(credentials)
-                        .then(() => console.log('Services ready'))
-                        .catch(err => {
-                            console.error('Service init failed:', err);
-                            this.showError('Connected, but failed to initialize services: ' + err.message);
-                        });
-                } else {
-                    throw new Error(result.error || 'Authentication failed');
-                }
-            } else if (window.electronAPI && window.electronAPI.authenticateGoogle) {
+            // Use window-based authentication
+            if (window.electronAPI && window.electronAPI.authenticateGoogle) {
                 // Fallback to original authentication
                 const result = await window.electronAPI.authenticateGoogle(credentials);
                 if (result.success) {
@@ -884,6 +900,66 @@ class RTXApp {
         return null;
     }
 
+    async importLocalSpreadsheet() {
+        console.log('Importing local spreadsheet...');
+        try {
+            const res = await window.electronAPI.showOpenDialog({ 
+                properties: ['openFile'], 
+                filters: [{ name: 'Spreadsheets', extensions: ['csv','xlsx','xls'] }] 
+            });
+            if (!res.canceled && res.filePaths?.length) {
+                this.showLoading('Loading spreadsheet...');
+                const out = await window.electronAPI.loadLocalSpreadsheet(res.filePaths[0]);
+                if (out.success) {
+                    this.onSheetsConnected(out.data);
+                    const sheetUrlInput = document.getElementById('sheetUrlInput');
+                    if (sheetUrlInput) {
+                        sheetUrlInput.value = res.filePaths[0];
+                    }
+                    this.showSuccess('Spreadsheet imported successfully!');
+                } else {
+                    this.showError('Failed to import: ' + out.error);
+                }
+            }
+        } catch (error) {
+            this.hideLoading();
+            this.showError('Failed to import spreadsheet: ' + error.message);
+        }
+    }
+
+    async showLogs() {
+        console.log('Showing logs...');
+        try {
+            const out = await window.electronAPI.readSessionLog();
+            if (out.success) {
+                const logsContent = document.getElementById('logsContent');
+                const logsModal = document.getElementById('logsModal');
+                if (logsContent) {
+                    logsContent.textContent = out.content || '';
+                }
+                if (logsModal) {
+                    logsModal.style.display = 'block';
+                }
+            } else {
+                this.showError('Failed to read logs: ' + out.error);
+            }
+        } catch (error) {
+            this.showError('Failed to show logs: ' + error.message);
+        }
+    }
+
+    toggleDataPreview() {
+        console.log('Toggling data preview...');
+        const drawer = document.getElementById('dataPreviewDrawer');
+        if (drawer) {
+            const isVisible = drawer.style.display !== 'none';
+            drawer.style.display = isVisible ? 'none' : 'block';
+            console.log('Data preview toggled:', !isVisible ? 'shown' : 'hidden');
+        } else {
+            console.error('Data preview drawer not found');
+        }
+    }
+
     async loadSheetData() {
         try {
             if (window.electronAPI && window.electronAPI.connectToSheets) {
@@ -1041,12 +1117,8 @@ class RTXApp {
             };
             
             let result;
-            // Use virtual tab-based sending if available
-            if (window.tabManager && this.currentTabId) {
-                result = await window.tabManager.sendEmailFromTab(this.currentTabId, emailData);
-            } else {
-                result = await window.electronAPI.sendTestEmail(emailData);
-            }
+            // Use window-based sending
+            result = await window.electronAPI.sendTestEmail(emailData);
             if (result.success) this.showSuccess('Test email sent successfully!'); else throw new Error(result.error || 'Failed to send test email');
         } catch (error) {
             this.hideLoading();
@@ -1796,6 +1868,6 @@ class RTXApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing RTX App...');
-    if (!window.rtxApp) window.rtxApp = new RTXApp();
+            console.log('DOM loaded, initializing Task Force App...');
+    if (!window.taskForceApp) window.taskForceApp = new TaskForceApp();
 }); 

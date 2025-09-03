@@ -402,7 +402,7 @@ body {
   right: -4px;
   background: #FF3B30;
   background: var(--error-color);
-  color: white;
+  color: rgb(0, 0, 0);
   font-size: 12px;
   font-size: var(--font-size-xs);
   padding: 2px 6px;

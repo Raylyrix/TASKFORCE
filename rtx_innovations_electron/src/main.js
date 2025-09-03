@@ -252,6 +252,37 @@ function createWindow() {
 	createMenu();
 }
 
+function createNewWindow(windowId) {
+  const newWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 1100,
+    minHeight: 700,
+    resizable: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: isSafeMode ? undefined : path.join(__dirname, 'preload.js'),
+      backgroundThrottling: false,
+      devTools: true
+    },
+    icon: path.join(__dirname, '../assets/icons/icon.png'),
+    show: true,
+    center: true,
+    backgroundColor: '#ffffff'
+  });
+
+  newWindow.loadFile('src/index.html');
+  
+  // Open DevTools in development
+  if (process.env.NODE_ENV === 'development') {
+    newWindow.webContents.openDevTools();
+  }
+  
+  console.log(`✅ New window created: ${windowId}`);
+  return { success: true, windowId };
+}
+
 function createMenu() {
   const template = [
     {
@@ -757,6 +788,54 @@ async function initializeSheetsService() {
 	try {
 		await ensureServices();
 		return { success: true };
+	} catch (error) {
+		return { success: false, error: error.message };
+	}
+}
+
+async function loadLocalSpreadsheet(filePath) {
+	try {
+		const fs = require('fs');
+		const path = require('path');
+		const ext = path.extname(filePath).toLowerCase();
+		
+		if (ext === '.csv') {
+			const csv = require('csv-parser');
+			const results = [];
+			return new Promise((resolve, reject) => {
+				fs.createReadStream(filePath)
+					.pipe(csv())
+					.on('data', (data) => results.push(data))
+					.on('end', () => {
+						if (results.length === 0) {
+							resolve({ success: false, error: 'No data found in CSV file' });
+							return;
+						}
+						const headers = Object.keys(results[0]);
+						const rows = results.map(row => headers.map(header => row[header] || ''));
+						resolve({ success: true, data: { headers, rows } });
+					})
+					.on('error', (error) => {
+						resolve({ success: false, error: error.message });
+					});
+			});
+		} else if (ext === '.xlsx' || ext === '.xls') {
+			const XLSX = require('xlsx');
+			const workbook = XLSX.readFile(filePath);
+			const sheetName = workbook.SheetNames[0];
+			const worksheet = workbook.Sheets[sheetName];
+			const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+			
+			if (jsonData.length === 0) {
+				return { success: false, error: 'No data found in Excel file' };
+			}
+			
+			const headers = jsonData[0];
+			const rows = jsonData.slice(1);
+			return { success: true, data: { headers, rows } };
+		} else {
+			return { success: false, error: 'Unsupported file format. Please use CSV, XLS, or XLSX files.' };
+		}
 	} catch (error) {
 		return { success: false, error: error.message };
 	}
@@ -1556,9 +1635,11 @@ ipcMain.handle('updateClientCredentials', async (event, credentialsData) => upda
 ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
 ipcMain.handle('authenticateGoogleWithTab', async (event, credentialsData, tabId) => authenticateGoogleWithTab(credentialsData, tabId));
 ipcMain.handle('sendEmailWithTab', async (event, emailData, tabId) => sendEmailWithTab(emailData, tabId));
+ipcMain.handle('createNewWindow', async (event, windowId) => createNewWindow(windowId));
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
+ipcMain.handle('loadLocalSpreadsheet', async (event, filePath) => loadLocalSpreadsheet(filePath));
 ipcMain.handle('auth-logout', async () => {
     try {
         try { store.delete('googleToken'); } catch (_) {}
