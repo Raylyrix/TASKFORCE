@@ -40,12 +40,12 @@ const tabOperations = new Map(); // tabId -> { isSending: boolean, isScheduling:
 function getEmbeddedDefaultCredentials() {
     return {
         installed: {
-            client_id: "1007595181381-n1ildiigmoupnn78n8ekkhlulsfigbfk.apps.googleusercontent.com",
+            client_id: "YOUR_CLIENT_ID_HERE",
             project_id: "taskforce-mailer-v2",
             auth_uri: "https://accounts.google.com/o/oauth2/auth",
             token_uri: "https://oauth2.googleapis.com/token",
             auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-            client_secret: "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",
+            client_secret: "YOUR_CLIENT_SECRET_HERE",
             redirect_uris: ["http://localhost"]
         }
     };
