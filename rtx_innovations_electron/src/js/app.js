@@ -54,12 +54,12 @@ class RTXApp {
 
     waitForTabManager() {
         const checkTabManager = () => {
-            if (window.tabManager) {
-                console.log('✅ Tab manager found, setting current tab ID');
+            if (window.tabManager && window.tabManager.isInitialized) {
+                console.log('✅ Virtual tab manager found, setting current tab ID');
                 this.currentTabId = window.tabManager.activeTabId;
-                console.log('✅ Current tab ID set to:', this.currentTabId);
+                console.log('✅ Current virtual tab ID set to:', this.currentTabId);
             } else {
-                console.log('⏳ Waiting for tab manager...');
+                console.log('⏳ Waiting for virtual tab manager...');
                 setTimeout(checkTabManager, 100);
             }
         };
@@ -667,9 +667,9 @@ class RTXApp {
         try {
             console.log('Authenticating with credentials...');
             
-            // Use tab-based authentication if tab manager is available
+            // Use virtual tab-based authentication if tab manager is available
             if (window.tabManager && this.currentTabId) {
-                const result = await window.tabManager.authenticateTab(this.currentTabId, credentials);
+                const result = await window.tabManager.authenticateVirtualTab(this.currentTabId, credentials);
                 if (result.success) {
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                     this.initializeServices(credentials)
@@ -1041,9 +1041,9 @@ class RTXApp {
             };
             
             let result;
-            // Use tab-based sending if available
+            // Use virtual tab-based sending if available
             if (window.tabManager && this.currentTabId) {
-                result = await window.tabManager.sendEmailFromTab(this.currentTabId, emailData);
+                result = await window.tabManager.sendEmailFromVirtualTab(this.currentTabId, emailData);
             } else {
                 result = await window.electronAPI.sendTestEmail(emailData);
             }
