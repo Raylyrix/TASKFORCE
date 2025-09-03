@@ -63,7 +63,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Gmail features
     listSendAs: (tabId) => wrapInvoke('gmail-list-send-as', tabId),
-    getGmailSignature: () => wrapInvoke('gmail-get-signature'),
+    getGmailSignature: (tabId) => wrapInvoke('gmail-get-signature', tabId),
 
     // Sheets
     listSheetTabs: (sheetId) => wrapInvoke('sheets-list-tabs', sheetId),
@@ -152,7 +152,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 	// Gmail extras
 	listSendAs: () => ipcRenderer.invoke('gmail-list-send-as'),
-	getGmailSignature: () => ipcRenderer.invoke('gmail-get-signature'),
+	getGmailSignature: (tabId) => ipcRenderer.invoke('gmail-get-signature', tabId),
 
 	// Sheets extras
 	listSheetTabs: (sheetId) => ipcRenderer.invoke('sheets-list-tabs', sheetId),

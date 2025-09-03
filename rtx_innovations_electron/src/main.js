@@ -38,26 +38,15 @@ const tabOperations = new Map(); // tabId -> { isSending: boolean, isScheduling:
 
 // Embedded default OAuth credentials (obfuscated)
 function getEmbeddedDefaultCredentials() {
-    // Obfuscated credentials - DO NOT CHANGE
-    const parts = {
-        id: ['817286133901-77vi2ruk7k8etatv2hfeeshaqmc85e5h', '.apps.googleusercontent.com'],
-        secret: ['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'],
-        project: ['taskforce', '-1'],
-        auth: ['https://accounts.google.com/o/oauth2/auth'],
-        token: ['https://oauth2.googleapis.com/token'],
-        cert: ['https://www.googleapis.com/oauth2/v1/certs'],
-        redirect: ['http://localhost']
-    };
-    
     return {
         installed: {
-            client_id: parts.id.join(''),
-            project_id: parts.project.join(''),
-            auth_uri: parts.auth.join(''),
-            token_uri: parts.token.join(''),
-            auth_provider_x509_cert_url: parts.cert.join(''),
-            client_secret: parts.secret.join(''),
-            redirect_uris: [parts.redirect[0]]
+            client_id: "1007595181381-n1ildiigmoupnn78n8ekkhlulsfigbfk.apps.googleusercontent.com",
+            project_id: "taskforce-mailer-v2",
+            auth_uri: "https://accounts.google.com/o/oauth2/auth",
+            token_uri: "https://oauth2.googleapis.com/token",
+            auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+            client_secret: "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",
+            redirect_uris: ["http://localhost"]
         }
     };
 }
@@ -887,16 +876,34 @@ async function listSendAs(tabId = null) {
 	}
 }
 
-async function getPrimarySignature() {
-	if (isOAuthAvailable()) {
-		await ensureServices();
-		const res = await gmailService.users.settings.sendAs.list({ userId: 'me' });
-		const list = res.data.sendAs || [];
-		const pri = list.find(s => s.isPrimary) || list[0];
-		return pri?.signature || '';
+async function getPrimarySignature(tabId = null) {
+	try {
+		if (tabId && tabServices.has(tabId)) {
+			// Use tab-specific service
+			const tabData = tabServices.get(tabId);
+			if (tabData && tabData.gmailService) {
+				const res = await tabData.gmailService.users.settings.sendAs.list({ userId: 'me' });
+				const list = res.data.sendAs || [];
+				const pri = list.find(s => s.isPrimary) || list[0];
+				return pri?.signature || '';
+			}
+		}
+		
+		if (isOAuthAvailable()) {
+			await ensureServices();
+			const res = await gmailService.users.settings.sendAs.list({ userId: 'me' });
+			const list = res.data.sendAs || [];
+			const pri = list.find(s => s.isPrimary) || list[0];
+			return pri?.signature || '';
+		}
+		
+		const email = getActiveSmtpEmail();
+		return (email && (store.get(`smtp.signature.${email}`) || '')) || '';
+	} catch (error) {
+		console.error('Error getting primary signature:', error);
+		logEvent('error', 'Failed to get primary signature', { error: error.message, tabId });
+		return '';
 	}
-	const email = getActiveSmtpEmail();
-	return (email && (store.get(`smtp.signature.${email}`) || '')) || '';
 }
 
 async function listSheets(sheetId) {
@@ -1567,7 +1574,7 @@ ipcMain.handle('auth-logout', async () => {
 ipcMain.handle('sendTestEmail', async (event, emailData) => sendTestEmail(emailData));
 ipcMain.handle('sendEmail', async (event, emailData) => sendEmail(emailData));
 ipcMain.handle('gmail-list-send-as', async (event, tabId) => listSendAs(tabId));
-ipcMain.handle('gmail-get-signature', async () => getPrimarySignature());
+ipcMain.handle('gmail-get-signature', async (event, tabId) => getPrimarySignature(tabId));
 ipcMain.handle('sheets-list-tabs', async (e, sheetId) => listSheets(sheetId));
 ipcMain.handle('sheets-update-status', async (e, args) => updateSheetStatus(args.sheetId, args.sheetTitle, args.headers, args.rowIndexZeroBased, args.status));
 ipcMain.handle('show-open-dialog', async (e, options) => dialog.showOpenDialog(mainWindow, options));

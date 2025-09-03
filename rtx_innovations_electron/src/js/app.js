@@ -55,11 +55,11 @@ class RTXApp {
     waitForTabManager() {
         const checkTabManager = () => {
             if (window.tabManager && window.tabManager.isInitialized) {
-                console.log('✅ Virtual tab manager found, setting current tab ID');
+                console.log('✅ Simple tab manager found, setting current tab ID');
                 this.currentTabId = window.tabManager.activeTabId;
                 console.log('✅ Current virtual tab ID set to:', this.currentTabId);
             } else {
-                console.log('⏳ Waiting for virtual tab manager...');
+                console.log('⏳ Waiting for simple tab manager...');
                 setTimeout(checkTabManager, 100);
             }
         };
@@ -669,7 +669,7 @@ class RTXApp {
             
             // Use virtual tab-based authentication if tab manager is available
             if (window.tabManager && this.currentTabId) {
-                const result = await window.tabManager.authenticateVirtualTab(this.currentTabId, credentials);
+                const result = await window.tabManager.authenticateTab(this.currentTabId, credentials);
                 if (result.success) {
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                     this.initializeServices(credentials)
@@ -796,7 +796,7 @@ class RTXApp {
                 }
             }
             if (window.electronAPI.getGmailSignature) {
-                this.gmailSignature = await window.electronAPI.getGmailSignature();
+                this.gmailSignature = await window.electronAPI.getGmailSignature(this.currentTabId);
                 // Prefer HTML signature if present (we store text fallback). In OAuth mode we fetch from sendAs list; here we keep text fallback only.
             }
         } catch (e) {
@@ -1043,7 +1043,7 @@ class RTXApp {
             let result;
             // Use virtual tab-based sending if available
             if (window.tabManager && this.currentTabId) {
-                result = await window.tabManager.sendEmailFromVirtualTab(this.currentTabId, emailData);
+                result = await window.tabManager.sendEmailFromTab(this.currentTabId, emailData);
             } else {
                 result = await window.electronAPI.sendTestEmail(emailData);
             }

@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TASK FORCE - AutoMailer Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Inline critical CSS for immediate loading */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            border-right: 1px solid #e5e5e7;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f7;
+        }
+        
+        .header {
+            background: #ffffff;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e5e5e7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        /* Tab Styles */
+        .tab-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e7;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+        
+        .tab-list {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+        
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f5f5f7;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 120px;
+            max-width: 200px;
+            position: relative;
+        }
+        
+        .tab:hover {
+            background: #e8e8ed;
+        }
+        
+        .tab.active {
+            background: #ffffff;
+            border-bottom: 1px solid #ffffff;
+            z-index: 1;
+        }
+        
+        .tab-email {
+            font-size: 12px;
+            color: #8E8E93;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .tab-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #8E8E93;
+        }
+        
+        .tab-status.authenticated {
+            background: #34C759;
+        }
+        
+        .tab-status.authenticating {
+            background: #FF9500;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .tab-close {
+            background: none;
+            border: none;
+            color: #8E8E93;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+        
+        .tab-close:hover {
+            background: #e5e5e7;
+            color: #1d1d1f;
+        }
+        
+        /* Virtual Tab Styles */
+        .virtual-tab {
+            border-left: 3px solid #007bff;
+        }
+        
+        .tab-status.virtual {
+            background: #007bff;
+        }
+        
+        .tab-status.authenticated {
+            background: #28a745;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .mailer-interface {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056CC;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #f2f2f7;
+            color: #1d1d1f;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e5e7;
+        }
+        
+        .btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #D70015;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.connected {
+            background: #34C759;
+        }
+        
+        .status-indicator.disconnected {
+            background: #FF3B30;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            color: rgb(0, 0, 0);
+			
+            font-weight: 600;
+            z-index: 10000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-success {
+            background: #34C759;
+        }
+        
+        .notification-error {
+            background: #FF3B30;
+        }
+        
+        .data-preview {
+            margin-top: 20px;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e5e7;
+        }
+        
+        th {
+            background: #f2f2f7;
+            font-weight: 600;
+        }
+        
+        .campaigns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .campaign-card {
+            background: white;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .campaign-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-badge.running {
+            background: #FF9500;
+            color: white;
+        }
+        
+        .status-badge.completed {
+            background: #34C759;
+            color: white;
+        }
+        
+        .status-badge.draft {
+            background: #8E8E93;
+            color: white;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e5e7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #8E8E93;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8E8E93;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+	<div class="app-container" style="display:block; height:auto; min-height:100vh;">
+		<!-- Top Navigation Bar -->
+		<div class="header" style="position: sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #e5e5e7; display:flex; align-items:center; justify-content:space-between; padding:10px 16px;">
+			<div style="display:flex; align-items:center; gap:12px;">
+				<h1 style="font-size:18px; margin:0;">TASK FORCE</h1>
+				<p style="color:#8E8E93; margin:0; font-size:12px;">Send bulk emails with Google Sheets integration</p>
+			</div>
+			<div style="display:flex; gap:8px; align-items:center; position:relative;">
+				<button id="googleSignInTopBtn" class="btn btn-secondary" style="border-radius:6px; border:1px solid #d0d0d4; color:#2c2c2e; background:#fff;">Sign in with Google</button>
+				<button id="googleLogoutBtn" class="btn btn-secondary" style="border-radius:6px; border:1px solid #d0d0d4; color:#2c2c2e; background:#fff; display:none;">Logout</button>
+                <select id="accountsSelect" style="min-width:220px; padding:8px 10px; border:1px solid #e5e5e7; border-radius:6px;">
+                    <option value="">Select account</option>
+                </select>
+                <button class="btn btn-secondary" id="loginBtn"><i class="fas fa-sign-in-alt"></i>Login</button>
+				<button class="btn btn-secondary" id="importSheetBtn"><i class="fas fa-file-import"></i>Import</button>
+				<button class="btn btn-secondary" id="togglePreviewBtn"><i class="fas fa-table"></i>Preview</button>
+				<button class="btn btn-secondary" id="logsBtn"><i class="fas fa-list"></i>Logs</button>
+				<button class="btn btn-secondary" id="themeToggle"><i class="fas fa-moon"></i>Theme</button>
+				<button class="btn btn-secondary" id="helpToolbarBtn"><i class="fas fa-circle-question"></i>Help</button>
+				<div id="helpDropdown" style="display:none; position:absolute; right:0; top:100%; margin-top:8px; background:#ffffff; border:1px solid #e5e5e7; border-radius:8px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); overflow:hidden; min-width:220px;">
+					<button class="btn btn-secondary" id="helpCheckBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Check for Updates</button>
+					<button class="btn btn-secondary" id="helpWelcomeBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Welcome</button>
+					<button class="btn btn-secondary" id="helpReleaseNotesBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">Release Notes</button>
+					<button class="btn btn-secondary" id="helpAboutBtn" style="display:block; width:100%; text-align:left; border-radius:0; padding:10px 12px;">About</button>
+				</div>
+                </div>
+            </div>
+            
+		<div class="main-content" style="width:100%;">
+			<!-- Tab Bar -->
+			<div class="tab-bar" style="background: #ffffff; border-bottom: 1px solid #e5e5e7; padding: 0 16px; display: flex; align-items: center; gap: 8px; min-height: 48px;">
+				<div class="tab-list" id="tabList" style="display: flex; gap: 4px; flex: 1;">
+					<!-- Tabs will be dynamically added here -->
+				</div>
+				<button class="btn btn-primary" id="newTabBtn" style="padding: 6px 12px; font-size: 12px; margin-left: auto;">
+					<i class="fas fa-plus"></i> New Tab
+				</button>
+			</div>
+			
+			<div class="content-area" style="padding:16px;">
+				<div class="mailer-interface" style="max-width:unset; width:100%;">
+					<h2 style="margin-bottom: 16px; color: #1d1d1f;">Email Campaign Manager</h2>
+					<div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+						<!-- These buttons now live in the top bar, keeping here for keyboard access if needed -->
+						<button class="btn btn-secondary" id="importSheetBtn2" style="display:none;"><i class="fas fa-file-import"></i>Import Spreadsheet</button>
+						<button class="btn btn-secondary" id="togglePreviewBtn2" style="display:none;"><i class="fas fa-table"></i>Toggle Data Preview</button>
+						<button class="btn btn-secondary" id="logsBtn2" style="display:none;"><i class="fas fa-list"></i>Logs</button>
+            </div>
+            
+					<!-- Account and From -->
+					<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+						<div style="background:#f2f2f7; padding: 12px 16px; border-radius:8px; display:flex; align-items:center; gap:10px;">
+							<div class="status-indicator disconnected" id="authStatus"></div>
+							<span id="accountStatus">Not Connected</span>
+                    </div>
+						<div class="form-group" style="margin:0;">
+							<label>From Address <span id="signatureInfo" style="color:#8E8E93; font-weight:400; font-size:12px; margin-left:6px;"></span></label>
+							<select id="fromAddress"></select>
+							<div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+								<input type="text" id="fromOverride" placeholder="Or type a custom From email" style="flex:1;">
+								<small style="color:#8E8E93;">Use a verified alias for best deliverability</small>
+                    </div>
+                </div>
+            </div>
+
+					<div id="dataPreviewDrawer" style="display:none; position:relative; border:1px solid #e5e5e7; border-radius:8px; padding:12px; margin-bottom:16px; background:#fff; z-index:1000;">
+						<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+							<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+								<strong>Sheet Data Preview</strong>
+								<input type="text" id="placeholderSearch" placeholder="Search columns..." style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; min-width:180px;">
+								<select id="previewPosition" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px;">
+									<option value="top">Top</option>
+									<option value="bottom">Bottom</option>
+									<option value="left">Left</option>
+									<option value="right">Right</option>
+								</select>
+								<button class="btn btn-secondary" id="previewFullscreenBtn"><i class="fas fa-expand"></i>Fullscreen</button>
+                </div>
+							<button class="btn btn-secondary" id="closePreviewBtn"><i class="fas fa-times"></i></button>
+                </div>
+						<div id="previewTableZone" class="table-container"></div>
+                    </div>
+                    
+					<!-- Google Sheets Connection -->
+					<div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+						<h3 style="margin-bottom: 10px;">Step 1: Connect Google Sheets</h3>
+						<div class="form-group" style="margin-bottom:10px;">
+							<label>Google Sheets URL</label>
+							<input type="text" id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/d/...">
+                            </div>
+						<div id="sheetTabsContainer" class="form-group" style="margin-bottom:10px;"></div>
+						<button class="btn btn-primary" id="connectSheetsBtn2">
+							<i class="fas fa-link"></i>Connect Sheets
+						</button>
+						<button class="btn btn-secondary" id="refreshSheetsBtn" disabled>
+							<i class="fas fa-sync"></i>Refresh Data
+						</button>
+						<div id="sheetsData" style="display: none; margin-top: 12px;"></div>
+                        </div>
+                        
+					<!-- Email Campaign Form -->
+					<div style="margin-bottom: 16px;">
+						<h3 style="margin-bottom: 10px;">Step 2: Create Email Campaign</h3>
+						<div class="form-group">
+							<label>Campaign Name</label>
+							<input type="text" id="campaignName" placeholder="Enter campaign name">
+                            </div>
+						<div class="form-group">
+							<label>Subject Line</label>
+							<input type="text" id="campaignSubject" placeholder="Enter email subject">
+                            </div>
+						<div class="form-group">
+							<label>From Name</label>
+							<input type="text" id="fromName" placeholder="Your name">
+                        </div>
+						<div class="form-group">
+							<label style="display:flex; align-items:center; justify-content:space-between;">
+								<span>Email Content</span>
+								<span style="font-size:12px; color:#8E8E93;">Click any column chip or cell to insert placeholders</span>
+							</label>
+                            <div class="form-group">
+                            <label>Email Content</label>
+                            <div id="emailEditorContainer" style="border:1px solid #e1e5e9; border-top:none; border-radius:0 0 12px 12px; min-height:400px; background:#fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow:hidden;">
+                                <!-- Editor Header Bar -->
+                                <div style="background:#f8f9fa; border-bottom:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; gap:12px; font-size:13px; color:#5f6368;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <i class="fas fa-edit" style="color:#1a73e8;"></i>
+                                        <span style="font-weight:500;">Rich Text Editor</span>
+                                    </div>
+                                    <div style="height:16px; width:1px; background:#dadce0;"></div>
+                                    <span id="editorStatus" style="color:#34a853;">Ready</span>
+                                    <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+                                        <button type="button" id="wordCountBtn" style="background:none; border:none; color:#5f6368; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:4px;" title="Word Count">
+                                            <span id="wordCount">0 words</span>
+                                        </button>
+                                        <button type="button" id="charCountBtn" style="background:none; border:none; color:#5f6368; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:4px;" title="Character Count">
+                                            <span id="charCount">0 chars</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Enhanced Toolbar -->
+                                <div style="background:#fff; border-bottom:1px solid #e1e5e9; padding:12px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <!-- Text Formatting -->
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:4px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <select id="fontFamily" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:120px;">
+                                            <option value="Arial, sans-serif">Arial</option>
+                                            <option value="'Times New Roman', serif">Times New Roman</option>
+                                            <option value="'Courier New', monospace">Courier New</option>
+                                            <option value="Georgia, serif">Georgia</option>
+                                            <option value="Verdana, sans-serif">Verdana</option>
+                                            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                                        </select>
+                                        <select id="fontSize" style="padding:6px 8px; border:1px solid #dadce0; border-radius:4px; font-size:13px; background:#fff; min-width:60px;">
+                                            <option value="1">8pt</option>
+                                            <option value="2">10pt</option>
+                                            <option value="3" selected>12pt</option>
+                                            <option value="4">14pt</option>
+                                            <option value="5">16pt</option>
+                                            <option value="6">18pt</option>
+                                            <option value="7">24pt</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="boldBtn" title="Bold (Ctrl+B)" onclick="execCommand('bold')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">B</button>
+                                        <button type="button" id="italicBtn" title="Italic (Ctrl+I)" onclick="execCommand('italic')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-style:italic; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">I</button>
+                                        <button type="button" id="underlineBtn" title="Underline (Ctrl+U)" onclick="execCommand('underline')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:underline; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">U</button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="strikeBtn" title="Strikethrough" onclick="execCommand('strikeThrough')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:line-through; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">S</button>
+                                        <button type="button" id="superscriptBtn" title="Superscript" onclick="execCommand('superscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X²</button>
+                                        <button type="button" id="subscriptBtn" title="Subscript" onclick="execCommand('subscript')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">X₂</button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="alignLeftBtn" title="Align Left" onclick="execCommand('justifyLeft')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-left"></i></button>
+                                        <button type="button" id="alignCenterBtn" title="Align Center" onclick="execCommand('justifyCenter')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-center"></i></button>
+                                        <button type="button" id="alignRightBtn" title="Align Right" onclick="execCommand('justifyRight')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-right"></i></button>
+                                        <button type="button" id="justifyBtn" title="Justify" onclick="execCommand('justifyFull')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-align-justify"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="listUlBtn" title="Bullet List" onclick="execCommand('insertUnorderedList')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-list-ul"></i></button>
+                                        <button type="button" id="listOlBtn" title="Numbered List" onclick="execCommand('insertOrderedList')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-list-ol"></i></button>
+                                        <button type="button" id="blockquoteBtn" title="Blockquote" onclick="execCommand('formatBlock')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-quote-right"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="linkBtn" title="Insert Link (Ctrl+K)" onclick="insertLink()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-link"></i></button>
+                                        <button type="button" id="imageBtn" title="Insert Image" onclick="insertImage()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-image"></i></button>
+                                        <button type="button" id="tableBtn" title="Insert Table" onclick="insertTable()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-table"></i></button>
+                                        <button type="button" id="hrBtn" title="Insert Horizontal Rule" onclick="execCommand('insertHorizontalRule')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-minus"></i></button>
+                                    </div>
+
+                                    <div class="toolbar-group" style="display:flex; align-items:center; gap:2px; padding:4px; border-radius:6px; background:#f8f9fa;">
+                                        <button type="button" id="undoBtn" title="Undo (Ctrl+Z)" onclick="execCommand('undo')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-undo"></i></button>
+                                        <button type="button" id="redoBtn" title="Redo (Ctrl+Y)" onclick="execCommand('redo')" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-redo"></i></button>
+                                        <button type="button" id="clearFormatBtn" title="Clear Formatting" onclick="clearFormatting()" style="padding:8px; border:none; background:#fff; border-radius:4px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#5f6368; transition:all 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'"><i class="fas fa-eraser"></i></button>
+                                    </div>
+                                </div>
+
+                                <!-- Editor Content Area -->
+                                <div id="emailEditor" contenteditable="true" style="padding:24px; min-height:300px; outline:none; font-family:'Segoe UI', Arial, sans-serif; font-size:14px; line-height:1.6; color:#202124; border-radius:0; background:#fff; position:relative;" data-placeholder="Start typing your email content here... Click any column chip or cell to insert placeholders like ((Name)), ((Company)), etc."></div>
+
+                                <!-- Editor Footer -->
+                                <div style="background:#f8f9fa; border-top:1px solid #e1e5e9; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#5f6368;">
+                                    <div style="display:flex; align-items:center; gap:16px;">
+                                        <span>Format: Rich Text (HTML)</span>
+                                        <span id="editorMode">Standard Mode</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <button type="button" id="toggleModeBtn" style="background:none; border:1px solid #dadce0; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer; color:#5f6368;" onclick="toggleEditorMode()">Toggle Mode</button>
+                                        <button type="button" id="clearFormatBtn" style="background:none; border:1px solid #dadce0; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer; color:#5f6368;" onclick="clearFormatting()">Clear Format</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+						<div id="placeholderAssistant" class="form-group" style="margin-top:-6px;">
+							<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+								<input type="text" id="assistantSearch" placeholder="Search placeholders..." style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; min-width:180px;">
+								<div id="assistantChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                            </div>
+                        </div>
+						<div style="display:flex; align-items:center; gap:12px; margin-bottom: 10px; flex-wrap:wrap;">
+							<label style="display:flex; align-items:center; gap:8px;">
+								<input type="checkbox" id="useSignature"> Include Gmail Signature
+							</label>
+							<button class="btn btn-secondary" id="previewEmailBtn"><i class="fas fa-eye"></i>Preview</button>
+                            </div>
+						<div class="form-group">
+							<label>Attachments</label>
+							<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+								<button class="btn btn-secondary" id="pickAttachmentsBtn"><i class="fas fa-paperclip"></i>Choose Files</button>
+								<button class="btn btn-danger" id="clearAttachmentsBtn"><i class="fas fa-trash"></i>Clear All</button>
+								<span id="attachmentsLabel" style="color:#8E8E93;">No files selected</span>
+							</div>
+							<div id="attachmentsList" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
+						</div>
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+							<div class="form-group">
+								<label>Batch Size</label>
+								<input type="number" id="batchSize" value="50" min="1" max="100">
+                    </div>
+							<div class="form-group">
+								<label>Delay Between Emails (seconds)</label>
+								<input type="number" id="emailDelay" value="5" min="1" max="60">
+                        </div>
+                    </div>
+						<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px;">
+							<select id="templateSelect" style="min-width:180px;"></select>
+							<button class="btn btn-secondary" id="loadTemplateBtn"><i class="fas fa-download"></i>Load</button>
+							<button class="btn btn-secondary" id="saveTemplateBtn"><i class="fas fa-save"></i>Save</button>
+							<button class="btn btn-danger" id="deleteTemplateBtn"><i class="fas fa-trash"></i>Delete</button>
+                </div>
+						<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center;">
+							<label style="min-width:120px;">Preset templates</label>
+							<select id="presetTemplateSelect" style="min-width:220px;"></select>
+							<button class="btn btn-secondary" id="insertPresetBtn"><i class="fas fa-plus"></i>Insert</button>
+						</div>
+						<div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap:wrap; align-items:flex-end;">
+							<button class="btn btn-secondary" id="sendTestBtn">
+								<i class="fas fa-paper-plane"></i>Send Test Email
+                            </button>
+							<button class="btn btn-primary" id="startCampaignBtn">
+								<i class="fas fa-rocket"></i>Start Campaign
+                            </button>
+							<!-- Filters -->
+							<div class="form-group" style="margin:0; min-width:120px;">
+								<label style="font-size:12px;">From</label>
+								<input type="number" id="filterFrom" placeholder="1">
+							</div>
+							<div class="form-group" style="margin:0; min-width:120px;">
+								<label style="font-size:12px;">To</label>
+								<input type="number" id="filterTo" placeholder="" >
+                        </div>
+							<div class="form-group" style="margin:0; min-width:140px;">
+								<label style="font-size:12px;">Parity</label>
+								<select id="filterParity">
+									<option value="all">All</option>
+									<option value="even">Even</option>
+									<option value="odd">Odd</option>
+								</select>
+                                </div>
+							<div class="form-group" style="margin:0; min-width:200px;">
+								<label style="font-size:12px;">Placeholder key present</label>
+								<input type="text" id="filterPlaceholderKey" placeholder="e.g. EMAIL or Name">
+                            </div>
+							<div class="form-group" style="margin:0; min-width:200px;">
+								<label style="font-size:12px;">Status contains</label>
+								<input type="text" id="filterStatusText" placeholder="e.g. red/error">
+                        </div>
+                    </div>
+                </div>
+
+					<!-- Scheduling -->
+					<div style="margin-bottom: 16px; padding: 16px; background: #f2f2f7; border-radius: 8px;">
+						<h3 style="margin-bottom: 10px;">Step 3: Schedule (Optional)</h3>
+						<div style="display:grid; grid-template-columns: 1fr auto; gap: 12px; align-items:end;">
+							<div class="form-group" style="margin:0;">
+								<label>Send At</label>
+								<input type="datetime-local" id="scheduleDateTime">
+							</div>
+							<button class="btn btn-secondary" id="scheduleBtn" onclick="window.rtxApp && window.rtxApp.scheduleOneTimeSend()"><i class="fas fa-clock"></i>Schedule</button>
+                    </div>
+						<div id="scheduleList" style="margin-top:12px;"></div>
+                        </div>
+                        
+					<!-- Campaigns List -->
+					<div>
+						<h3 style="margin-bottom: 10px;">Campaign History</h3>
+						<div id="campaignsList">
+                            <div class="empty-state">
+                                <i class="fas fa-envelope-open"></i>
+                                <h3>No Campaigns Yet</h3>
+                                <p>Create your first email campaign to get started</p>
+                            </div>
+                        </div>
+                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+	<!-- Login Modal -->
+	<div class="modal" id="loginModal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3>Login</h3>
+				<button class="modal-close" onclick="document.getElementById('loginModal').style.display='none'">&times;</button>
+						</div>
+			<div class="modal-body">
+				<div style="display:flex; flex-direction:column; gap:18px;">
+					<div style="background:#f7f7fa; border:1px solid #e5e5e7; border-radius:8px; padding:12px;">
+						<h4 style="margin-bottom:8px;">Option A: Gmail App Password (Recommended)</h4>
+						<p style="font-size:13px; color:#666; margin-bottom:8px;">Enter your Gmail address and App Password. We never store your regular password. App Passwords can be revoked anytime in your Google Account.</p>
+						<div class="form-group" style="margin-bottom:8px;">
+							<label>Gmail Address</label>
+							<input type="email" id="smtpEmail" placeholder="you@gmail.com">
+						</div>
+						<div class="form-group" style="margin-bottom:8px;">
+							<label>Gmail App Password</label>
+							<input type="password" id="smtpAppPassword" placeholder="16-character app password">
+						</div>
+						<div style="display:flex; gap:10px;">
+							<button class="btn btn-primary" id="smtpLoginBtn"><i class="fas fa-right-to-bracket"></i>Login</button>
+							<button class="btn btn-secondary" id="smtpFetchSignatureBtn"><i class="fas fa-signature"></i>Fetch Signature</button>
+						</div>
+					</div>
+
+					<div style="background:#f7f7fa; border:1px solid #e5e5e7; border-radius:8px; padding:12px;">
+						<h4 style="margin-bottom:8px;">Option B: Google OAuth (Legacy)</h4>
+						<p style="font-size:13px; color:#666; margin-bottom:8px;">Upload your Google OAuth client credentials JSON. Not required for most users.</p>
+						<div class="form-group" style="margin-bottom:8px;">
+							<label>Upload Google API Credentials</label>
+							<input type="file" id="credentialsFile" accept=".json">
+						</div>
+						<button class="btn btn-secondary" id="uploadCredentialsBtn">
+							<i class="fas fa-upload"></i>Upload & Connect
+						</button>
+						<div class="muted" style="margin-top:8px;">Or use <strong>Sign in with Google</strong> from the main screen (recommended). Upload is optional for advanced users.</div>
+                    </div>
+
+					<div style="display:flex; gap: 10px; margin-top: 10px;">
+						<button class="btn btn-secondary" onclick="document.getElementById('loginModal').style.display='none'">Close</button>
+					</div>
+				</div>
+							</div>
+					</div>
+			</div>
+
+	<!-- Loading Overlay -->
+	<div class="loading-overlay" id="loadingOverlay" style="display: none;">
+		<div class="loading-content">
+			<i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #007AFF; margin-bottom: 15px;"></i>
+			<p id="loadingMessage">Loading...</p>
+                    </div>
+                        </div>
+                        
+	<div class="modal" id="logsModal" style="display:none;">
+		<div class="modal-content" style="max-width: 900px; width: 90%;">
+			<div class="modal-header">
+				<h3>Session Logs</h3>
+				<div style="display: flex; gap: 8px; align-items: center;">
+					<button class="btn btn-secondary" id="clearLogsBtn" style="padding: 6px 12px; font-size: 12px;">
+						<i class="fas fa-trash"></i> Clear Logs
+					</button>
+					<button class="modal-close" onclick="document.getElementById('logsModal').style.display='none'">&times;</button>
+				</div>
+                            </div>
+			<div class="modal-body">
+				<pre id="logsContent" style="white-space:pre-wrap; max-height:70vh; overflow:auto; background:#0b0b0f; color:#d7d7db; padding:16px; border-radius:8px; font-size:12px;"></pre>
+                        </div>
+                    </div>
+                </div>
+
+	<!-- Signature Builder Modal -->
+	<div class="modal" id="signatureBuilderModal" style="display:none;">
+		<div class="modal-content" style="max-width: 900px; width: 90%;">
+			<div class="modal-header">
+				<h3>Signature Builder</h3>
+				<button class="modal-close" onclick="document.getElementById('signatureBuilderModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body">
+				<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+					<!-- Editor Panel -->
+					<div>
+						<h4>Signature Editor</h4>
+						<div class="form-group">
+							<label>Signature Name</label>
+							<input type="text" id="sigName" placeholder="e.g. Default, Business, Personal">
+						</div>
+						<div class="form-group">
+							<label>HTML Content</label>
+							<div id="signatureEditorToolbar" style="border:1px solid #ddd; border-bottom:none; padding:8px; background:#f8f9fa;">
+								<button type="button" onclick="execCommand('bold')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;"><strong>B</strong></button>
+								<button type="button" onclick="execCommand('italic')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;"><em>I</em></button>
+								<button type="button" onclick="execCommand('underline')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;"><u>U</u></button>
+								<button type="button" onclick="execCommand('insertUnorderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">•</button>
+								<button type="button" onclick="execCommand('insertOrderedList')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">1.</button>
+								<button type="button" onclick="execCommand('createLink')" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🔗</button>
+								<button type="button" onclick="insertImage()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🖼️</button>
+								<button type="button" onclick="clearFormatting()" style="padding:4px 8px; margin:2px; border:1px solid #ccc; background:#fff; cursor:pointer;">🧹</button>
+							</div>
+							<div id="signatureEditor" contenteditable="true" style="height:200px; border:1px solid #ddd; padding:12px; overflow-y:auto; background:#fff;" placeholder="Enter your signature content..."></div>
+						</div>
+						<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+							<button class="btn btn-primary" onclick="saveSignature()"><i class="fas fa-save"></i>Save Signature</button>
+							<button class="btn btn-secondary" onclick="loadSignature()"><i class="fas fa-download"></i>Load</button>
+							<button class="btn btn-danger" onclick="deleteSignature()"><i class="fas fa-trash"></i>Delete</button>
+							<button class="btn btn-secondary" onclick="applySignature()"><i class="fas fa-check"></i>Use in Emails</button>
+						</div>
+					</div>
+					
+					<!-- Preview Panel -->
+					<div>
+						<h4>Preview & Management</h4>
+						<div class="form-group">
+							<label>Signature Preview</label>
+							<div id="signaturePreview" style="min-height:200px; border:1px solid #ddd; padding:12px; background:#fff; overflow-y:auto;"></div>
+						</div>
+						<div class="form-group">
+							<label>Saved Signatures</label>
+							<select id="signatureSelect" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+								<option value="">Select a signature to load...</option>
+							</select>
+						</div>
+						<div style="background:#f8f9fa; padding:12px; border-radius:4px; font-size:12px;">
+							<strong>Tips:</strong>
+							<ul style="margin:8px 0; padding-left:20px;">
+								<li>Use HTML for rich formatting (bold, italic, links)</li>
+								<li>Images should use absolute URLs (https://...)</li>
+								<li>Keep signatures concise for better email delivery</li>
+								<li>Test your signature before using in campaigns</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Signature Modal -->
+	<div class="modal" id="signatureModal" style="display:none;">
+		<div class="modal-content" style="max-width: 900px; width: 90%;">
+            <div class="modal-header">
+				<h3>Signature Builder</h3>
+				<button class="modal-close" onclick="document.getElementById('signatureModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+				<div class="form-group">
+					<label>Signature Name</label>
+					<input type="text" id="sigName" placeholder="e.g. Default">
+				</div>
+				<div class="form-group">
+					<label>Signature HTML</label>
+					<textarea id="sigHtml" rows="10" placeholder="Paste or edit HTML (images with absolute URLs)"></textarea>
+                    </div>
+				<div style="display:flex; gap:8px; flex-wrap:wrap;">
+					<button class="btn btn-primary" id="saveSignatureBtn"><i class="fas fa-save"></i>Save</button>
+					<button class="btn btn-secondary" id="loadSignatureBtn"><i class="fas fa-download"></i>Load</button>
+					<button class="btn btn-danger" id="deleteSignatureBtn"><i class="fas fa-trash"></i>Delete</button>
+					<button class="btn btn-secondary" id="applySignatureBtn"><i class="fas fa-check"></i>Use in emails</button>
+                    </div>
+				<div style="margin-top:12px; border:1px solid #e5e5e7; border-radius:8px; padding:10px;">
+					<div id="sigPreview" style="min-height:80px;">Signature Preview</div>
+                </div>
+				<small class="muted">Tip: Host images (logo/icons) and use full URLs (https://…). Inline base64 images also work.</small>
+            </div>
+        </div>
+    </div>
+
+	<div class="modal" id="emailPreviewModal" style="display:none;">
+		<div class="modal-content" style="max-width: 900px; width: 90%;">
+			<div class="modal-header">
+				<h3>Email Preview</h3>
+				<button class="modal-close" onclick="document.getElementById('emailPreviewModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body" id="emailPreviewBody" style="max-height:70vh; overflow:auto;"></div>
+        </div>
+    </div>
+
+	<!-- About Modal -->
+	<div class="modal" id="aboutModal" style="display:none;">
+		<div class="modal-content" style="max-width: 600px; width: 90%;">
+			<div class="modal-header">
+				<h3>About TASK FORCE</h3>
+				<button class="modal-close" onclick="document.getElementById('aboutModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body">
+				<p><strong>Version:</strong> <span id="aboutVersion">-</span></p>
+				<p>Mass mailer with Google Sheets integration by RTX Innovations.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Welcome Modal -->
+	<div class="modal" id="welcomeModal" style="display:none;">
+		<div class="modal-content" style="max-width: 700px; width: 90%;">
+			<div class="modal-header">
+				<h3>Welcome to TASK FORCE</h3>
+				<button class="modal-close" onclick="document.getElementById('welcomeModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body">
+				<p>Thanks for installing TASK FORCE. Use the steps to connect Google Sheets and send personalized emails in bulk.</p>
+				<ol>
+					<li>Login using Gmail App Password or OAuth</li>
+					<li>Paste your Google Sheets URL</li>
+					<li>Compose your email using placeholders like ((Name))</li>
+					<li>Send a test, then start the campaign</li>
+				</ol>
+			</div>
+		</div>
+	</div>
+
+	<!-- Release Notes Modal -->
+	<div class="modal" id="releaseNotesModal" style="display:none;">
+		<div class="modal-content" style="max-width: 700px; width: 90%;">
+			<div class="modal-header">
+				<h3>Release Notes</h3>
+				<button class="modal-close" onclick="document.getElementById('releaseNotesModal').style.display='none'">&times;</button>
+			</div>
+			<div class="modal-body" id="releaseNotesBody"></div>
+		</div>
+	</div>
+
+	<!-- Privacy Modal -->
+	<div class="modal" id="privacyModal" style="display:none;">
+		<div class="modal-content" style="max-width: 800px; width: 90%;">
+			<div class="modal-header"><h3>Privacy Policy</h3><button class="modal-close" onclick="document.getElementById('privacyModal').style.display='none'">&times;</button></div>
+			<div class="modal-body" style="max-height:70vh; overflow:auto;">
+				<p>We do not collect or transmit your personal data. OAuth tokens and SMTP App Passwords are stored locally on your device using secure storage. Emails are sent directly from your account to recipients. Logs remain on your device unless you share them.</p>
+				<p>When using the web app, content is processed in your browser. If you opt into a relay for SMTP, credentials are used only for that request and not stored.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Terms Modal -->
+	<div class="modal" id="termsModal" style="display:none;">
+		<div class="modal-content" style="max-width: 800px; width: 90%;">
+			<div class="modal-header"><h3>Terms of Service</h3><button class="modal-close" onclick="document.getElementById('termsModal').style.display='none'">&times;</button></div>
+			<div class="modal-body" style="max-height:70vh; overflow:auto;">
+				<p>By using TASK FORCE, you agree to send emails only to recipients who have consented to receive them and to comply with Gmail and local anti-spam laws. You are responsible for your account and content. This software is provided "as-is" without warranties.</p>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		// Theme toggle behavior
+		document.getElementById('themeToggle')?.addEventListener('click', () => {
+			const body = document.body; const isDark = body.classList.contains('theme-dark');
+			if (isDark) { body.classList.remove('theme-dark'); body.classList.add('theme-light'); }
+			else { body.classList.remove('theme-light'); body.classList.add('theme-dark'); }
+		});
+		// Import spreadsheet button
+		document.getElementById('importSheetBtn')?.addEventListener('click', async () => {
+			const res = await window.electronAPI.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Spreadsheets', extensions: ['csv','xlsx','xls'] }] });
+			if (!res.canceled && res.filePaths?.length) {
+				const out = await window.electronAPI.loadLocalSpreadsheet(res.filePaths[0]);
+				if (out.success) {
+					window.rtxApp.onSheetsConnected(out.data);
+					document.getElementById('sheetUrlInput').value = res.filePaths[0];
+				} else {
+					window.rtxApp.showError('Failed to import: ' + out.error);
+				}
+			}
+		});
+		// Logs button
+		document.getElementById('logsBtn')?.addEventListener('click', async () => {
+			const out = await window.electronAPI.readSessionLog();
+			if (out.success) {
+				document.getElementById('logsContent').textContent = out.content || '';
+				document.getElementById('logsModal').style.display = 'block';
+			} else {
+				window.rtxApp.showError('Failed to read logs: ' + out.error);
+			}
+		});
+		
+		// Clear logs button
+		document.getElementById('clearLogsBtn')?.addEventListener('click', async () => {
+			if (confirm('Are you sure you want to clear all session logs? This action cannot be undone.')) {
+				const out = await window.electronAPI.clearSessionLog();
+				if (out.success) {
+					document.getElementById('logsContent').textContent = '';
+					window.rtxApp.showSuccess('Session logs cleared successfully');
+				} else {
+					window.rtxApp.showError('Failed to clear logs: ' + out.error);
+				}
+			}
+		});
+		
+		window.electronAPI.onAppLog?.((d) => {
+			const el = document.getElementById('logsContent');
+			if (el && document.getElementById('logsModal').style.display === 'block') {
+				el.textContent += `\n${new Date(d.ts).toLocaleTimeString()} [${d.level}] ${d.message}`;
+			}
+		});
+		// Data preview UI interactions
+		const drawer = document.getElementById('dataPreviewDrawer');
+		document.getElementById('togglePreviewBtn')?.addEventListener('click', () => {
+			drawer.style.display = drawer.style.display === 'none' ? 'block' : 'none';
+		});
+		document.getElementById('closePreviewBtn')?.addEventListener('click', () => { drawer.style.display = 'none'; });
+		document.getElementById('previewFullscreenBtn')?.addEventListener('click', () => {
+			drawer.requestFullscreen?.();
+		});
+		document.getElementById('previewPosition')?.addEventListener('change', (e) => {
+			const pos = e.target.value;
+			const container = document.querySelector('.mailer-interface');
+			if (!container) return;
+			if (pos === 'top') container.insertBefore(drawer, container.children[2]);
+			if (pos === 'bottom') container.appendChild(drawer);
+			if (pos === 'left') drawer.style.float = 'left';
+			if (pos === 'right') drawer.style.float = 'right';
+		});
+		// Click to insert placeholder
+		document.addEventListener('click', (ev) => {
+			const target = ev.target;
+			if (target?.dataset?.placeholderKey) {
+				const key = target.dataset.placeholderKey;
+				const ta = document.getElementById('emailContent');
+				if (ta) {
+					const ins = `((${key}))`;
+					const start = ta.selectionStart || ta.value.length;
+					ta.value = ta.value.slice(0, start) + ins + ta.value.slice(start);
+					window.rtxApp.showSuccess(`Inserted placeholder: ((${key}))`);
+				}
+			}
+		});
+		// Search columns
+		document.getElementById('placeholderSearch')?.addEventListener('input', (e) => {
+			const q = (e.target.value || '').toLowerCase();
+			const chips = document.querySelectorAll('[data-placeholder-key]');
+			chips.forEach(c => { c.style.display = c.dataset.placeholderKey.toLowerCase().includes(q) ? 'inline-flex' : 'none'; });
+		});
+		// Assistant search filters below content
+		document.getElementById('assistantSearch')?.addEventListener('input', (e) => {
+			const q = (e.target.value || '').toLowerCase();
+			document.querySelectorAll('#assistantChips [data-placeholder-key]')?.forEach(c => { c.style.display = c.dataset.placeholderKey.toLowerCase().includes(q) ? 'inline-flex' : 'none'; });
+		});
+
+		// Help dropdown listeners
+		(function(){
+			const helpBtn = document.getElementById('helpToolbarBtn');
+			const helpMenu = document.getElementById('helpDropdown');
+			const closeAll = (ev) => {
+				if (!helpMenu) return;
+				if (ev && (helpMenu.contains(ev.target) || helpBtn.contains(ev.target))) return;
+				helpMenu.style.display = 'none';
+			};
+			helpBtn?.addEventListener('click', (e) => {
+				e.stopPropagation();
+				if (!helpMenu) return;
+				helpMenu.style.display = helpMenu.style.display === 'none' ? 'block' : 'none';
+			});
+			document.addEventListener('click', closeAll);
+			document.getElementById('helpCheckBtn')?.addEventListener('click', () => { try { window.electronAPI?.checkForUpdates?.(); } catch(_){} closeAll({}); });
+			document.getElementById('helpAboutBtn')?.addEventListener('click', () => { try { window.rtxApp?.openAboutModal?.(); } catch(_){} closeAll({}); });
+			document.getElementById('helpWelcomeBtn')?.addEventListener('click', () => { try { window.rtxApp?.openWelcomeModal?.(); } catch(_){} closeAll({}); });
+			document.getElementById('helpReleaseNotesBtn')?.addEventListener('click', () => { try { window.rtxApp?.openReleaseNotesModal?.(); } catch(_){} closeAll({}); });
+		})();
+
+		// Signature Builder actions
+		document.getElementById('saveSignatureBtn')?.addEventListener('click', async () => {
+			const name = document.getElementById('sigName').value?.trim();
+			const html = document.getElementById('sigHtml').value || '';
+			if (!name) { window.rtxApp.showError('Please enter signature name'); return; }
+			const list = (await window.electronAPI.storeGet('signatures')) || [];
+			const filtered = Array.isArray(list) ? list.filter(s => s.name !== name) : [];
+			filtered.unshift({ name, html, ts: Date.now() });
+			await window.electronAPI.storeSet('signatures', filtered);
+			document.getElementById('sigPreview').innerHTML = html;
+			window.rtxApp.showSuccess('Signature saved');
+		});
+		document.getElementById('loadSignatureBtn')?.addEventListener('click', async () => {
+			const list = (await window.electronAPI.storeGet('signatures')) || [];
+			if (!Array.isArray(list) || !list.length) { window.rtxApp.showError('No saved signatures'); return; }
+			const pick = list[0];
+			document.getElementById('sigName').value = pick.name || '';
+			document.getElementById('sigHtml').value = pick.html || '';
+			document.getElementById('sigPreview').innerHTML = pick.html || '';
+		});
+		document.getElementById('deleteSignatureBtn')?.addEventListener('click', async () => {
+			const name = document.getElementById('sigName').value?.trim();
+			const list = (await window.electronAPI.storeGet('signatures')) || [];
+			const filtered = Array.isArray(list) ? list.filter(s => s.name !== name) : [];
+			await window.electronAPI.storeSet('signatures', filtered);
+			window.rtxApp.showSuccess('Signature deleted');
+		});
+
+		// Update banner wiring
+		(function(){
+			try {
+				const banner = document.getElementById('updateBanner');
+				const text = document.getElementById('updateBannerText');
+				const action = document.getElementById('updateActionBtn');
+				let lastInfo = null;
+				if (window.electronAPI?.onUpdateStatus) {
+					window.electronAPI.onUpdateStatus((data) => {
+						if (!data) return;
+						if (data.status === 'available') {
+							lastInfo = data.info || null;
+							if (text) text.textContent = `New version ${data.info?.version} is available`;
+							if (banner) banner.style.display = 'block';
+							if (action) {
+								action.textContent = 'Download';
+								action.onclick = () => window.electronAPI?.downloadUpdate?.();
+							}
+						} else if (data.status === 'downloading') {
+							if (text) text.textContent = `Downloading update... ${Math.round(data.progress?.percent || 0)}%`;
+							if (banner) banner.style.display = 'block';
+							if (action) { action.textContent = 'Please wait'; action.disabled = true; }
+						} else if (data.status === 'downloaded') {
+							if (text) text.textContent = 'Update downloaded. Click install to restart.';
+							if (banner) banner.style.display = 'block';
+							if (action) { action.disabled = false; action.textContent = 'Install'; action.onclick = () => window.electronAPI?.quitAndInstall?.(); }
+						} else if (data.status === 'none') {
+							if (banner) banner.style.display = 'none';
+						} else if (data.status === 'error') {
+							if (text) text.textContent = 'Update check failed';
+							if (banner) banner.style.display = 'block';
+							if (action) { action.textContent = 'Retry'; action.disabled = false; action.onclick = () => window.electronAPI?.checkForUpdates?.(); }
+						}
+					});
+				}
+				// On first load, perform a check; older v1.4.0 will show available → static banner
+				setTimeout(() => { try { window.electronAPI?.checkForUpdates?.(); } catch (_) {} }, 3000);
+			} catch (_) {}
+		})();
+	</script>
+
+	<script>
+		// Enhanced ContentEditable Editor Functions
+		let wordCountInterval = null;
+		
+		// Initialize the enhanced editor
+		function initEnhancedEditor() {
+			const editor = document.getElementById('emailEditor');
+			if (!editor) return;
+
+			// Add placeholder functionality
+			editor.addEventListener('focus', function() {
+				if (editor.textContent === '') {
+					editor.textContent = '';
+				}
+			});
+
+			editor.addEventListener('blur', function() {
+				if (editor.textContent.trim() === '') {
+					editor.textContent = '';
+				}
+			});
+
+			// Add keyboard shortcuts
+			editor.addEventListener('keydown', function(e) {
+				// Ctrl+B for bold
+				if (e.ctrlKey && e.key === 'b') {
+					e.preventDefault();
+					execCommand('bold');
+				}
+				// Ctrl+I for italic
+				if (e.ctrlKey && e.key === 'i') {
+					e.preventDefault();
+					execCommand('italic');
+				}
+				// Ctrl+U for underline
+				if (e.ctrlKey && e.key === 'u') {
+					e.preventDefault();
+					execCommand('underline');
+				}
+				// Ctrl+K for link
+				if (e.ctrlKey && e.key === 'k') {
+					e.preventDefault();
+					insertLink();
+				}
+			});
+
+			// Update toolbar state based on selection
+			editor.addEventListener('mouseup', updateToolbarState);
+			editor.addEventListener('keyup', updateToolbarState);
+		}
+
+		function startWordCount() {
+			const editor = document.getElementById('emailEditor');
+			if (!editor) return;
+
+			wordCountInterval = setInterval(() => {
+				const text = editor.textContent || '';
+				const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+				const chars = text.length;
+
+				document.getElementById('wordCount').textContent = `${words} words`;
+				document.getElementById('charCount').textContent = `${chars} chars`;
+			}, 500);
+		}
+
+		function updateToolbarState() {
+			const editor = document.getElementById('emailEditor');
+			if (!editor || !document.queryCommandState) return;
+
+			// Update button states based on current selection
+			document.getElementById('boldBtn').classList.toggle('active', document.queryCommandState('bold'));
+			document.getElementById('italicBtn').classList.toggle('active', document.queryCommandState('italic'));
+			document.getElementById('underlineBtn').classList.toggle('active', document.queryCommandState('underline'));
+			document.getElementById('strikeBtn').classList.toggle('active', document.queryCommandState('strikeThrough'));
+		}
+
+		function execCommand(command, value = null) {
+			document.execCommand(command, false, value);
+			updateToolbarState();
+		}
+
+		function insertLink() {
+			const url = prompt('Enter URL:', 'https://');
+			if (url) {
+				execCommand('createLink', url);
+			}
+		}
+
+		function insertImage() {
+			const url = prompt('Enter image URL:', 'https://');
+			if (url) {
+				execCommand('insertImage', url);
+			}
+		}
+
+		function insertTable() {
+			const rows = prompt('Enter number of rows:', '3');
+			const cols = prompt('Enter number of columns:', '3');
+			
+			if (rows && cols) {
+				let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+				for (let i = 0; i < parseInt(rows); i++) {
+					tableHTML += '<tr>';
+					for (let j = 0; j < parseInt(cols); j++) {
+						tableHTML += '<td style="padding: 8px; border: 1px solid #ddd;">Cell ' + (i + 1) + ',' + (j + 1) + '</td>';
+					}
+					tableHTML += '</tr>';
+				}
+				tableHTML += '</table>';
+				
+				execCommand('insertHTML', tableHTML);
+			}
+		}
+
+		function clearFormatting() {
+			execCommand('removeFormat');
+		}
+
+		function toggleEditorMode() {
+			const editor = document.getElementById('emailEditor');
+			const modeSpan = document.getElementById('editorMode');
+			
+			if (editor.contentEditable === 'true') {
+				editor.contentEditable = 'false';
+				modeSpan.textContent = 'Read Only Mode';
+				editor.style.backgroundColor = '#f8f9fa';
+			} else {
+				editor.contentEditable = 'true';
+				modeSpan.textContent = 'Standard Mode';
+				editor.style.backgroundColor = '#fff';
+			}
+		}
+
+		// Initialize editor when page loads
+		document.addEventListener('DOMContentLoaded', function() {
+			initEnhancedEditor();
+			startWordCount();
+		});
+	</script>
+	
+	<!-- Tab Management Script -->
+	<script src="js/tabs.js"></script>
+</body>
+</html> 
