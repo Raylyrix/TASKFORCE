@@ -252,6 +252,15 @@ class TaskForceApp {
             console.error('Login button not found!');
         }
 
+        // New Tab button
+        const newTabBtn = document.getElementById('newTabBtn');
+        if (newTabBtn) {
+            console.log('New tab button found, adding listener');
+            newTabBtn.addEventListener('click', () => this.createNewTab());
+        } else {
+            console.error('New tab button not found!');
+        }
+
         // Top-bar Google Sign-In
         const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
         const googleLogoutBtn = document.getElementById('googleLogoutBtn');
@@ -649,6 +658,28 @@ class TaskForceApp {
             modal.style.display = 'block';
         } else {
             console.error('Login modal not found!');
+        }
+    }
+
+    async createNewTab() {
+        console.log('Creating new tab...');
+        try {
+            if (window.electronAPI && window.electronAPI.createNewTab) {
+                const result = await window.electronAPI.createNewTab();
+                if (result && result.success) {
+                    console.log('✅ New tab created successfully:', result.windowId);
+                    this.showSuccess(`New tab created! Total windows: ${result.totalWindows}`);
+                } else {
+                    console.error('❌ Failed to create new tab:', result?.error);
+                    this.showError('Failed to create new tab: ' + (result?.error || 'Unknown error'));
+                }
+            } else {
+                console.error('❌ createNewTab API not available');
+                this.showError('New tab functionality not available');
+            }
+        } catch (error) {
+            console.error('❌ Error creating new tab:', error);
+            this.showError('Failed to create new tab: ' + error.message);
         }
     }
 

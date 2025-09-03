@@ -51,7 +51,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     authenticateGoogle: (credentials) => wrapInvoke('authenticateGoogle', credentials),
     authenticateGoogleWithTab: (credentials, tabId) => wrapInvoke('authenticateGoogleWithTab', credentials, tabId),
     sendEmailWithTab: (emailData, tabId) => wrapInvoke('sendEmailWithTab', emailData, tabId),
-    createNewWindow: (windowId) => wrapInvoke('createNewWindow', windowId),
+    createNewTab: () => wrapInvoke('createNewTab'),
+
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),
     getCurrentAuth: () => wrapInvoke('auth-current-user'),

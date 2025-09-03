@@ -252,35 +252,56 @@ function createWindow() {
 	createMenu();
 }
 
-function createNewWindow(windowId) {
-  const newWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 1100,
-    minHeight: 700,
-    resizable: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: isSafeMode ? undefined : path.join(__dirname, 'preload.js'),
-      backgroundThrottling: false,
-      devTools: true
-    },
-    icon: path.join(__dirname, '../assets/icons/icon.png'),
-    show: true,
-    center: true,
-    backgroundColor: '#ffffff'
-  });
 
-  newWindow.loadFile('src/index.html');
-  
-  // Open DevTools in development
-  if (process.env.NODE_ENV === 'development') {
-    newWindow.webContents.openDevTools();
-  }
-  
-  console.log(`✅ New window created: ${windowId}`);
-  return { success: true, windowId };
+
+// New Tab Management System
+let windowCounter = 0;
+const openWindows = new Map();
+
+function createNewTab() {
+    windowCounter++;
+    const windowId = `tab_${windowCounter}`;
+    
+    console.log(`🆕 Creating new tab: ${windowId}`);
+    
+    const newWindow = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        minWidth: 1000,
+        minHeight: 600,
+        resizable: true,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: isSafeMode ? undefined : path.join(__dirname, 'preload.js'),
+            backgroundThrottling: false,
+            devTools: true
+        },
+        icon: path.join(__dirname, '../assets/icons/icon.png'),
+        show: true,
+        center: true,
+        backgroundColor: '#ffffff',
+        title: `Task Force Mailer - Tab ${windowCounter}`
+    });
+
+    newWindow.loadFile('src/index.html');
+    
+    // Open DevTools in development
+    if (process.env.NODE_ENV === 'development') {
+        newWindow.webContents.openDevTools();
+    }
+    
+    // Store window reference
+    openWindows.set(windowId, newWindow);
+    
+    // Handle window close
+    newWindow.on('closed', () => {
+        openWindows.delete(windowId);
+        console.log(`🗑️ Tab closed: ${windowId}`);
+    });
+    
+    console.log(`✅ New tab created successfully: ${windowId}`);
+    return { success: true, windowId, totalWindows: openWindows.size };
 }
 
 function createMenu() {
@@ -1635,7 +1656,8 @@ ipcMain.handle('updateClientCredentials', async (event, credentialsData) => upda
 ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
 ipcMain.handle('authenticateGoogleWithTab', async (event, credentialsData, tabId) => authenticateGoogleWithTab(credentialsData, tabId));
 ipcMain.handle('sendEmailWithTab', async (event, emailData, tabId) => sendEmailWithTab(emailData, tabId));
-ipcMain.handle('createNewWindow', async (event, windowId) => createNewWindow(windowId));
+ipcMain.handle('createNewTab', async () => createNewTab());
+
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
