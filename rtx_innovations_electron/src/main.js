@@ -284,7 +284,7 @@ function createNewTab() {
         title: `Task Force Mailer - Tab ${windowCounter}`
     });
 
-    newWindow.loadFile('src/index.html');
+    newWindow.loadFile('dist/index.html');
     
     // Open DevTools in development
     if (process.env.NODE_ENV === 'development') {
