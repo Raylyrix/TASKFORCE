@@ -683,6 +683,26 @@
 							<div id="previewTableZone" class="table-container"></div>
 						</div>
 
+						<!-- Mail Progress Section -->
+						<div id="mailProgressSection" style="display:none; margin-bottom: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+							<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+								<strong>Campaign Progress</strong>
+								<button class="btn btn-danger btn-sm" id="cancelCampaignBtn">
+									<i class="fas fa-stop"></i>Cancel Campaign
+								</button>
+							</div>
+							<div style="display: flex; align-items: center; gap: 12px;">
+								<span style="font-size: 12px; color: #666;">Progress:</span>
+								<div style="flex: 1; background: #e9ecef; border-radius: 4px; height: 8px; position: relative;">
+									<div id="mailProgressBar" style="background: #007bff; height: 100%; border-radius: 4px; width: 0%; transition: width 0.3s ease;"></div>
+								</div>
+								<span id="mailProgressText" style="font-size: 12px; color: #666; min-width: 80px;">0 / 0</span>
+							</div>
+							<div style="margin-top: 8px; font-size: 12px; color: #666;">
+								<span id="mailStatusText">Ready to start campaign</span>
+							</div>
+						</div>
+
 						<div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap:wrap; align-items:flex-end;">
 							<button class="btn btn-secondary" id="sendTestBtn">
 								<i class="fas fa-paper-plane"></i>Send Test Email

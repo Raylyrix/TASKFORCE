@@ -23,6 +23,13 @@ class TaskForceApp {
         this.selectedSheetTitle = null;
         this.templates = [];
         this.currentTabId = null;
+        this.campaignProgress = {
+            isRunning: false,
+            totalEmails: 0,
+            sentEmails: 0,
+            failedEmails: 0,
+            cancelled: false
+        };
         this.init();
     }
 
@@ -446,6 +453,13 @@ class TaskForceApp {
         if (startCampaignBtn) {
             console.log('Start campaign button found, adding listener');
             startCampaignBtn.addEventListener('click', () => this.startCampaign());
+        }
+
+        // Cancel campaign button
+        const cancelCampaignBtn = document.getElementById('cancelCampaignBtn');
+        if (cancelCampaignBtn) {
+            console.log('Cancel campaign button found, adding listener');
+            cancelCampaignBtn.addEventListener('click', () => this.cancelCampaign());
         }
 
         // Refresh button
@@ -1191,7 +1205,11 @@ class TaskForceApp {
         const delay = parseInt(document.getElementById('emailDelay')?.value) || 5;
 
         try {
-            this.showLoading('Starting email campaign...');
+            this.hideLoading(); // Hide loading since we'll show progress instead
+            
+            // Initialize progress tracking
+            const totalEmails = this.sheetData.rows.length;
+            this.startCampaignProgress(totalEmails);
 
             const campaign = {
                 id: Date.now(),
@@ -1211,6 +1229,7 @@ class TaskForceApp {
             await this.sendBulkEmails(campaign);
         } catch (error) {
             this.hideLoading();
+            this.resetCampaignProgress();
             this.showError('Failed to start campaign: ' + error.message);
         }
     }
@@ -1355,37 +1374,63 @@ class TaskForceApp {
         let sent = 0;
         let failed = 0;
 
-        this.showLoading(`Sending emails... (0/${totalRecipients})`);
-
         const allowRow = this.getRowFilter();
 
         for (let i = 0; i < totalRecipients; i += campaign.batchSize) {
+            // Check if campaign was cancelled
+            if (this.campaignProgress.cancelled) {
+                console.log('Campaign cancelled by user');
+                break;
+            }
+
             const batch = rows.slice(i, i + campaign.batchSize);
             for (let r = 0; r < batch.length; r++) {
+                // Check if campaign was cancelled
+                if (this.campaignProgress.cancelled) {
+                    console.log('Campaign cancelled by user');
+                    break;
+                }
+
                 const row = batch[r];
                 const globalIdx = i + r;
                 if (!allowRow(row, globalIdx, headers)) continue;
                 const to = row[emailIndex];
-                if (!to || !this.isValidEmail(to)) { failed++; continue; }
+                if (!to || !this.isValidEmail(to)) { 
+                    failed++; 
+                    this.updateCampaignProgressSent(false);
+                    continue; 
+                }
                 try {
                     await this.sendSingleEmail(campaign, headers, row, globalIdx);
                     sent++;
+                    this.updateCampaignProgressSent(true);
                 } catch (error) {
                     failed++;
+                    this.updateCampaignProgressSent(false);
                     console.error(`Failed to send to ${to}:`, error);
                 }
-                this.showLoading(`Sending emails... (${sent}/${totalRecipients})`);
+                
                 const jitter = Math.floor(Math.random() * 2000);
                 await new Promise(resolve => setTimeout(resolve, campaign.delay * 1000 + jitter));
             }
         }
 
-        campaign.status = 'completed';
+        campaign.status = this.campaignProgress.cancelled ? 'cancelled' : 'completed';
         campaign.endTime = new Date();
+        campaign.sent = sent;
+        campaign.failed = failed;
+        
         this.hideLoading();
-        this.showSuccess(`Campaign completed! Sent: ${sent}, Failed: ${failed}`);
+        
+        if (this.campaignProgress.cancelled) {
+            this.showSuccess(`Campaign cancelled. Sent: ${sent}, Failed: ${failed}`);
+        } else {
+            this.showSuccess(`Campaign completed! Sent: ${sent}, Failed: ${failed}`);
+        }
+        
         this.updateStatistics(sent, failed);
         this.saveCampaignHistory(campaign, sent, failed);
+        this.resetCampaignProgress();
     }
 
     async sendSingleEmail(campaign, headers, row, rowIndexZeroBased) {
@@ -1894,6 +1939,88 @@ class TaskForceApp {
             console.warn('Failed to load default signature:', error);
         }
         return false;
+    }
+
+    // Campaign Progress Management
+    updateCampaignProgress() {
+        const progressSection = document.getElementById('mailProgressSection');
+        const progressBar = document.getElementById('mailProgressBar');
+        const progressText = document.getElementById('mailProgressText');
+        const statusText = document.getElementById('mailStatusText');
+        const startBtn = document.getElementById('startCampaignBtn');
+        const cancelBtn = document.getElementById('cancelCampaignBtn');
+
+        if (!progressSection || !progressBar || !progressText || !statusText) return;
+
+        if (this.campaignProgress.isRunning) {
+            progressSection.style.display = 'block';
+            if (startBtn) startBtn.disabled = true;
+            if (cancelBtn) cancelBtn.disabled = false;
+
+            const percentage = this.campaignProgress.totalEmails > 0 
+                ? (this.campaignProgress.sentEmails / this.campaignProgress.totalEmails) * 100 
+                : 0;
+            
+            progressBar.style.width = `${percentage}%`;
+            progressText.textContent = `${this.campaignProgress.sentEmails} / ${this.campaignProgress.totalEmails}`;
+            
+            if (this.campaignProgress.cancelled) {
+                statusText.textContent = 'Campaign cancelled by user';
+                progressBar.style.background = '#dc3545';
+            } else if (this.campaignProgress.sentEmails >= this.campaignProgress.totalEmails) {
+                statusText.textContent = `Campaign completed! Sent: ${this.campaignProgress.sentEmails}, Failed: ${this.campaignProgress.failedEmails}`;
+                progressBar.style.background = '#28a745';
+                this.campaignProgress.isRunning = false;
+                if (startBtn) startBtn.disabled = false;
+                if (cancelBtn) cancelBtn.disabled = true;
+            } else {
+                statusText.textContent = `Sending email ${this.campaignProgress.sentEmails + 1} of ${this.campaignProgress.totalEmails}...`;
+            }
+        } else {
+            progressSection.style.display = 'none';
+            if (startBtn) startBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = true;
+        }
+    }
+
+    startCampaignProgress(totalEmails) {
+        this.campaignProgress = {
+            isRunning: true,
+            totalEmails: totalEmails,
+            sentEmails: 0,
+            failedEmails: 0,
+            cancelled: false
+        };
+        this.updateCampaignProgress();
+    }
+
+    updateCampaignProgressSent(success = true) {
+        if (success) {
+            this.campaignProgress.sentEmails++;
+        } else {
+            this.campaignProgress.failedEmails++;
+        }
+        this.updateCampaignProgress();
+    }
+
+    cancelCampaign() {
+        if (this.campaignProgress.isRunning) {
+            this.campaignProgress.cancelled = true;
+            this.campaignProgress.isRunning = false;
+            this.updateCampaignProgress();
+            this.showSuccess('Campaign cancelled successfully');
+        }
+    }
+
+    resetCampaignProgress() {
+        this.campaignProgress = {
+            isRunning: false,
+            totalEmails: 0,
+            sentEmails: 0,
+            failedEmails: 0,
+            cancelled: false
+        };
+        this.updateCampaignProgress();
     }
 }
 
