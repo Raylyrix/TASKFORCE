@@ -273,7 +273,7 @@ class TaskForceApp {
         // Top-bar Google Sign-In
         const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
         const googleLogoutBtn = document.getElementById('googleLogoutBtn');
-        if (googleSignInTopBtn && window.electronAPI?.authenticateGoogleWithTab) {
+        if (googleSignInTopBtn) {
             googleSignInTopBtn.addEventListener('click', async () => {
                 try {
                     googleSignInTopBtn.disabled = true;
@@ -285,8 +285,24 @@ class TaskForceApp {
                         console.log('✅ Generated fallback tab ID for Google sign-in:', this.currentTabId);
                     }
                     
-                    const result = await window.electronAPI.authenticateGoogleWithTab(null, this.currentTabId);
-                    if (result?.success) {
+                    console.log('window.electronAPI available:', !!window.electronAPI);
+                    console.log('authenticateGoogleWithTab available:', !!(window.electronAPI && window.electronAPI.authenticateGoogleWithTab));
+                    
+                    let result;
+                    if (window.electronAPI && window.electronAPI.authenticateGoogleWithTab) {
+                        console.log('Using tab-based Google sign-in...');
+                        result = await window.electronAPI.authenticateGoogleWithTab(null, this.currentTabId);
+                    } else if (window.electronAPI && window.electronAPI.authenticateGoogle) {
+                        console.log('Using fallback Google sign-in...');
+                        result = await window.electronAPI.authenticateGoogle();
+                    } else {
+                        console.log('No authentication API available, using simulation...');
+                        await this.simulateAuthentication();
+                        return; // Exit early since simulation handles the UI update
+                    }
+                    
+                    console.log('Google sign-in result:', result);
+                    if (result && result.success) {
                         this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                         googleSignInTopBtn.style.background = '#34c759';
                         googleSignInTopBtn.style.color = '#fff';
@@ -300,6 +316,7 @@ class TaskForceApp {
                         this.showError(result?.error || 'Sign-in failed. Email may not be registered.');
                     }
                 } catch (e) {
+                    console.error('Google sign-in error:', e);
                     googleSignInTopBtn.style.background = '#ff3b30';
                     googleSignInTopBtn.style.color = '#fff';
                     googleSignInTopBtn.textContent = 'Failed';
@@ -310,10 +327,23 @@ class TaskForceApp {
             });
         }
 
-        if (googleLogoutBtn && window.electronAPI?.logoutTab) {
+        if (googleLogoutBtn) {
             googleLogoutBtn.addEventListener('click', async () => {
                 try {
-                    await window.electronAPI.logoutTab(this.currentTabId);
+                    console.log('Logging out...');
+                    console.log('window.electronAPI available:', !!window.electronAPI);
+                    console.log('logoutTab available:', !!(window.electronAPI && window.electronAPI.logoutTab));
+                    
+                    if (window.electronAPI && window.electronAPI.logoutTab) {
+                        console.log('Using tab-based logout...');
+                        await window.electronAPI.logoutTab(this.currentTabId);
+                    } else if (window.electronAPI && window.electronAPI.logout) {
+                        console.log('Using fallback logout...');
+                        await window.electronAPI.logout();
+                    } else {
+                        console.log('No logout API available, using local logout...');
+                    }
+                    
                     this.isAuthenticated = false;
                     this.currentAccount = null;
                     this.updateUI();
@@ -326,6 +356,7 @@ class TaskForceApp {
                     googleLogoutBtn.style.display = 'none';
                     this.showInfo('Logged out');
                 } catch (e) {
+                    console.error('Logout error:', e);
                     this.showError(e?.message || 'Logout failed');
                 }
             });
@@ -749,6 +780,8 @@ class TaskForceApp {
     async authenticateWithCredentials(credentials) {
         try {
             console.log('Authenticating with credentials...');
+            console.log('window.electronAPI available:', !!window.electronAPI);
+            console.log('authenticateGoogleWithTab available:', !!(window.electronAPI && window.electronAPI.authenticateGoogleWithTab));
             
             // Ensure tab ID is available
             if (!this.currentTabId) {
@@ -758,8 +791,10 @@ class TaskForceApp {
             
             // Use tab-based authentication
             if (window.electronAPI && window.electronAPI.authenticateGoogleWithTab) {
+                console.log('Using tab-based authentication...');
                 const result = await window.electronAPI.authenticateGoogleWithTab(credentials, this.currentTabId);
-                if (result.success) {
+                console.log('Authentication result:', result);
+                if (result && result.success) {
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                     this.initializeServices(credentials)
                         .then(() => console.log('Services ready'))
@@ -768,13 +803,30 @@ class TaskForceApp {
                             this.showError('Connected, but failed to initialize services: ' + err.message);
                         });
                 } else {
-                    throw new Error(result.error || 'Authentication failed');
+                    throw new Error(result?.error || 'Authentication failed');
+                }
+            } else if (window.electronAPI && window.electronAPI.authenticateGoogle) {
+                console.log('Using fallback authentication...');
+                const result = await window.electronAPI.authenticateGoogle(credentials);
+                console.log('Fallback authentication result:', result);
+                if (result && result.success) {
+                    this.onAuthenticationSuccess(result.userEmail || 'authenticated');
+                    this.initializeServices(credentials)
+                        .then(() => console.log('Services ready'))
+                        .catch(err => {
+                            console.error('Service init failed:', err);
+                            this.showError('Connected, but failed to initialize services: ' + err.message);
+                        });
+                } else {
+                    throw new Error(result?.error || 'Authentication failed');
                 }
             } else {
+                console.log('No authentication API available, using simulation...');
                 // Fallback to simulation
                 await this.simulateAuthentication();
             }
         } catch (error) {
+            console.error('Authentication error:', error);
             this.hideLoading();
             this.showError(error.message || 'Authentication failed');
             throw error;
@@ -815,6 +867,18 @@ class TaskForceApp {
         await new Promise(resolve => setTimeout(resolve, 2000));
         const mockEmail = 'user@example.com';
         this.onAuthenticationSuccess(mockEmail);
+        
+        // Update UI for simulation
+        const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
+        if (googleSignInTopBtn) {
+            googleSignInTopBtn.style.background = '#34c759';
+            googleSignInTopBtn.style.color = '#fff';
+            googleSignInTopBtn.textContent = mockEmail;
+            const logoutBtn = document.getElementById('googleLogoutBtn');
+            if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        }
+        
+        this.showSuccess('Simulated authentication successful');
     }
 
     onAuthenticationSuccess(email) {
