@@ -60,12 +60,13 @@ class TaskForceApp {
     }
 
     waitForTabManager() {
+        // Generate unique tab ID immediately
+        this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('✅ Current window ID set to:', this.currentTabId);
+        
         const checkTabManager = () => {
             if (window.tabManager && window.tabManager.isInitialized) {
                 console.log('✅ New window tab manager found');
-                // Generate unique tab ID for this window
-                this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                console.log('✅ Current window ID set to:', this.currentTabId);
             } else {
                 console.log('⏳ Waiting for new window tab manager...');
                 setTimeout(checkTabManager, 100);
@@ -277,6 +278,13 @@ class TaskForceApp {
                 try {
                     googleSignInTopBtn.disabled = true;
                     googleSignInTopBtn.textContent = 'Signing in...';
+                    
+                    // Ensure tab ID is available
+                    if (!this.currentTabId) {
+                        this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                        console.log('✅ Generated fallback tab ID for Google sign-in:', this.currentTabId);
+                    }
+                    
                     const result = await window.electronAPI.authenticateGoogleWithTab(null, this.currentTabId);
                     if (result?.success) {
                         this.onAuthenticationSuccess(result.userEmail || 'authenticated');
@@ -742,6 +750,12 @@ class TaskForceApp {
         try {
             console.log('Authenticating with credentials...');
             
+            // Ensure tab ID is available
+            if (!this.currentTabId) {
+                this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                console.log('✅ Generated fallback tab ID:', this.currentTabId);
+            }
+            
             // Use tab-based authentication
             if (window.electronAPI && window.electronAPI.authenticateGoogleWithTab) {
                 const result = await window.electronAPI.authenticateGoogleWithTab(credentials, this.currentTabId);
@@ -1008,6 +1022,11 @@ class TaskForceApp {
     async loadSheetData() {
         try {
             if (window.electronAPI && window.electronAPI.connectToSheetsWithTab) {
+                // Ensure tab ID is available
+                if (!this.currentTabId) {
+                    this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    console.log('✅ Generated fallback tab ID for sheets connection:', this.currentTabId);
+                }
                 const payload = { sheetId: this.selectedSheetId, sheetTitle: this.selectedSheetTitle, rawUrl: this.lastSheetUrl || null };
                 const result = await window.electronAPI.connectToSheetsWithTab(payload, this.currentTabId);
                 if (result.success) {
@@ -1172,6 +1191,11 @@ class TaskForceApp {
             let result;
             // Use tab-based sending
             if (window.electronAPI?.sendEmailWithTab) {
+                // Ensure tab ID is available
+                if (!this.currentTabId) {
+                    this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    console.log('✅ Generated fallback tab ID for email sending:', this.currentTabId);
+                }
                 result = await window.electronAPI.sendEmailWithTab(emailData, this.currentTabId);
             } else {
                 result = await window.electronAPI.sendTestEmail(emailData);
@@ -1466,6 +1490,11 @@ class TaskForceApp {
         let result;
         // Use tab-based sending
         if (window.electronAPI?.sendEmailWithTab) {
+            // Ensure tab ID is available
+            if (!this.currentTabId) {
+                this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                console.log('✅ Generated fallback tab ID for single email sending:', this.currentTabId);
+            }
             result = await window.electronAPI.sendEmailWithTab({ 
                 to, 
                 subject: campaign.subject, 
