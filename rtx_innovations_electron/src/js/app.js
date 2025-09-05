@@ -302,7 +302,10 @@ class TaskForceApp {
                     }
                     
                     console.log('Google sign-in result:', result);
-                    if (result && result.success) {
+                    console.log('Result type:', typeof result);
+                    console.log('Result keys:', result ? Object.keys(result) : 'null');
+                    
+                    if (result && typeof result === 'object' && result.success === true) {
                         this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                         googleSignInTopBtn.style.background = '#34c759';
                         googleSignInTopBtn.style.color = '#fff';
@@ -310,10 +313,12 @@ class TaskForceApp {
                         const logoutBtn = document.getElementById('googleLogoutBtn');
                         if (logoutBtn) logoutBtn.style.display = 'inline-block';
                     } else {
+                        const errorMsg = result?.error || (typeof result === 'string' ? result : 'Sign-in failed. Email may not be registered.');
+                        console.log('Google sign-in failed with error:', errorMsg);
                         googleSignInTopBtn.style.background = '#ff3b30';
                         googleSignInTopBtn.style.color = '#fff';
                         googleSignInTopBtn.textContent = 'Not allowed';
-                        this.showError(result?.error || 'Sign-in failed. Email may not be registered.');
+                        this.showError(errorMsg);
                     }
                 } catch (e) {
                     console.error('Google sign-in error:', e);
@@ -794,7 +799,10 @@ class TaskForceApp {
                 console.log('Using tab-based authentication...');
                 const result = await window.electronAPI.authenticateGoogleWithTab(credentials, this.currentTabId);
                 console.log('Authentication result:', result);
-                if (result && result.success) {
+                console.log('Result type:', typeof result);
+                console.log('Result keys:', result ? Object.keys(result) : 'null');
+                
+                if (result && typeof result === 'object' && result.success === true) {
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                     this.initializeServices(credentials)
                         .then(() => console.log('Services ready'))
@@ -803,13 +811,18 @@ class TaskForceApp {
                             this.showError('Connected, but failed to initialize services: ' + err.message);
                         });
                 } else {
-                    throw new Error(result?.error || 'Authentication failed');
+                    const errorMsg = result?.error || (typeof result === 'string' ? result : 'Authentication failed');
+                    console.log('Authentication failed with error:', errorMsg);
+                    throw new Error(errorMsg);
                 }
             } else if (window.electronAPI && window.electronAPI.authenticateGoogle) {
                 console.log('Using fallback authentication...');
                 const result = await window.electronAPI.authenticateGoogle(credentials);
                 console.log('Fallback authentication result:', result);
-                if (result && result.success) {
+                console.log('Result type:', typeof result);
+                console.log('Result keys:', result ? Object.keys(result) : 'null');
+                
+                if (result && typeof result === 'object' && result.success === true) {
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                     this.initializeServices(credentials)
                         .then(() => console.log('Services ready'))
@@ -818,7 +831,9 @@ class TaskForceApp {
                             this.showError('Connected, but failed to initialize services: ' + err.message);
                         });
                 } else {
-                    throw new Error(result?.error || 'Authentication failed');
+                    const errorMsg = result?.error || (typeof result === 'string' ? result : 'Authentication failed');
+                    console.log('Fallback authentication failed with error:', errorMsg);
+                    throw new Error(errorMsg);
                 }
             } else {
                 console.log('No authentication API available, using simulation...');
