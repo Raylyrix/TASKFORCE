@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Auth (OAuth)
     authenticateGoogle: (credentials) => wrapInvoke('authenticateGoogle', credentials),
     authenticateGoogleWithTab: (credentials, tabId) => wrapInvoke('authenticateGoogleWithTab', credentials, tabId),
+    logoutTab: (tabId) => wrapInvoke('logoutTab', tabId),
     sendEmailWithTab: (emailData, tabId) => wrapInvoke('sendEmailWithTab', emailData, tabId),
     createNewTab: () => wrapInvoke('createNewTab'),
 
@@ -73,6 +74,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const payload = (typeof arg1 === 'object') ? arg1 : { sheetId: arg1, sheetTitle: arg2, rawUrl: arg3 };
         return wrapInvoke('connectToSheets', payload);
     },
+    connectToSheetsWithTab: (payload, tabId) => wrapInvoke('connectToSheetsWithTab', payload, tabId),
     updateSheetStatus: (args) => wrapInvoke('sheets-update-status', args),
 
     // Email send

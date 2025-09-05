@@ -933,6 +933,34 @@ async function connectToSheets(arg) {
 	}
 }
 
+// Tab-specific Google Sheets connection
+async function connectToSheetsWithTab(arg, tabId) {
+	try {
+		const tabData = tabServices.get(tabId);
+		if (!tabData || !tabData.sheetsService) {
+			return { success: false, error: 'Tab not authenticated' };
+		}
+		
+		let sheetId = arg;
+		let sheetTitle = null;
+		if (arg && typeof arg === 'object') {
+			sheetId = arg.sheetId;
+			sheetTitle = arg.sheetTitle || null;
+		}
+		
+		const range = sheetTitle ? `${sheetTitle}!A:Z` : 'A:Z';
+		const response = await tabData.sheetsService.spreadsheets.values.get({ spreadsheetId: sheetId, range });
+		const values = response.data.values || [];
+		if (!values.length) throw new Error('No data found in sheet');
+		const headers = values[0];
+		const rows = values.slice(1);
+		return { success: true, data: { headers, rows } };
+	} catch (error) {
+		console.error('Tab sheets connection error:', error);
+		return { success: false, error: error.message };
+	}
+}
+
 function toBase64Url(str) {
 	return Buffer.from(str).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
@@ -1384,6 +1412,26 @@ async function sendEmailWithTab(emailData, tabId) {
 	}
 }
 
+// Tab-specific logout function
+async function logoutTab(tabId) {
+	try {
+		// Clear tab-specific token and credentials
+		store.delete(`googleToken_${tabId}`);
+		store.delete(`googleCreds_${tabId}`);
+		store.delete(`googleTokenClientId_${tabId}`);
+		
+		// Remove tab services
+		tabServices.delete(tabId);
+		tabOperations.delete(tabId);
+		
+		logEvent('info', 'Tab logged out', { tabId });
+		return { success: true };
+	} catch (error) {
+		console.error('Tab logout error:', error);
+		return { success: false, error: error.message };
+	}
+}
+
 // Tab-based campaign execution
 async function executeCampaignRunWithTab(params, tabId) {
 	const tabData = tabServices.get(tabId);
@@ -1656,11 +1704,13 @@ ipcMain.handle('updateClientCredentials', async (event, credentialsData) => upda
 ipcMain.handle('authenticateGoogle', async (event, credentialsData) => authenticateGoogle(credentialsData));
 ipcMain.handle('authenticateGoogleWithTab', async (event, credentialsData, tabId) => authenticateGoogleWithTab(credentialsData, tabId));
 ipcMain.handle('sendEmailWithTab', async (event, emailData, tabId) => sendEmailWithTab(emailData, tabId));
+ipcMain.handle('logoutTab', async (event, tabId) => logoutTab(tabId));
 ipcMain.handle('createNewTab', async () => createNewTab());
 
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));
+ipcMain.handle('connectToSheetsWithTab', async (event, payload, tabId) => connectToSheetsWithTab(payload, tabId));
 ipcMain.handle('loadLocalSpreadsheet', async (event, filePath) => loadLocalSpreadsheet(filePath));
 ipcMain.handle('auth-logout', async () => {
     try {

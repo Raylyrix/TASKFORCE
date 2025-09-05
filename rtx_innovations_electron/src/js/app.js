@@ -63,7 +63,8 @@ class TaskForceApp {
         const checkTabManager = () => {
             if (window.tabManager && window.tabManager.isInitialized) {
                 console.log('✅ New window tab manager found');
-                this.currentTabId = 'main_window';
+                // Generate unique tab ID for this window
+                this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                 console.log('✅ Current window ID set to:', this.currentTabId);
             } else {
                 console.log('⏳ Waiting for new window tab manager...');
@@ -271,12 +272,12 @@ class TaskForceApp {
         // Top-bar Google Sign-In
         const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
         const googleLogoutBtn = document.getElementById('googleLogoutBtn');
-        if (googleSignInTopBtn && window.electronAPI?.authenticateGoogle) {
+        if (googleSignInTopBtn && window.electronAPI?.authenticateGoogleWithTab) {
             googleSignInTopBtn.addEventListener('click', async () => {
                 try {
                     googleSignInTopBtn.disabled = true;
                     googleSignInTopBtn.textContent = 'Signing in...';
-                    const result = await window.electronAPI.authenticateGoogle();
+                    const result = await window.electronAPI.authenticateGoogleWithTab(null, this.currentTabId);
                     if (result?.success) {
                         this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                         googleSignInTopBtn.style.background = '#34c759';
@@ -301,10 +302,10 @@ class TaskForceApp {
             });
         }
 
-        if (googleLogoutBtn && window.electronAPI?.logout) {
+        if (googleLogoutBtn && window.electronAPI?.logoutTab) {
             googleLogoutBtn.addEventListener('click', async () => {
                 try {
-                    await window.electronAPI.logout();
+                    await window.electronAPI.logoutTab(this.currentTabId);
                     this.isAuthenticated = false;
                     this.currentAccount = null;
                     this.updateUI();
@@ -741,10 +742,9 @@ class TaskForceApp {
         try {
             console.log('Authenticating with credentials...');
             
-            // Use window-based authentication
-            if (window.electronAPI && window.electronAPI.authenticateGoogle) {
-                // Fallback to original authentication
-                const result = await window.electronAPI.authenticateGoogle(credentials);
+            // Use tab-based authentication
+            if (window.electronAPI && window.electronAPI.authenticateGoogleWithTab) {
+                const result = await window.electronAPI.authenticateGoogleWithTab(credentials, this.currentTabId);
                 if (result.success) {
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
                     this.initializeServices(credentials)
@@ -1007,7 +1007,15 @@ class TaskForceApp {
 
     async loadSheetData() {
         try {
-            if (window.electronAPI && window.electronAPI.connectToSheets) {
+            if (window.electronAPI && window.electronAPI.connectToSheetsWithTab) {
+                const payload = { sheetId: this.selectedSheetId, sheetTitle: this.selectedSheetTitle, rawUrl: this.lastSheetUrl || null };
+                const result = await window.electronAPI.connectToSheetsWithTab(payload, this.currentTabId);
+                if (result.success) {
+                    this.onSheetsConnected(result.data);
+                } else {
+                    throw new Error(result.error || 'Failed to connect to sheets');
+                }
+            } else if (window.electronAPI && window.electronAPI.connectToSheets) {
                 const result = await window.electronAPI.connectToSheets(this.selectedSheetId, this.selectedSheetTitle, this.lastSheetUrl || null);
                 if (result.success) {
                     this.onSheetsConnected(result.data);
@@ -1162,8 +1170,12 @@ class TaskForceApp {
             };
             
             let result;
-            // Use window-based sending
-            result = await window.electronAPI.sendTestEmail(emailData);
+            // Use tab-based sending
+            if (window.electronAPI?.sendEmailWithTab) {
+                result = await window.electronAPI.sendEmailWithTab(emailData, this.currentTabId);
+            } else {
+                result = await window.electronAPI.sendTestEmail(emailData);
+            }
             if (result.success) this.showSuccess('Test email sent successfully!'); else throw new Error(result.error || 'Failed to send test email');
         } catch (error) {
             this.hideLoading();
@@ -1451,14 +1463,27 @@ class TaskForceApp {
         }
         
         const from = (document.getElementById('fromOverride')?.value?.trim()) || this.selectedFrom || undefined;
-        const result = await window.electronAPI.sendEmail({ 
-            to, 
-            subject: campaign.subject, 
-            content, 
-            html: finalHtml, 
-            from, 
-            attachmentsPaths: this.attachmentsPaths 
-        });
+        let result;
+        // Use tab-based sending
+        if (window.electronAPI?.sendEmailWithTab) {
+            result = await window.electronAPI.sendEmailWithTab({ 
+                to, 
+                subject: campaign.subject, 
+                content, 
+                html: finalHtml, 
+                from, 
+                attachmentsPaths: this.attachmentsPaths 
+            }, this.currentTabId);
+        } else {
+            result = await window.electronAPI.sendEmail({ 
+                to, 
+                subject: campaign.subject, 
+                content, 
+                html: finalHtml, 
+                from, 
+                attachmentsPaths: this.attachmentsPaths 
+            });
+        }
         if (!result.success) {
             this.setLocalRowStatus(rowIndexZeroBased, 'FAILED');
             throw new Error(result.error || 'Failed to send email');
