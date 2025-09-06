@@ -51,6 +51,9 @@ class TaskForceApp {
         // Wait for tab manager to be ready
         this.waitForTabManager();
         
+        // Start periodic email verification
+        this.startEmailVerification();
+        
         console.log('✅ Task Force AutoMailer Pro initialized successfully!');
         
         // Show a success message on the page
@@ -131,6 +134,26 @@ class TaskForceApp {
             this.isAuthenticated = false;
             this.currentAccount = null;
         }
+    }
+
+    startEmailVerification() {
+        // Check email every 5 seconds to ensure it's always correct
+        setInterval(async () => {
+            if (this.isAuthenticated && this.currentTabId && window.electronAPI) {
+                try {
+                    if (window.electronAPI.getTabUserEmail) {
+                        const result = await window.electronAPI.getTabUserEmail(this.currentTabId);
+                        if (result && result.success && result.email && result.email !== this.currentAccount) {
+                            console.log('🔄 Email changed, updating UI:', result.email);
+                            this.currentAccount = result.email;
+                            this.updateUI();
+                        }
+                    }
+                } catch (e) {
+                    // Silently fail - this is just a background check
+                }
+            }
+        }, 5000);
     }
 
     setupRichEditor() {
@@ -1049,7 +1072,8 @@ class TaskForceApp {
         
         // Fetch real email if we got a placeholder
         if (email === 'authenticated' && this.currentTabId) {
-            setTimeout(async () => {
+            // Try multiple times to fetch the real email
+            const fetchRealEmail = async (attempt = 1) => {
                 try {
                     if (window.electronAPI.getTabUserEmail) {
                         const result = await window.electronAPI.getTabUserEmail(this.currentTabId);
@@ -1057,12 +1081,20 @@ class TaskForceApp {
                             this.currentAccount = result.email;
                             console.log('✅ Real email fetched after authentication:', this.currentAccount);
                             this.updateUI();
+                            return;
                         }
                     }
                 } catch (e) {
-                    console.log('⚠️ Could not fetch real email after authentication:', e);
+                    console.log(`⚠️ Attempt ${attempt}: Could not fetch real email:`, e);
                 }
-            }, 2000); // Wait 2 seconds for profile to be available
+                
+                // Retry up to 5 times with increasing delays
+                if (attempt < 5) {
+                    setTimeout(() => fetchRealEmail(attempt + 1), attempt * 1000);
+                }
+            };
+            
+            setTimeout(() => fetchRealEmail(), 1000);
         }
         
         // Verify auth in main to ensure state is consistent
@@ -2351,12 +2383,34 @@ class TaskForceApp {
             }
         }
         
+        // Force theme application to all elements
+        this.forceThemeApplication();
+        
         // Save theme preference
         if (window.electronAPI) {
             window.electronAPI.storeSet('theme', isDark ? 'light' : 'dark');
         }
         
         console.log('Theme toggled to:', isDark ? 'light' : 'dark');
+    }
+
+    forceThemeApplication() {
+        // Force apply theme to all elements
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(element => {
+            // Trigger reflow to ensure styles are applied
+            element.style.display = 'none';
+            element.offsetHeight; // Trigger reflow
+            element.style.display = '';
+        });
+        
+        // Also force update the main content area
+        const mainContent = document.getElementById('mainContent');
+        if (mainContent) {
+            mainContent.style.display = 'none';
+            mainContent.offsetHeight;
+            mainContent.style.display = '';
+        }
     }
 
     async loadDefaultSignature() {

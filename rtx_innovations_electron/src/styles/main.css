@@ -455,6 +455,11 @@ body {
     color: #ffffff !important;
 }
 
+.theme-dark body {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+}
+
 .theme-dark .container {
     background-color: #2d2d2d !important;
     color: #ffffff !important;
@@ -468,6 +473,24 @@ body {
 .theme-dark .main-content {
     background-color: #1a1a1a !important;
     color: #ffffff !important;
+}
+
+.theme-dark #mainContent {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .view-header {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .view-header h1 {
+    color: #ffffff !important;
+}
+
+.theme-dark .view-header p {
+    color: #cccccc !important;
 }
 
 .theme-dark .form-group input,
@@ -625,6 +648,83 @@ body {
     color: #ffc107 !important;
 }
 
+/* Additional theme coverage for main content areas */
+.theme-dark .card,
+.theme-dark .view-card,
+.theme-dark .campaign-card {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #444444 !important;
+}
+
+.theme-dark .form-section,
+.theme-dark .campaign-section {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .step-section {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #444444 !important;
+}
+
+.theme-dark .step-section h3 {
+    color: #ffffff !important;
+}
+
+.theme-dark .step-section label {
+    color: #ffffff !important;
+}
+
+.theme-dark .step-section small {
+    color: #cccccc !important;
+}
+
+.theme-dark .status-indicator {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .connection-status {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .email-content-section {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .email-content-section h3 {
+    color: #ffffff !important;
+}
+
+.theme-dark .email-content-section label {
+    color: #ffffff !important;
+}
+
+.theme-dark .email-content-section small {
+    color: #cccccc !important;
+}
+
+.theme-dark .from-address-section {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .from-address-section h3 {
+    color: #ffffff !important;
+}
+
+.theme-dark .from-address-section label {
+    color: #ffffff !important;
+}
+
+.theme-dark .from-address-section small {
+    color: #cccccc !important;
+}
+
 .theme-light {
     background-color: #ffffff !important;
     color: #333333 !important;
@@ -690,6 +790,43 @@ body {
 /* Smooth transitions for theme changes */
 * {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Force theme application to all elements */
+.theme-dark * {
+    color: inherit !important;
+}
+
+.theme-dark div,
+.theme-dark section,
+.theme-dark article,
+.theme-dark aside,
+.theme-dark main {
+    background-color: inherit !important;
+    color: inherit !important;
+}
+
+.theme-dark h1,
+.theme-dark h2,
+.theme-dark h3,
+.theme-dark h4,
+.theme-dark h5,
+.theme-dark h6 {
+    color: #ffffff !important;
+}
+
+.theme-dark p,
+.theme-dark span,
+.theme-dark div {
+    color: #ffffff !important;
+}
+
+.theme-dark label {
+    color: #ffffff !important;
+}
+
+.theme-dark small {
+    color: #cccccc !important;
 }
 
 /* Improved spacing and typography */
