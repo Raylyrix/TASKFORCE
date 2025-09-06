@@ -114,6 +114,8 @@ class TaskForceApp {
                         if (result && result.success && result.email) {
                             this.currentAccount = result.email;
                             console.log('✅ Tab user email fetched:', this.currentAccount);
+                            // Update UI with the real email
+                            this.updateUI();
                         }
                     }
                 } catch (e) {
@@ -1044,6 +1046,25 @@ class TaskForceApp {
         }
 
         this.fetchGmailContext();
+        
+        // Fetch real email if we got a placeholder
+        if (email === 'authenticated' && this.currentTabId) {
+            setTimeout(async () => {
+                try {
+                    if (window.electronAPI.getTabUserEmail) {
+                        const result = await window.electronAPI.getTabUserEmail(this.currentTabId);
+                        if (result && result.success && result.email) {
+                            this.currentAccount = result.email;
+                            console.log('✅ Real email fetched after authentication:', this.currentAccount);
+                            this.updateUI();
+                        }
+                    }
+                } catch (e) {
+                    console.log('⚠️ Could not fetch real email after authentication:', e);
+                }
+            }, 2000); // Wait 2 seconds for profile to be available
+        }
+        
         // Verify auth in main to ensure state is consistent
         setTimeout(async () => {
             try {
@@ -2247,10 +2268,66 @@ class TaskForceApp {
         const map = this.buildRowMap(headers, row);
         const data = this.getCampaignData(); if (!data) return;
         const content = this.processContent(data.content, map, data.useSig);
-        const html = `<div><h4 style="margin-bottom:8px;">Subject: ${this.escapeHtml(data.subject)}</h4><pre style="white-space:pre-wrap;">${this.escapeHtml(content)}</pre></div>`;
+        
+        // Create Gmail-style email preview
+        const fromEmail = data.from || this.currentAccount || 'sender@example.com';
+        const fromName = data.fromName || 'Sender Name';
+        const toEmail = map.email || map.Email || map.EMAIL || 'recipient@example.com';
+        const subject = data.subject || 'No Subject';
+        
+        // Convert plain text to HTML if needed
+        let htmlContent = content;
+        if (!content.includes('<') && !content.includes('>')) {
+            // Convert plain text to HTML
+            htmlContent = content
+                .replace(/\n/g, '<br>')
+                .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+                .replace(/  /g, '&nbsp;&nbsp;');
+        }
+        
+        const gmailPreview = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+                <!-- Gmail Header -->
+                <div style="background: #f8f9fa; padding: 16px 20px; border-bottom: 1px solid #e5e5e7;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                        <div style="width: 40px; height: 40px; background: #4285f4; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">
+                            ${fromName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #202124; font-size: 14px;">${fromName}</div>
+                            <div style="color: #5f6368; font-size: 12px;">${fromEmail}</div>
+                        </div>
+                        <div style="margin-left: auto; color: #5f6368; font-size: 12px;">
+                            to me
+                        </div>
+                    </div>
+                    <div style="font-weight: 600; color: #202124; font-size: 16px; margin-top: 8px;">
+                        ${subject}
+                    </div>
+                </div>
+                
+                <!-- Email Content -->
+                <div style="padding: 20px; line-height: 1.6; color: #202124; font-size: 14px;">
+                    <div style="white-space: pre-wrap;">${htmlContent}</div>
+                </div>
+                
+                <!-- Gmail Footer -->
+                <div style="background: #f8f9fa; padding: 12px 20px; border-top: 1px solid #e5e5e7; font-size: 12px; color: #5f6368;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>Gmail</div>
+                        <div style="display: flex; gap: 16px;">
+                            <span>Reply</span>
+                            <span>Forward</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
         const modal = document.getElementById('emailPreviewModal');
         const body = document.getElementById('emailPreviewBody');
-        if (body) body.innerHTML = html; if (modal) modal.style.display = 'block';
+        if (body) body.innerHTML = gmailPreview; 
+        if (modal) modal.style.display = 'block';
     }
 
     toggleTheme() {

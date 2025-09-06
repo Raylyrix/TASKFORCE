@@ -765,6 +765,28 @@ body {
     border-top-color: #555555;
 }
 
+/* Email Preview Modal Styling */
+#emailPreviewModal .modal-content {
+    background-color: #f8f9fa;
+    border-radius: 12px;
+}
+
+.theme-dark #emailPreviewModal .modal-content {
+    background-color: #2d2d2d;
+}
+
+#emailPreviewBody {
+    background-color: #ffffff;
+    border-radius: 8px;
+    margin: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.theme-dark #emailPreviewBody {
+    background-color: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
 .view-header p {
   font-size: 18px;
   font-size: var(--font-size-lg);
