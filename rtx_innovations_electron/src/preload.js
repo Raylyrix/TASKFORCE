@@ -12,6 +12,7 @@ const subscriptions = {
     onAuthProgress: (cb) => ipcRenderer.on('auth-progress', (_e, data) => cb && cb(data)),
     onAuthSuccess: (cb) => ipcRenderer.on('auth-success', (_e, data) => cb && cb(data)),
     onAppLog: (cb) => ipcRenderer.on('app-log', (_e, data) => cb && cb(data)),
+    onTabIdAssigned: (cb) => ipcRenderer.on('tab-id-assigned', (_e, tabId) => cb && cb(tabId)),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -22,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onAuthProgress: subscriptions.onAuthProgress,
     onAuthSuccess: subscriptions.onAuthSuccess,
     onAppLog: subscriptions.onAppLog,
+    onTabIdAssigned: subscriptions.onTabIdAssigned,
 
     // Dialogs / FS
     showOpenDialog: (options) => wrapInvoke('show-open-dialog', options),

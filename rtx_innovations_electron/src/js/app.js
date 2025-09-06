@@ -60,9 +60,22 @@ class TaskForceApp {
     }
 
     waitForTabManager() {
-        // Generate unique tab ID immediately
-        this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log('✅ Current window ID set to:', this.currentTabId);
+        // Wait for backend to assign proper tab ID
+        this.currentTabId = null;
+        console.log('⏳ Waiting for tab ID assignment from backend...');
+        
+        // Listen for tab ID assignment from backend
+        if (window.electronAPI && window.electronAPI.onTabIdAssigned) {
+            window.electronAPI.onTabIdAssigned((tabId) => {
+                this.currentTabId = tabId;
+                console.log('✅ Tab ID assigned by backend:', this.currentTabId);
+                this.updateUI();
+            });
+        } else {
+            // Fallback: generate random ID if API not available
+            this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            console.log('⚠️ Fallback tab ID generated:', this.currentTabId);
+        }
         
         const checkTabManager = () => {
             if (window.tabManager && window.tabManager.isInitialized) {
@@ -279,11 +292,22 @@ class TaskForceApp {
                     googleSignInTopBtn.disabled = true;
                     googleSignInTopBtn.textContent = 'Signing in...';
                     
-                    // Ensure tab ID is available
+                    // Ensure tab ID is available - wait for backend assignment
                     if (!this.currentTabId) {
-                        this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                        console.log('✅ Generated fallback tab ID for Google sign-in:', this.currentTabId);
+                        console.log('⏳ Waiting for tab ID assignment for Google sign-in...');
+                        await new Promise((resolve) => {
+                            const checkTabId = () => {
+                                if (this.currentTabId) {
+                                    resolve();
+                                } else {
+                                    setTimeout(checkTabId, 100);
+                                }
+                            };
+                            checkTabId();
+                        });
                     }
+                    
+                    console.log('✅ Using tab ID for Google sign-in:', this.currentTabId);
                     
                     console.log('window.electronAPI available:', !!window.electronAPI);
                     console.log('authenticateGoogleWithTab available:', !!(window.electronAPI && window.electronAPI.authenticateGoogleWithTab));
@@ -807,11 +831,22 @@ class TaskForceApp {
             console.log('window.electronAPI available:', !!window.electronAPI);
             console.log('authenticateGoogleWithTab available:', !!(window.electronAPI && window.electronAPI.authenticateGoogleWithTab));
             
-            // Ensure tab ID is available
+            // Ensure tab ID is available - wait for backend assignment
             if (!this.currentTabId) {
-                this.currentTabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                console.log('✅ Generated fallback tab ID:', this.currentTabId);
+                console.log('⏳ Waiting for tab ID assignment...');
+                await new Promise((resolve) => {
+                    const checkTabId = () => {
+                        if (this.currentTabId) {
+                            resolve();
+                        } else {
+                            setTimeout(checkTabId, 100);
+                        }
+                    };
+                    checkTabId();
+                });
             }
+            
+            console.log('✅ Using tab ID for authentication:', this.currentTabId);
             
             // Use tab-based authentication
             if (window.electronAPI && window.electronAPI.authenticateGoogleWithTab) {

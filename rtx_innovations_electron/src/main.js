@@ -227,6 +227,12 @@ function createWindow() {
   };
   mainWindow.once('ready-to-show', bringToFront);
   mainWindow.webContents.once('dom-ready', bringToFront);
+  
+  // Send main window ID when ready
+  mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow.webContents.send('tab-id-assigned', 'main');
+    console.log('📤 Sent main window ID to frontend: main');
+  });
   const rescueTimer = setTimeout(() => { try { if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show(); } catch (_) {} }, 4000);
 
 	try {
@@ -286,6 +292,12 @@ function createNewTab() {
 
     newWindow.loadFile('dist/index.html');
     
+    // Send window ID to frontend when ready
+    newWindow.webContents.once('did-finish-load', () => {
+        newWindow.webContents.send('tab-id-assigned', windowId);
+        console.log(`📤 Sent tab ID to frontend: ${windowId}`);
+    });
+    
     // Open DevTools in development
     if (process.env.NODE_ENV === 'development') {
         newWindow.webContents.openDevTools();
@@ -297,7 +309,13 @@ function createNewTab() {
     // Handle window close
     newWindow.on('closed', () => {
         openWindows.delete(windowId);
-        console.log(`🗑️ Tab closed: ${windowId}`);
+        // Clean up tab-specific data
+        tabServices.delete(windowId);
+        tabOperations.delete(windowId);
+        store.delete(`googleToken_${windowId}`);
+        store.delete(`googleCreds_${windowId}`);
+        store.delete(`googleTokenClientId_${windowId}`);
+        console.log(`🗑️ Tab closed and cleaned up: ${windowId}`);
     });
     
     console.log(`✅ New tab created successfully: ${windowId}`);
