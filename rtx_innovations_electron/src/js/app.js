@@ -137,23 +137,31 @@ class TaskForceApp {
     }
 
     startEmailVerification() {
-        // Check email every 5 seconds to ensure it's always correct
+        // Check email every 3 seconds to ensure it's always correct
         setInterval(async () => {
             if (this.isAuthenticated && this.currentTabId && window.electronAPI) {
                 try {
                     if (window.electronAPI.getTabUserEmail) {
                         const result = await window.electronAPI.getTabUserEmail(this.currentTabId);
-                        if (result && result.success && result.email && result.email !== this.currentAccount) {
-                            console.log('🔄 Email changed, updating UI:', result.email);
-                            this.currentAccount = result.email;
-                            this.updateUI();
+                        if (result && result.success && result.email) {
+                            if (result.email !== this.currentAccount) {
+                                console.log('🔄 Email changed, updating UI:', result.email);
+                                this.currentAccount = result.email;
+                                this.updateUI();
+                            }
+                        } else {
+                            // If we can't get the email, try to re-authenticate
+                            console.log('⚠️ Could not fetch email, checking authentication...');
+                            await this.checkTabAuthentication();
                         }
                     }
                 } catch (e) {
-                    // Silently fail - this is just a background check
+                    console.log('⚠️ Email verification error:', e);
+                    // Try to re-authenticate if there's an error
+                    await this.checkTabAuthentication();
                 }
             }
-        }, 5000);
+        }, 3000);
     }
 
     setupRichEditor() {
@@ -462,6 +470,18 @@ class TaskForceApp {
                     
                     this.isAuthenticated = false;
                     this.currentAccount = null;
+                    
+                    // Clear any cached email data
+                    try {
+                        if (window.electronAPI?.storeDelete) {
+                            await window.electronAPI.storeDelete(`googleToken_${this.currentTabId}`);
+                            await window.electronAPI.storeDelete(`googleCreds_${this.currentTabId}`);
+                            await window.electronAPI.storeDelete(`googleTokenClientId_${this.currentTabId}`);
+                        }
+                    } catch (e) {
+                        console.log('Error clearing cached data:', e);
+                    }
+                    
                     this.updateUI();
                     try { window.electronAPI?.storeSet?.('telemetry.enabled', false); } catch(_) {}
                     if (googleSignInTopBtn) {
@@ -470,10 +490,35 @@ class TaskForceApp {
                         googleSignInTopBtn.textContent = 'Sign in with Google';
                     }
                     googleLogoutBtn.style.display = 'none';
+                    if (refreshEmailBtn) refreshEmailBtn.style.display = 'none';
                     this.showInfo('Logged out');
                 } catch (e) {
                     console.error('Logout error:', e);
                     this.showError(e?.message || 'Logout failed');
+                }
+            });
+        }
+
+        // Refresh email button
+        const refreshEmailBtn = document.getElementById('refreshEmailBtn');
+        if (refreshEmailBtn) {
+            refreshEmailBtn.addEventListener('click', async () => {
+                try {
+                    refreshEmailBtn.disabled = true;
+                    refreshEmailBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    const email = await this.forceEmailRefresh();
+                    if (email) {
+                        this.showSuccess(`Email refreshed: ${email}`);
+                    } else {
+                        this.showError('Could not refresh email');
+                    }
+                } catch (e) {
+                    console.error('Email refresh error:', e);
+                    this.showError('Email refresh failed: ' + e.message);
+                } finally {
+                    refreshEmailBtn.disabled = false;
+                    refreshEmailBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
                 }
             });
         }
@@ -1088,13 +1133,17 @@ class TaskForceApp {
                     console.log(`⚠️ Attempt ${attempt}: Could not fetch real email:`, e);
                 }
                 
-                // Retry up to 5 times with increasing delays
-                if (attempt < 5) {
-                    setTimeout(() => fetchRealEmail(attempt + 1), attempt * 1000);
+                // Retry up to 10 times with increasing delays
+                if (attempt < 10) {
+                    setTimeout(() => fetchRealEmail(attempt + 1), attempt * 500);
+                } else {
+                    // If all attempts fail, try to re-authenticate
+                    console.log('🔄 All email fetch attempts failed, trying re-authentication...');
+                    await this.checkTabAuthentication();
                 }
             };
             
-            setTimeout(() => fetchRealEmail(), 1000);
+            setTimeout(() => fetchRealEmail(), 500);
         }
         
         // Verify auth in main to ensure state is consistent
@@ -1970,17 +2019,20 @@ class TaskForceApp {
         // Update Google Sign-in button
         const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
         const googleLogoutBtn = document.getElementById('googleLogoutBtn');
+        const refreshEmailBtn = document.getElementById('refreshEmailBtn');
         if (googleSignInTopBtn) {
             if (this.isAuthenticated && this.currentAccount) {
                 googleSignInTopBtn.style.background = '#34c759';
                 googleSignInTopBtn.style.color = '#fff';
                 googleSignInTopBtn.textContent = this.currentAccount;
                 if (googleLogoutBtn) googleLogoutBtn.style.display = 'inline-block';
+                if (refreshEmailBtn) refreshEmailBtn.style.display = 'inline-block';
             } else {
                 googleSignInTopBtn.style.background = '#fff';
                 googleSignInTopBtn.style.color = '#2c2c2e';
                 googleSignInTopBtn.textContent = 'Sign in with Google';
                 if (googleLogoutBtn) googleLogoutBtn.style.display = 'none';
+                if (refreshEmailBtn) refreshEmailBtn.style.display = 'none';
             }
         }
 
@@ -2411,6 +2463,32 @@ class TaskForceApp {
             mainContent.offsetHeight;
             mainContent.style.display = '';
         }
+    }
+
+    async forceEmailRefresh() {
+        console.log('🔄 Force refreshing email...');
+        if (this.isAuthenticated && this.currentTabId && window.electronAPI) {
+            try {
+                if (window.electronAPI.getTabUserEmail) {
+                    const result = await window.electronAPI.getTabUserEmail(this.currentTabId);
+                    if (result && result.success && result.email) {
+                        console.log('✅ Force refresh - email fetched:', result.email);
+                        this.currentAccount = result.email;
+                        this.updateUI();
+                        return result.email;
+                    } else {
+                        console.log('⚠️ Force refresh - no email in result:', result);
+                        // Try to re-authenticate
+                        await this.checkTabAuthentication();
+                    }
+                }
+            } catch (e) {
+                console.log('⚠️ Force refresh error:', e);
+                // Try to re-authenticate
+                await this.checkTabAuthentication();
+            }
+        }
+        return null;
     }
 
     async loadDefaultSignature() {
