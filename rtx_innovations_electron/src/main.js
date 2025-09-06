@@ -1757,6 +1757,24 @@ ipcMain.handle('sendEmailWithTab', async (event, emailData, tabId) => sendEmailW
 ipcMain.handle('logoutTab', async (event, tabId) => logoutTab(tabId));
 ipcMain.handle('createNewTab', async () => createNewTab());
 
+// Get current user email for a specific tab
+ipcMain.handle('getTabUserEmail', async (event, tabId) => {
+	try {
+		const tabData = tabServices.get(tabId);
+		if (!tabData || !tabData.gmailService) {
+			return { success: false, error: 'Tab not authenticated' };
+		}
+		
+		const profile = await tabData.gmailService.users.getProfile({ userId: 'me' });
+		const email = profile.data.emailAddress;
+		
+		return { success: true, email };
+	} catch (error) {
+		console.error('Error getting tab user email:', error);
+		return { success: false, error: error.message };
+	}
+});
+
 ipcMain.handle('initializeGmailService', async () => initializeGmailService());
 ipcMain.handle('initializeSheetsService', async () => initializeSheetsService());
 ipcMain.handle('connectToSheets', async (event, payload) => connectToSheets(payload));

@@ -66,9 +66,12 @@ class TaskForceApp {
         
         // Listen for tab ID assignment from backend
         if (window.electronAPI && window.electronAPI.onTabIdAssigned) {
-            window.electronAPI.onTabIdAssigned((tabId) => {
+            window.electronAPI.onTabIdAssigned(async (tabId) => {
                 this.currentTabId = tabId;
                 console.log('✅ Tab ID assigned by backend:', this.currentTabId);
+                
+                // Check if this tab already has authentication
+                await this.checkTabAuthentication();
                 this.updateUI();
             });
         } else {
@@ -86,6 +89,45 @@ class TaskForceApp {
             }
         };
         checkTabManager();
+    }
+
+    async checkTabAuthentication() {
+        try {
+            if (!this.currentTabId || !window.electronAPI) return;
+            
+            console.log('🔍 Checking authentication for tab:', this.currentTabId);
+            
+            // Check if tab has stored authentication
+            const tabToken = await window.electronAPI.storeGet(`googleToken_${this.currentTabId}`);
+            const tabCreds = await window.electronAPI.storeGet(`googleCreds_${this.currentTabId}`);
+            
+            if (tabToken && tabCreds) {
+                console.log('✅ Tab has existing authentication');
+                this.isAuthenticated = true;
+                this.currentAccount = 'authenticated'; // Will be updated by profile fetch
+                
+                // Try to get the actual email from the profile
+                try {
+                    if (window.electronAPI.getTabUserEmail) {
+                        const result = await window.electronAPI.getTabUserEmail(this.currentTabId);
+                        if (result && result.success && result.email) {
+                            this.currentAccount = result.email;
+                            console.log('✅ Tab user email fetched:', this.currentAccount);
+                        }
+                    }
+                } catch (e) {
+                    console.log('⚠️ Could not fetch profile immediately:', e);
+                }
+            } else {
+                console.log('❌ Tab has no existing authentication');
+                this.isAuthenticated = false;
+                this.currentAccount = null;
+            }
+        } catch (error) {
+            console.error('Error checking tab authentication:', error);
+            this.isAuthenticated = false;
+            this.currentAccount = null;
+        }
     }
 
     setupRichEditor() {
@@ -1857,7 +1899,7 @@ class TaskForceApp {
     }
 
     updateUI() {
-        console.log('Updating UI, authenticated:', this.isAuthenticated);
+        console.log('Updating UI, authenticated:', this.isAuthenticated, 'account:', this.currentAccount);
 
         // Update login button
         const loginBtn = document.getElementById('loginBtn');
@@ -1868,6 +1910,37 @@ class TaskForceApp {
             } else {
                 loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i>Login';
                 loginBtn.onclick = () => this.showLoginModal();
+            }
+        }
+
+        // Update Google Sign-in button
+        const googleSignInTopBtn = document.getElementById('googleSignInTopBtn');
+        const googleLogoutBtn = document.getElementById('googleLogoutBtn');
+        if (googleSignInTopBtn) {
+            if (this.isAuthenticated && this.currentAccount) {
+                googleSignInTopBtn.style.background = '#34c759';
+                googleSignInTopBtn.style.color = '#fff';
+                googleSignInTopBtn.textContent = this.currentAccount;
+                if (googleLogoutBtn) googleLogoutBtn.style.display = 'inline-block';
+            } else {
+                googleSignInTopBtn.style.background = '#fff';
+                googleSignInTopBtn.style.color = '#2c2c2e';
+                googleSignInTopBtn.textContent = 'Sign in with Google';
+                if (googleLogoutBtn) googleLogoutBtn.style.display = 'none';
+            }
+        }
+
+        // Update accounts dropdown
+        const accountsSelect = document.getElementById('accountsSelect');
+        if (accountsSelect) {
+            if (this.isAuthenticated && this.currentAccount) {
+                // Set the current account as selected
+                Array.from(accountsSelect.options).forEach(option => {
+                    option.selected = option.value === this.currentAccount;
+                });
+            } else {
+                // Clear selection if not authenticated
+                accountsSelect.selectedIndex = 0;
             }
         }
 

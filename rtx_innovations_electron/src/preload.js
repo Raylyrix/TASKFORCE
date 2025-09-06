@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     logoutTab: (tabId) => wrapInvoke('logoutTab', tabId),
     sendEmailWithTab: (emailData, tabId) => wrapInvoke('sendEmailWithTab', emailData, tabId),
     createNewTab: () => wrapInvoke('createNewTab'),
+    getTabUserEmail: (tabId) => wrapInvoke('getTabUserEmail', tabId),
 
     initializeGmailService: () => wrapInvoke('initializeGmailService'),
     initializeSheetsService: () => wrapInvoke('initializeSheetsService'),
