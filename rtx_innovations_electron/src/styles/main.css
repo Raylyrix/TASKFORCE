@@ -460,6 +460,16 @@ body {
     color: #ffffff !important;
 }
 
+.theme-dark .header {
+    background-color: #2d2d2d !important;
+    border-bottom: 1px solid #444444 !important;
+}
+
+.theme-dark .main-content {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+}
+
 .theme-dark .form-group input,
 .theme-dark .form-group select,
 .theme-dark .form-group textarea {
@@ -468,10 +478,22 @@ body {
     border-color: #555555 !important;
 }
 
+.theme-dark .form-group input:focus,
+.theme-dark .form-group select:focus,
+.theme-dark .form-group textarea:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+}
+
 .theme-dark .btn {
     background-color: #4a4a4a !important;
     color: #ffffff !important;
     border-color: #666666 !important;
+}
+
+.theme-dark .btn:hover {
+    background-color: #5a5a5a !important;
+    border-color: #777777 !important;
 }
 
 .theme-dark .btn-primary {
@@ -479,9 +501,19 @@ body {
     border-color: #007bff !important;
 }
 
+.theme-dark .btn-primary:hover {
+    background-color: #0056b3 !important;
+    border-color: #0056b3 !important;
+}
+
 .theme-dark .btn-secondary {
     background-color: #6c757d !important;
     border-color: #6c757d !important;
+}
+
+.theme-dark .btn-secondary:hover {
+    background-color: #545b62 !important;
+    border-color: #545b62 !important;
 }
 
 .theme-dark .btn-success {
@@ -489,14 +521,248 @@ body {
     border-color: #28a745 !important;
 }
 
+.theme-dark .btn-success:hover {
+    background-color: #1e7e34 !important;
+    border-color: #1e7e34 !important;
+}
+
 .theme-dark .btn-danger {
     background-color: #dc3545 !important;
     border-color: #dc3545 !important;
 }
 
+.theme-dark .btn-danger:hover {
+    background-color: #c82333 !important;
+    border-color: #c82333 !important;
+}
+
+.theme-dark .card {
+    background-color: #2d2d2d !important;
+    border-color: #444444 !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .modal {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .modal-header {
+    background-color: #3d3d3d !important;
+    border-bottom: 1px solid #555555 !important;
+}
+
+.theme-dark .modal-body {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .modal-footer {
+    background-color: #3d3d3d !important;
+    border-top: 1px solid #555555 !important;
+}
+
+.theme-dark .dropdown-menu {
+    background-color: #3d3d3d !important;
+    border-color: #555555 !important;
+}
+
+.theme-dark .dropdown-item {
+    color: #ffffff !important;
+}
+
+.theme-dark .dropdown-item:hover {
+    background-color: #4a4a4a !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .table {
+    color: #ffffff !important;
+}
+
+.theme-dark .table th {
+    background-color: #3d3d3d !important;
+    border-color: #555555 !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .table td {
+    border-color: #555555 !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #2d2d2d !important;
+}
+
+.theme-dark .alert {
+    background-color: #3d3d3d !important;
+    border-color: #555555 !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .alert-success {
+    background-color: #1e3a1e !important;
+    border-color: #28a745 !important;
+    color: #28a745 !important;
+}
+
+.theme-dark .alert-danger {
+    background-color: #3a1e1e !important;
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+}
+
+.theme-dark .alert-info {
+    background-color: #1e2a3a !important;
+    border-color: #17a2b8 !important;
+    color: #17a2b8 !important;
+}
+
+.theme-dark .alert-warning {
+    background-color: #3a2e1e !important;
+    border-color: #ffc107 !important;
+    color: #ffc107 !important;
+}
+
 .theme-light {
     background-color: #ffffff !important;
     color: #333333 !important;
+}
+
+/* UI/UX Improvements */
+.btn {
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    transition: all 0.2s ease;
+    border-radius: 6px;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.modal {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Smooth transitions for theme changes */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Improved spacing and typography */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.header {
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+.theme-dark .header {
+    background-color: rgba(45, 45, 45, 0.95);
+}
+
+/* Better button styling */
+.btn-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    border: none;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    border: none;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #545b62);
+    border: none;
+}
+
+/* Improved form styling */
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+.theme-dark .form-group label {
+    color: #ffffff;
+}
+
+/* Better modal styling */
+.modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 12px 12px;
+}
+
+.theme-dark .modal-header {
+    border-bottom-color: #555555;
+}
+
+.theme-dark .modal-footer {
+    border-top-color: #555555;
 }
 
 .view-header p {

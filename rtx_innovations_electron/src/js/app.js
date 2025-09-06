@@ -44,6 +44,7 @@ class TaskForceApp {
         this.setupRichEditor();
         this.setupMenuHandlers();
         this.loadSettings();
+        this.loadTheme();
         this.populateAccountsDropdown();
         this.updateUI();
         
@@ -2038,6 +2039,42 @@ class TaskForceApp {
         }
     }
 
+    loadTheme() {
+        if (window.electronAPI) {
+            window.electronAPI.storeGet('theme').then(theme => {
+                const body = document.body;
+                const themeToggle = document.getElementById('themeToggle');
+                
+                if (theme === 'dark') {
+                    body.classList.remove('theme-light');
+                    body.classList.add('theme-dark');
+                    body.setAttribute('data-theme', 'dark');
+                    if (themeToggle) {
+                        themeToggle.innerHTML = '<i class="fas fa-moon"></i>Theme';
+                    }
+                } else {
+                    body.classList.remove('theme-dark');
+                    body.classList.add('theme-light');
+                    body.setAttribute('data-theme', 'light');
+                    if (themeToggle) {
+                        themeToggle.innerHTML = '<i class="fas fa-sun"></i>Theme';
+                    }
+                }
+                console.log('Theme loaded:', theme || 'light');
+            });
+        } else {
+            // Default to light theme
+            const body = document.body;
+            const themeToggle = document.getElementById('themeToggle');
+            body.classList.remove('theme-dark');
+            body.classList.add('theme-light');
+            body.setAttribute('data-theme', 'light');
+            if (themeToggle) {
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>Theme';
+            }
+        }
+    }
+
     async populateAccountsDropdown() {
         try {
             const sel = document.getElementById('accountsSelect');
@@ -2218,8 +2255,31 @@ class TaskForceApp {
 
     toggleTheme() {
         const body = document.body;
-        const dark = body.getAttribute('data-theme') === 'dark';
-        body.setAttribute('data-theme', dark ? 'light' : 'dark');
+        const isDark = body.classList.contains('theme-dark');
+        const themeToggle = document.getElementById('themeToggle');
+        
+        if (isDark) {
+            body.classList.remove('theme-dark');
+            body.classList.add('theme-light');
+            body.setAttribute('data-theme', 'light');
+            if (themeToggle) {
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>Theme';
+            }
+        } else {
+            body.classList.remove('theme-light');
+            body.classList.add('theme-dark');
+            body.setAttribute('data-theme', 'dark');
+            if (themeToggle) {
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>Theme';
+            }
+        }
+        
+        // Save theme preference
+        if (window.electronAPI) {
+            window.electronAPI.storeSet('theme', isDark ? 'light' : 'dark');
+        }
+        
+        console.log('Theme toggled to:', isDark ? 'light' : 'dark');
     }
 
     async loadDefaultSignature() {
