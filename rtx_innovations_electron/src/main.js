@@ -550,6 +550,7 @@ async function authenticateGoogleWithTab(credentialsData, tabId) {
 
 		// Perform OAuth flow for new authentication
 		const { shell } = require('electron');
+		let serverPort = null;
 		const token = await new Promise((resolve, reject) => {
 			let settled = false;
 			const server = http.createServer((req, res) => {
@@ -571,11 +572,11 @@ async function authenticateGoogleWithTab(credentialsData, tabId) {
 			});
 			
 			server.listen(0, 'localhost', () => {
-				const port = server.address().port;
+				serverPort = server.address().port;
 				const authUrl = tabOAuth2Client.generateAuthUrl({
 					access_type: 'offline',
 					scope: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/spreadsheets'],
-					redirect_uri: `http://localhost:${port}`
+					redirect_uri: `http://localhost:${serverPort}`
 				});
 				shell.openExternal(authUrl);
 			});
@@ -590,7 +591,7 @@ async function authenticateGoogleWithTab(credentialsData, tabId) {
 
 		const { tokens } = await tabOAuth2Client.getToken({
 			code: token,
-			redirect_uri: `http://localhost:${port}`
+			redirect_uri: `http://localhost:${serverPort}`
 		});
 		
 		tabOAuth2Client.setCredentials(tokens);
