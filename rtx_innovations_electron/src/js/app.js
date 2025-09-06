@@ -304,6 +304,9 @@ class TaskForceApp {
                     console.log('Google sign-in result:', result);
                     console.log('Result type:', typeof result);
                     console.log('Result keys:', result ? Object.keys(result) : 'null');
+                    console.log('Result.success:', result?.success);
+                    console.log('Result.error:', result?.error);
+                    console.log('Result.error type:', typeof result?.error);
                     
                     if (result && typeof result === 'object' && result.success === true) {
                         this.onAuthenticationSuccess(result.userEmail || 'authenticated');
@@ -313,7 +316,23 @@ class TaskForceApp {
                         const logoutBtn = document.getElementById('googleLogoutBtn');
                         if (logoutBtn) logoutBtn.style.display = 'inline-block';
                     } else {
-                        const errorMsg = result?.error || (typeof result === 'string' ? result : 'Sign-in failed. Email may not be registered.');
+                        let errorMsg = 'Sign-in failed. Email may not be registered.';
+                        try {
+                            if (result?.error) {
+                                if (typeof result.error === 'string') {
+                                    errorMsg = result.error;
+                                } else if (Array.isArray(result.error)) {
+                                    errorMsg = result.error[0] || 'Sign-in failed. Email may not be registered.';
+                                } else if (typeof result.error === 'object') {
+                                    errorMsg = result.error.message || JSON.stringify(result.error);
+                                }
+                            } else if (typeof result === 'string') {
+                                errorMsg = result;
+                            }
+                        } catch (e) {
+                            console.error('Error processing Google sign-in error message:', e);
+                            errorMsg = 'Sign-in failed. Email may not be registered.';
+                        }
                         console.log('Google sign-in failed with error:', errorMsg);
                         googleSignInTopBtn.style.background = '#ff3b30';
                         googleSignInTopBtn.style.color = '#fff';
@@ -801,6 +820,9 @@ class TaskForceApp {
                 console.log('Authentication result:', result);
                 console.log('Result type:', typeof result);
                 console.log('Result keys:', result ? Object.keys(result) : 'null');
+                console.log('Result.success:', result?.success);
+                console.log('Result.error:', result?.error);
+                console.log('Result.error type:', typeof result?.error);
                 
                 if (result && typeof result === 'object' && result.success === true) {
                     this.onAuthenticationSuccess(result.userEmail || 'authenticated');
@@ -811,7 +833,23 @@ class TaskForceApp {
                             this.showError('Connected, but failed to initialize services: ' + err.message);
                         });
                 } else {
-                    const errorMsg = result?.error || (typeof result === 'string' ? result : 'Authentication failed');
+                    let errorMsg = 'Authentication failed';
+                    try {
+                        if (result?.error) {
+                            if (typeof result.error === 'string') {
+                                errorMsg = result.error;
+                            } else if (Array.isArray(result.error)) {
+                                errorMsg = result.error[0] || 'Authentication failed';
+                            } else if (typeof result.error === 'object') {
+                                errorMsg = result.error.message || JSON.stringify(result.error);
+                            }
+                        } else if (typeof result === 'string') {
+                            errorMsg = result;
+                        }
+                    } catch (e) {
+                        console.error('Error processing error message:', e);
+                        errorMsg = 'Authentication failed';
+                    }
                     console.log('Authentication failed with error:', errorMsg);
                     throw new Error(errorMsg);
                 }
@@ -831,7 +869,23 @@ class TaskForceApp {
                             this.showError('Connected, but failed to initialize services: ' + err.message);
                         });
                 } else {
-                    const errorMsg = result?.error || (typeof result === 'string' ? result : 'Authentication failed');
+                    let errorMsg = 'Authentication failed';
+                    try {
+                        if (result?.error) {
+                            if (typeof result.error === 'string') {
+                                errorMsg = result.error;
+                            } else if (Array.isArray(result.error)) {
+                                errorMsg = result.error[0] || 'Authentication failed';
+                            } else if (typeof result.error === 'object') {
+                                errorMsg = result.error.message || JSON.stringify(result.error);
+                            }
+                        } else if (typeof result === 'string') {
+                            errorMsg = result;
+                        }
+                    } catch (e) {
+                        console.error('Error processing fallback authentication error message:', e);
+                        errorMsg = 'Authentication failed';
+                    }
                     console.log('Fallback authentication failed with error:', errorMsg);
                     throw new Error(errorMsg);
                 }
