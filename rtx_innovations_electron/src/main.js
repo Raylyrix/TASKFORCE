@@ -408,24 +408,29 @@ function createMenu() {
 }
 
 function normalizeCredentials(raw) {
-	// Accept structures: {installed:{...}}, {web:{...}}, or flat
-	if (raw?.web) {
-		const web = raw.web;
-		if (!web.client_id || !web.client_secret) throw new Error('Missing client_id/client_secret');
-		const exact = Array.isArray(web.redirect_uris)
-			? web.redirect_uris.find(u => /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u))
-			: null;
-		if (!exact) {
-			// No loopback redirect URI registered on this Web client. We cannot use a random port.
-			return { client_id: web.client_id, client_secret: web.client_secret, redirect_uri: null, fixed: false };
+	try {
+		// Accept structures: {installed:{...}}, {web:{...}}, or flat
+		if (raw?.web) {
+			const web = raw.web;
+			if (!web.client_id || !web.client_secret) throw new Error('Missing client_id/client_secret');
+			const exact = Array.isArray(web.redirect_uris)
+				? web.redirect_uris.find(u => /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u))
+				: null;
+			if (!exact) {
+				// No loopback redirect URI registered on this Web client. We cannot use a random port.
+				return { client_id: web.client_id, client_secret: web.client_secret, redirect_uri: null, fixed: false };
+			}
+			return { client_id: web.client_id, client_secret: web.client_secret, redirect_uri: exact, fixed: true };
 		}
-		return { client_id: web.client_id, client_secret: web.client_secret, redirect_uri: exact, fixed: true };
+		const creds = raw?.installed || raw;
+		if (!creds) throw new Error('Invalid credentials file format');
+		if (!creds.client_id || !creds.client_secret) throw new Error('Missing client_id/client_secret in credentials');
+		const hasLocalhost = Array.isArray(creds.redirect_uris) && creds.redirect_uris.some(u => /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u));
+		return { client_id: creds.client_id, client_secret: creds.client_secret, redirect_uri: null, fixed: false, host: hasLocalhost ? 'localhost' : '127.0.0.1' };
+	} catch (error) {
+		console.error('Error normalizing credentials:', error);
+		throw new Error('Failed to process credentials: ' + error.message);
 	}
-	const creds = raw?.installed || raw;
-	if (!creds) throw new Error('Invalid credentials file format');
-	if (!creds.client_id || !creds.client_secret) throw new Error('Missing client_id/client_secret in credentials');
-	const hasLocalhost = Array.isArray(creds.redirect_uris) && creds.redirect_uris.some(u => /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u));
-	return { client_id: creds.client_id, client_secret: creds.client_secret, redirect_uri: null, fixed: false, host: hasLocalhost ? 'localhost' : '127.0.0.1' };
 }
 
 function buildOAuthClient(norm, redirectUriOverride) {
@@ -438,10 +443,19 @@ function buildOAuthClient(norm, redirectUriOverride) {
 function buildOAuthClientForTab(tabId, credentials = null) {
 	// Use provided credentials or default credentials
 	const creds = credentials || getEmbeddedDefaultCredentials().installed;
+	
+	// Safe redirect URI handling
+	let redirectUri = 'http://localhost';
+	if (creds.redirect_uris && Array.isArray(creds.redirect_uris) && creds.redirect_uris.length > 0) {
+		redirectUri = creds.redirect_uris[0];
+	} else if (creds.redirect_uri) {
+		redirectUri = creds.redirect_uri;
+	}
+	
 	const oauth2Client = new google.auth.OAuth2(
 		creds.client_id,
 		creds.client_secret,
-		creds.redirect_uris[0] || 'http://localhost'
+		redirectUri
 	);
 	return oauth2Client;
 }
@@ -468,14 +482,25 @@ async function ensureServices() {
 // Tab-based authentication function
 async function authenticateGoogleWithTab(credentialsData, tabId) {
 	try {
+		console.log('Starting tab authentication for tabId:', tabId);
+		console.log('Credentials data provided:', !!credentialsData);
+		
 		let norm;
 		if (credentialsData && Object.keys(credentialsData || {}).length) {
+			console.log('Using provided credentials');
 			norm = normalizeCredentials(credentialsData);
 		} else {
+			console.log('Using default credentials');
 			const def = (typeof loadDefaultOAuthCredentials === 'function') ? loadDefaultOAuthCredentials() : null;
 			if (!def) throw new Error('Default OAuth credentials not configured');
 			norm = normalizeCredentials(def);
 		}
+		
+		console.log('Normalized credentials:', {
+			client_id: norm.client_id ? 'present' : 'missing',
+			client_secret: norm.client_secret ? 'present' : 'missing',
+			redirect_uri: norm.redirect_uri || 'default'
+		});
 
 		// Create tab-specific OAuth client
 		const tabOAuth2Client = buildOAuthClientForTab(tabId, norm);
@@ -613,7 +638,13 @@ async function authenticateGoogleWithTab(credentialsData, tabId) {
 		return { success: true, userEmail: 'authenticated' };
 	} catch (error) {
 		console.error('Tab authentication error:', error);
-		return { success: false, error: error.message };
+		console.error('Error stack:', error.stack);
+		console.error('Error details:', {
+			name: error.name,
+			message: error.message,
+			code: error.code
+		});
+		return { success: false, error: error.message || 'Authentication failed' };
 	}
 }
 
