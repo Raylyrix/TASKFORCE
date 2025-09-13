@@ -1,35 +1,37 @@
-# Node
+# Dependencies
 node_modules/
-rtx_innovations_electron/node_modules/
+.pnpm-store/
 
-# Electron build outputs
-rtx_innovations_electron/dist/
-rtx_innovations_electron/dist-builds/
-rtx_innovations_electron/logs/
+# Environment
+.env
+.env.local
+.env.production
 
-# Python build/cache
-__pycache__/
-rtx_innovations/**/__pycache__/
-rtx_innovations/build/
-rtx_innovations/cache/
-rtx_innovations/logs/
+# Build outputs
+dist/
+build/
+.next/
+
+# Database
+*.db
+*.sqlite
 
 # Logs
-*.log
 logs/
+*.log
 
-# OS junk
+# Runtime
 .DS_Store
 Thumbs.db
 
-# Credentials/tokens (keep out of git)
-client_secret_*.json
-credentials.json
-token.json
-
-# Editor/IDE
+# IDE
 .vscode/
 .idea/
 
-# Webpack artifacts
-rtx_innovations_electron/dist/
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/

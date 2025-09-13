@@ -1,0 +1,198 @@
+name: Taskforce Analytics CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  PNPM_VERSION: '8'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: taskforce_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup environment variables
+        run: |
+          cp env.example .env
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/taskforce_test" >> .env
+          echo "REDIS_URL=redis://localhost:6379" >> .env
+          echo "JWT_SECRET=test-jwt-secret-key" >> .env
+          echo "GMAIL_CLIENT_ID=test-client-id" >> .env
+          echo "GMAIL_CLIENT_SECRET=test-client-secret" >> .env
+          echo "OPENROUTER_API_KEY=test-api-key" >> .env
+          echo "CONSENT_CONTENT=false" >> .env
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run database migrations
+        run: |
+          cd apps/backend
+          pnpm prisma migrate deploy
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Run linting
+        run: pnpm lint
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Create deployment artifacts
+        run: |
+          mkdir -p dist
+          cp -r apps/backend/dist dist/backend
+          cp -r apps/frontend/.next dist/frontend
+          cp -r services/worker/dist dist/worker
+          cp -r services/ai-service/dist dist/ai-service
+          cp package.json pnpm-lock.yaml pnpm-workspace.yaml dist/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: taskforce-analytics-build
+          path: dist/
+          retention-days: 7
+
+  deploy-staging:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: taskforce-analytics-build
+          path: dist/
+
+      - name: Deploy to staging
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          echo "Build artifacts ready for deployment"
+          # Add your staging deployment commands here
+
+  deploy-production:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: taskforce-analytics-build
+          path: dist/
+
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deploying to production environment..."
+          echo "Build artifacts ready for deployment"
+          # Add your production deployment commands here
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'

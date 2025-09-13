@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        {{{styles}}}
+        
+        .chart-placeholder {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            color: #6c757d;
+        }
+        
+        .volume-chart {
+            margin: 30px 0;
+        }
+        
+        .contact-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .contact-table th,
+        .contact-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .contact-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .health-score {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .health-excellent { background: #d4edda; color: #155724; }
+        .health-good { background: #d1ecf1; color: #0c5460; }
+        .health-warning { background: #fff3cd; color: #856404; }
+        .health-poor { background: #f8d7da; color: #721c24; }
+        
+        .summary-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        
+        .summary-stats h2 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <header class="report-header">
+            <h1>{{title}}</h1>
+            <div class="report-meta">
+                <p><strong>Report Period:</strong> {{period}}</p>
+                <p><strong>Generated:</strong> {{generatedAt}}</p>
+            </div>
+        </header>
+
+        <div class="summary-stats">
+            <h2>Executive Summary</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">{{data.overview.totalSent}}</div>
+                    <div class="stat-label">Emails Sent</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{data.overview.totalReceived}}</div>
+                    <div class="stat-label">Emails Received</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{data.overview.averageResponseTime}}</div>
+                    <div class="stat-label">Avg Response Time</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{data.overview.activeContacts}}</div>
+                    <div class="stat-label">Active Contacts</div>
+                </div>
+            </div>
+        </div>
+
+        <section class="overview-section">
+            <h2>Key Performance Indicators</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Total Sent</h3>
+                    <div class="metric-value">{{data.overview.totalSent}}</div>
+                    <p class="metric-change">{{#if data.overview.sentChange}}{{data.overview.sentChange}}% vs last period{{/if}}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Received</h3>
+                    <div class="metric-value">{{data.overview.totalReceived}}</div>
+                    <p class="metric-change">{{#if data.overview.receivedChange}}{{data.overview.receivedChange}}% vs last period{{/if}}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Average Response Time</h3>
+                    <div class="metric-value">{{data.overview.averageResponseTime}}</div>
+                    <p class="metric-change">{{#if data.overview.responseChange}}{{data.overview.responseChange}}% vs last period{{/if}}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Top Contact</h3>
+                    <div class="metric-value">{{data.overview.topContact}}</div>
+                    <p class="metric-change">{{data.overview.topContactMessages}} messages</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Response Rate</h3>
+                    <div class="metric-value">{{data.overview.responseRate}}%</div>
+                    <p class="metric-change">{{#if data.overview.rateChange}}{{data.overview.rateChange}}% vs last period{{/if}}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Active Threads</h3>
+                    <div class="metric-value">{{data.overview.activeThreads}}</div>
+                    <p class="metric-change">{{data.overview.avgThreadLength}} avg length</p>
+                </div>
+            </div>
+        </section>
+
+        {{#if data.volume.daily}}
+        <section class="volume-chart">
+            <h2>Email Volume Trend</h2>
+            <div class="chart-placeholder">
+                📊 Email Volume Chart
+                <br><small>Daily email volume over the reporting period</small>
+            </div>
+            <table class="contact-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Sent</th>
+                        <th>Received</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each data.volume.daily}}
+                    <tr>
+                        <td>{{moment this.date format="MMM DD"}}</td>
+                        <td>{{this.sent}}</td>
+                        <td>{{this.received}}</td>
+                        <td><strong>{{this.total}}</strong></td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </section>
+        {{/if}}
+
+        {{#if data.responseTimes}}
+        <section class="response-times-section">
+            <h2>Response Time Analysis</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Average</h3>
+                    <div class="metric-value">{{data.responseTimes.average}}</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Median</h3>
+                    <div class="metric-value">{{data.responseTimes.median}}</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Fastest</h3>
+                    <div class="metric-value">{{data.responseTimes.fastest}}</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Slowest</h3>
+                    <div class="metric-value">{{data.responseTimes.slowest}}</div>
+                </div>
+            </div>
+        </section>
+        {{/if}}
+
+        {{#if data.contacts.topContacts}}
+        <section class="contacts-section">
+            <h2>Top Contacts</h2>
+            <table class="contact-table">
+                <thead>
+                    <tr>
+                        <th>Contact</th>
+                        <th>Messages</th>
+                        <th>Response Rate</th>
+                        <th>Health Score</th>
+                        <th>Last Contact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each data.contacts.topContacts}}
+                    <tr>
+                        <td><strong>{{this.email}}</strong></td>
+                        <td>{{this.messageCount}}</td>
+                        <td>{{this.responseRate}}%</td>
+                        <td>
+                            <span class="health-score {{#if (gte this.healthScore 80)}}health-excellent{{else if (gte this.healthScore 60)}}health-good{{else if (gte this.healthScore 40)}}health-warning{{else}}health-poor{{/if}}">
+                                {{this.healthScore}}%
+                            </span>
+                        </td>
+                        <td>{{moment this.lastContact format="MMM DD"}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </section>
+        {{/if}}
+
+        {{#if data.insights.length}}
+        <section class="insights-section">
+            <h2>🤖 AI Insights</h2>
+            <div class="insights-container">
+                {{#each data.insights}}
+                <div class="insight-item">
+                    <div class="insight-icon">💡</div>
+                    <div class="insight-text">{{this}}</div>
+                </div>
+                {{/each}}
+            </div>
+        </section>
+        {{/if}}
+
+        <section class="recommendations-section">
+            <h2>📈 Recommendations</h2>
+            <div class="recommendations-list">
+                <div class="recommendation-item">
+                    <h4>Response Time Optimization</h4>
+                    <p>Consider setting up email templates for common responses to improve your average response time of {{data.overview.averageResponseTime}}.</p>
+                </div>
+                <div class="recommendation-item">
+                    <h4>Contact Engagement</h4>
+                    <p>Focus on improving response rates with contacts showing lower engagement scores.</p>
+                </div>
+                <div class="recommendation-item">
+                    <h4>Email Volume Management</h4>
+                    <p>Monitor your email volume trends to maintain a healthy work-life balance.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="report-footer">
+            <div class="footer-content">
+                <p><strong>Taskforce Analytics</strong> - Professional Email Intelligence Platform</p>
+                <p>This report was automatically generated on {{generatedAt}}</p>
+                <p>For support or questions, contact your system administrator</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

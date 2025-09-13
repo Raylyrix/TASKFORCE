@@ -1,361 +1,86 @@
-# AutoMailer Pro
+# Taskforce Analytics Platform
 
-A comprehensive automatic email sender with Google Sheets integration, scheduling capabilities, modern GUI interface, and **enhanced attachment support**.
+A world-class professional email intelligence and productivity platform.
 
-> Note: We distribute installers only (no source code bundles). Download a single installer from Releases and run it — it will set up the app, create Start Menu/Desktop shortcuts, and auto‑update. Installers fetch any missing components automatically.
+## 🚀 Features
 
-### Download and Install (Desktop App)
+- **Email Analytics**: Volume, response times, contact health
+- **AI Intelligence**: Smart summaries, priority prediction, natural language queries
+- **Team Collaboration**: Shared dashboards, role-based access
+- **Enterprise**: Multi-tenant, compliance, custom metrics
 
-Use the packaged Electron desktop app for the easiest setup on Windows and macOS.
+## 🏗️ Architecture
 
-- Go to Releases: https://github.com/Raylyrix/RTXAPPS/releases
-- Download the single installer for your OS:
-  - Windows (single file): `RTX Innovations Web Setup <version>.exe` (web installer)
-  - macOS (single file): `RTX Innovations-<version>.pkg`
+- **Backend**: Node.js, Fastify, PostgreSQL
+- **Frontend**: React, Next.js, Tailwind CSS
+- **AI**: OpenRouter API integration
+- **Queue**: Redis with BullMQ
 
-#### Windows (Web Setup .exe)
-1) Double‑click the `.exe`. It will download any required components automatically.
-2) The installer runs with one click, installs, creates desktop and Start menu shortcuts, and launches the app.
-3) If SmartScreen warns: click “More info” → “Run anyway”.
+## 🚀 Quick Start
 
-#### macOS (.pkg)
-1) Double‑click the `.pkg` and follow the prompts (Continue → Agree → Install).
-2) App installs into Applications and is ready to run from Spotlight or Launchpad.
-3) If blocked by Gatekeeper: right‑click the installer → Open → Open.
+1. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-#### First‑run setup
-- Click “Login” → “Upload credentials” and select your Google OAuth `credentials.json`.
-- A browser window opens; sign in and approve Gmail/Sheets permissions.
-- On success, the app saves your token and returns to the app.
+2. **Setup environment**
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
 
-#### Auto‑updates
-- The app checks for updates on launch and hourly. When an update is available, you will see a banner and a dialog.
-- After download completes, release notes will be shown; click “Install” to restart into the new version.
+3. **Setup database**
+   ```bash
+   # Create PostgreSQL database
+   createdb TASKFORCE
+   
+   # Run migrations
+   pnpm --filter backend prisma migrate dev
+   ```
 
-#### Release artifacts
-- Windows: NSIS `.exe` installer
-- macOS: `.dmg` and `.zip` (ZIP is required for in-app auto‑updates)
-- Linux: `.AppImage` and `.deb`
+4. **Start development**
+   ```bash
+   pnpm dev
+   ```
 
-#### Troubleshooting (quick)
-- Windows: SmartScreen → “More info” → “Run anyway”.
-- macOS: Gatekeeper → right‑click → Open (or System Settings → Privacy & Security → Open Anyway).
-- Network: Allow the app to access the Internet to sign in, download updates, and send email.
-- Logs: Use the in‑app Logs panel and follow guidance.
+## 📊 Demo Login
 
-## Features
+- **Admin**: admin@taskforce-demo.com / demo123
+- **Analyst**: analyst@taskforce-demo.com / demo123
 
-- 🔐 **Google Authentication** - Secure OAuth integration with Google APIs
-- 📊 **Google Sheets Integration** - Direct data import from Google Sheets
-- 📧 **Mass Email Sending** - Send personalized emails to thousands of recipients
-- 🔄 **Batch Processing** - Configurable batch sizes to avoid API limits
-- ⏰ **Email Scheduling** - Schedule emails for future delivery (once, daily, weekly, monthly)
-- 🎯 **Smart Placeholders** - Use `((column_name))` to personalize emails with sheet data
-- ⏱️ **Time Gaps** - Configurable delays between emails to prevent spam detection
-- 📝 **Template Management** - Save and reuse email templates with attachments
-- 📎 **Large File Attachments** - Support for multiple file attachments up to 25MB total
-- 📊 **Progress Tracking** - Real-time progress monitoring during sending
-- 📋 **Comprehensive Logging** - Detailed logging of all email activities
-- 🎨 **Modern GUI** - Clean, intuitive interface built with tkinter
-- ✅ **Enhanced Error Handling** - Improved placeholder processing and validation
+## 🔧 Configuration
 
-## Prerequisites
-
-1. **Python 3.7+** installed on your system
-2. **Google Cloud Project** with Gmail and Sheets APIs enabled
-3. **Google API Credentials** (credentials.json file)
-
-## Installation
-
-### 1. Clone or Download the Project
+### Required Environment Variables
 
 ```bash
-# If using git
-git clone <repository-url>
-cd automailer-pro
-
-# Or download and extract the ZIP file
+DATABASE_URL="postgresql://postgres:Rayvical@localhost:5432/TASKFORCE"
+REDIS_URL="redis://localhost:6379"
+JWT_SECRET="your-super-secret-jwt-key"
+OPENROUTER_API_KEY="your-openrouter-api-key"
+GMAIL_CLIENT_ID="your-gmail-client-id"
+GMAIL_CLIENT_SECRET="your-gmail-client-secret"
 ```
 
-### 2. Install Dependencies
+### Google Cloud Console Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Enable Gmail API
+3. Create OAuth2 credentials
+4. Add redirect URI: `http://localhost:4000/auth/google/callback`
+
+### OpenRouter Setup
+
+1. Sign up at [OpenRouter](https://openrouter.ai)
+2. Get API key
+3. Use model: `nvidia/nemotron-nano-9b-v2:free`
+
+## 🧪 Testing
 
 ```bash
-pip install -r requirements.txt
+pnpm test
 ```
 
-**Or use the automated installer:**
+## 📈 Monitoring
 
-```bash
-python install.py
-```
-
-### 3. Set Up Google API Credentials
-
-#### Step 1: Create a Google Cloud Project
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the following APIs:
-   - Gmail API
-   - Google Sheets API
-
-#### Step 2: Create OAuth 2.0 Credentials
-1. Go to "Credentials" in the Google Cloud Console
-2. Click "Create Credentials" > "OAuth 2.0 Client ID"
-3. Choose "Desktop application" as the application type
-4. Download the credentials JSON file
-5. Rename it to `credentials.json` and place it in the project root directory
-
-#### Step 3: Configure OAuth Consent Screen
-1. Go to "OAuth consent screen" in Google Cloud Console
-2. Fill in the required information
-3. Add your email address to test users (for development)
-
-## Usage
-
-### 1. Launch the Application
-
-```bash
-python main.py
-```
-
-**Or double-click:**
-```bash
-run_automailer.bat
-```
-
-### 2. Authenticate with Google
-
-1. Click "Authenticate with Google" in the Main tab
-2. Follow the browser authentication flow
-3. Grant permissions for Gmail and Sheets access
-
-### 3. Set Up Your Email Campaign
-
-#### Load Google Sheets Data
-1. Enter your Google Sheets URL in the "Google Sheets URL" field
-2. Click "Load Sheets" to retrieve available sheets
-3. Select the desired sheet from the dropdown
-4. Click "Preview Data" to view your data
-
-#### Create Email Template
-1. Enter your email subject (can include placeholders like `((Name))`)
-2. Write your email body using placeholders for personalization
-   - Example: "Hello ((Name)), welcome to ((Company))!"
-3. Click "Validate Placeholders" to ensure all placeholders match your sheet columns
-
-#### Add Attachments (NEW!)
-1. Click "Add Files" in the Attachments section
-2. Select multiple files (documents, images, spreadsheets, etc.)
-3. Monitor total file size (25MB Gmail limit)
-4. Remove or clear attachments as needed
-
-#### Configure Sending Options
-1. Set batch size (default: 50 emails per batch)
-2. Set time gap between emails (default: 5 seconds)
-3. Click "Send Test Email" to test your template with attachments
-4. Click "Send Emails" to start the bulk sending process
-
-### 4. Schedule Email Campaigns
-
-1. Go to the "Scheduler" tab
-2. Enter a job name
-3. Choose schedule type (once, daily, weekly, monthly)
-4. Set the time and date
-5. Click "Create Job"
-6. Monitor scheduled jobs in the jobs list
-
-### 5. Manage Templates
-
-1. Go to the "Templates" tab
-2. Save frequently used templates (including attachments!)
-3. Load templates for reuse
-4. Delete outdated templates
-
-## Google Sheets Format
-
-Your Google Sheets should have:
-- **First row**: Column headers (e.g., Name, Email, Company)
-- **Email column**: Must contain "email" or "mail" in the column name
-- **Data rows**: One recipient per row
-
-Example sheet structure:
-```
-Name          | Email               | Company      | Position
-John Doe      | john@example.com    | Acme Corp    | Manager
-Jane Smith    | jane@company.com    | Tech Inc     | Developer
-```
-
-## Placeholder System
-
-Use double parentheses to create placeholders that will be replaced with data from your sheet:
-
-- `((Name))` - Replaced with the Name column value
-- `((Company))` - Replaced with the Company column value
-- `((Position))` - Replaced with the Position column value
-
-**Example Email Template:**
-```
-Subject: Welcome to our newsletter, ((Name))!
-
-Hello ((Name)),
-
-Thank you for your interest in our services. We noticed you work at ((Company)) as a ((Position)).
-
-Please find our company brochure attached for your reference.
-
-Best regards,
-Marketing Team
-```
-
-## Attachment Support (NEW!)
-
-### Supported Features:
-- **Multiple Files**: Attach multiple files per email
-- **File Types**: All file types supported (documents, images, archives, etc.)
-- **Size Validation**: Automatic validation against Gmail's 25MB limit
-- **Smart MIME Detection**: Proper MIME type detection for all file formats
-- **Template Integration**: Save attachments with templates
-- **Progress Monitoring**: Real-time feedback during attachment processing
-
-### File Size Limits:
-- **Per Email**: 25MB total (Gmail limit)
-- **Individual Files**: No specific limit (within total)
-- **Batch Processing**: Attachments included in all bulk emails
-
-### Best Practices for Attachments:
-1. **Optimize File Sizes**: Compress large files when possible
-2. **Test First**: Always send a test email with attachments
-3. **Monitor Logs**: Check logs for attachment processing errors
-4. **Batch Considerations**: Larger attachments may slow down sending
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"Credentials file not found"**
-   - Ensure `credentials.json` is in the project root
-   - Check the file path in Settings tab
-
-2. **"Authentication failed"**
-   - Check your Google Cloud Project setup
-   - Ensure APIs are enabled
-   - Verify OAuth consent screen configuration
-
-3. **"No email column found"**
-   - Ensure your sheet has a column with "email" or "mail" in the name
-   - Check column headers in your Google Sheet
-
-4. **"Quota exceeded" errors**
-   - Reduce batch size
-   - Increase time gaps between emails
-   - Check Gmail API quotas in Google Cloud Console
-
-5. **"Invalid placeholders" (FIXED!)**
-   - Use the "Validate Placeholders" button
-   - Improved error handling now provides better feedback
-   - Placeholders are case-insensitive and handle empty values
-
-6. **"Attachment too large"**
-   - Check individual file sizes
-   - Ensure total attachments don't exceed 25MB
-   - Use file compression for large documents
-
-7. **"Error fetching placeholder" (FIXED!)**
-   - Enhanced placeholder processing with better error handling
-   - Supports null/empty values in sheet data
-   - Improved validation and debugging
-
-### Email Limits
-
-- **Gmail API Daily Quota**: 1 billion quota units per day
-- **Sending Limits**: Up to 2000 emails per day for new accounts
-- **Rate Limits**: 250 quota units per user per 100 seconds
-- **Attachment Limit**: 25MB total per email
-
-### Best Practices
-
-1. **Start Small**: Test with a small batch first
-2. **Use Time Gaps**: Add delays to avoid spam detection
-3. **Monitor Logs**: Check logs for any issues
-4. **Validate Data**: Always preview and validate before sending
-5. **Backup Templates**: Save your successful templates with attachments
-6. **Test Attachments**: Send test emails before bulk campaigns
-7. **File Management**: Organize attachment files in accessible folders
-
-## File Structure
-
-```
-automailer-pro/
-├── main.py                 # Application entry point
-├── main_gui.py            # Main GUI interface (enhanced with attachments)
-├── config.py              # Configuration settings
-├── google_auth.py         # Google authentication
-├── sheets_handler.py      # Google Sheets integration (improved error handling)
-├── email_sender.py        # Email sending functionality (enhanced with attachments)
-├── scheduler.py           # Email scheduling system
-├── requirements.txt       # Python dependencies
-├── credentials.json       # Google API credentials (you provide)
-├── token.json            # OAuth tokens (auto-generated)
-├── templates/            # Saved email templates (with attachment support)
-├── logs/                 # Application logs
-├── run_automailer.bat    # Windows launcher
-└── README.md             # This file
-```
-
-## What's New in This Version
-
-### ✅ **Enhanced Attachment Support**
-- Multiple file attachments per email
-- Automatic file size validation (25MB Gmail limit)
-- Smart MIME type detection
-- Template integration with attachment saving
-- Real-time size monitoring and warnings
-
-### ✅ **Improved Placeholder Processing**
-- Better error handling for invalid placeholders
-- Support for null/empty values in sheet data
-- Case-insensitive placeholder matching
-- Enhanced validation with detailed feedback
-
-### ✅ **Enhanced User Interface**
-- New Attachments section in main tab
-- File size monitoring with color-coded warnings
-- Attachment management (add, remove, clear)
-- Template system now includes attachment support
-
-### ✅ **Better Error Handling**
-- Comprehensive try-catch blocks
-- Detailed error logging
-- User-friendly error messages
-- Graceful handling of edge cases
-
-## Support
-
-For issues and questions:
-
-1. Check the troubleshooting section above
-2. Review the logs in the application's Logs tab
-3. Ensure all dependencies are properly installed
-4. Verify Google API credentials and permissions
-5. Test with small batches and single attachments first
-
-## License
-
-This project is provided as-is for educational and productivity purposes.
-
-## Version History
-
-- **v1.1.0** - Enhanced attachment support and improved error handling
-  - Large file attachment support (up to 25MB)
-  - Multiple file attachments per email
-  - Smart MIME type detection
-  - Template system with attachment saving
-  - Improved placeholder error handling
-  - Better validation and user feedback
-
-- **v1.0.0** - Initial release with core features
-  - Google Sheets integration
-  - Mass email sending
-  - Scheduling system
-  - Template management
-  - Modern GUI interface 
+- Health: http://localhost:4000/health
+- Metrics: http://localhost:4000/metrics

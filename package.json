@@ -1,0 +1,39 @@
+{
+  "name": "taskforce-analytics-platform",
+  "version": "1.0.0",
+  "description": "Taskforce Mailer Advanced Analytics & AI Platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "dev:backend": "pnpm --filter @taskforce/backend dev",
+    "dev:frontend": "pnpm --filter @taskforce/frontend dev",
+    "dev:worker": "pnpm --filter @taskforce/worker dev",
+    "dev:ai": "pnpm --filter @taskforce/ai-service dev",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean",
+    "setup": "pnpm install && pnpm -r setup",
+    "deploy:staging": "scripts/deploy.sh staging",
+    "deploy:production": "scripts/deploy.sh production",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

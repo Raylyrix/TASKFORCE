@@ -1,0 +1,41 @@
+{
+  "name": "@taskforce/ai-service",
+  "version": "1.0.0",
+  "description": "Taskforce AI Service with OpenRouter Integration",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist",
+    "setup": "echo 'AI Service setup complete'"
+  },
+  "dependencies": {
+    "fastify": "^4.24.0",
+    "@fastify/cors": "^8.4.0",
+    "axios": "^1.6.0",
+    "openai": "^4.20.0",
+    "zod": "^3.22.0",
+    "dotenv": "^16.3.0",
+    "pino": "^8.17.0",
+    "pino-pretty": "^10.3.0",
+    "crypto": "^1.0.1",
+    "bullmq": "^4.15.0",
+    "ioredis": "^5.3.0",
+    "@prisma/client": "^5.7.0",
+    "prisma": "^5.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/crypto": "^1.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.6.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  }
+}
