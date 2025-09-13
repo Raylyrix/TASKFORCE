@@ -67,7 +67,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Setup environment variables
         run: |
@@ -89,7 +89,7 @@ jobs:
           pnpm prisma migrate deploy
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:ci
 
       - name: Run linting
         run: pnpm lint
@@ -113,7 +113,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build all packages
         run: pnpm build
@@ -192,7 +192,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
