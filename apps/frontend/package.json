@@ -1,6 +1,6 @@
 {
   "name": "@taskforce/frontend",
-  "version": "1.0.0",
+  "version": "4.0.0",
   "description": "Taskforce Analytics Frontend Dashboard",
   "scripts": {
     "dev": "next dev -p 3000",

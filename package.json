@@ -1,6 +1,6 @@
 {
   "name": "taskforce-analytics-platform",
-  "version": "1.0.0",
+  "version": "4.0.0",
   "description": "Taskforce Mailer Advanced Analytics & AI Platform",
   "private": true,
   "workspaces": [
