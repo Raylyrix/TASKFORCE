@@ -8,6 +8,7 @@ import { ContactHealthChart } from './charts/contact-health-chart';
 import { TopContacts } from './top-contacts';
 import { RecentActivity } from './recent-activity';
 import { AIConsole } from './ai-console';
+import AdvancedAIDashboard from '../ai/advanced-ai-dashboard';
 import { LoadingSpinner } from '../ui/loading-spinner';
 import { ErrorMessage } from '../ui/error-message';
 
@@ -142,6 +143,11 @@ export function Dashboard() {
           </h3>
           <AIConsole />
         </div>
+      </div>
+
+      {/* Advanced AI Dashboard */}
+      <div className="card">
+        <AdvancedAIDashboard />
       </div>
 
       {/* Bottom Row */}
