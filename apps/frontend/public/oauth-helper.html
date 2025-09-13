@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Helper - Taskforce Analytics</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-left: 4px solid #4285f4;
+            background-color: #f8f9fa;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #4285f4;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .code-box {
+            background-color: #f1f3f4;
+            border: 1px solid #dadce0;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .hidden {
+            display: none;
+        }
+        .copy-btn {
+            background-color: #34a853;
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+        .copy-btn:hover {
+            background-color: #2d8f47;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 OAuth Helper - Taskforce Analytics</h1>
+        
+        <div class="step">
+            <h3>Step 1: Get Authorization URL</h3>
+            <p>Click the button below to generate a Google OAuth authorization URL for your Electron app.</p>
+            <button id="getAuthUrl">Generate Authorization URL</button>
+            <div id="authUrlStatus" class="status hidden"></div>
+            <div id="authUrlContainer" class="hidden">
+                <p><strong>Authorization URL:</strong></p>
+                <div class="code-box" id="authUrl"></div>
+                <button class="copy-btn" onclick="copyToClipboard('authUrl')">Copy URL</button>
+                <button id="openAuthUrl">Open in Browser</button>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Get Authorization Code</h3>
+            <p>After clicking "Open in Browser", you'll be redirected to Google. After authorizing, you'll be redirected to a page with an authorization code.</p>
+            <p><strong>Copy the authorization code from the URL or the page content.</strong></p>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Exchange Code for Tokens</h3>
+            <p>Paste the authorization code below and click "Exchange for Tokens".</p>
+            <input type="text" id="authCode" placeholder="Paste authorization code here" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;">
+            <button id="exchangeCode">Exchange for Tokens</button>
+            <div id="exchangeStatus" class="status hidden"></div>
+            <div id="tokensContainer" class="hidden">
+                <p><strong>Your tokens have been successfully stored!</strong></p>
+                <div class="code-box" id="tokenInfo"></div>
+                <button class="copy-btn" onclick="copyToClipboard('tokenInfo')">Copy Token Info</button>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Test Your Electron App</h3>
+            <p>Now go back to your Electron app and try logging in again. The authentication should work properly.</p>
+            <button id="testConnection">Test Connection</button>
+            <div id="testStatus" class="status hidden"></div>
+        </div>
+
+        <div class="step">
+            <h3>🔧 Troubleshooting</h3>
+            <p><strong>Common Issues:</strong></p>
+            <ul>
+                <li><strong>Invalid Client Error:</strong> Make sure your OAuth credentials are correct in the .env file</li>
+                <li><strong>Invalid Grant Error:</strong> Your tokens have expired. Use this tool to get fresh tokens.</li>
+                <li><strong>Redirect URI Mismatch:</strong> Make sure your OAuth app is configured for desktop applications</li>
+            </ul>
+            <p><strong>Your OAuth Configuration:</strong></p>
+            <div class="code-box" id="oauthConfig"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:4000';
+        
+        // Display OAuth configuration
+        document.addEventListener('DOMContentLoaded', function() {
+            const config = {
+                clientId: '1007595181381-dd7o4v4jh01b1pcar6a681hj6pmjdsnp.apps.googleusercontent.com',
+                redirectUri: 'urn:ietf:wg:oauth:2.0:oob',
+                scopes: [
+                    'gmail.readonly',
+                    'gmail.metadata', 
+                    'gmail.send',
+                    'userinfo.email',
+                    'userinfo.profile'
+                ]
+            };
+            
+            document.getElementById('oauthConfig').textContent = JSON.stringify(config, null, 2);
+        });
+
+        // Get authorization URL
+        document.getElementById('getAuthUrl').addEventListener('click', async function() {
+            const button = this;
+            const status = document.getElementById('authUrlStatus');
+            const container = document.getElementById('authUrlContainer');
+            
+            button.disabled = true;
+            button.textContent = 'Generating...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/electron/authorize`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('authUrl').textContent = data.data.authUrl;
+                    status.className = 'status success';
+                    status.textContent = 'Authorization URL generated successfully!';
+                    container.classList.remove('hidden');
+                } else {
+                    status.className = 'status error';
+                    status.textContent = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = `Network error: ${error.message}`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Generate Authorization URL';
+                status.classList.remove('hidden');
+            }
+        });
+
+        // Open authorization URL
+        document.getElementById('openAuthUrl').addEventListener('click', function() {
+            const url = document.getElementById('authUrl').textContent;
+            if (url) {
+                window.open(url, '_blank');
+            }
+        });
+
+        // Exchange code for tokens
+        document.getElementById('exchangeCode').addEventListener('click', async function() {
+            const code = document.getElementById('authCode').value.trim();
+            const button = this;
+            const status = document.getElementById('exchangeStatus');
+            const container = document.getElementById('tokensContainer');
+            
+            if (!code) {
+                status.className = 'status error';
+                status.textContent = 'Please enter an authorization code';
+                status.classList.remove('hidden');
+                return;
+            }
+            
+            button.disabled = true;
+            button.textContent = 'Exchanging...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/electron/token-exchange`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('tokenInfo').textContent = JSON.stringify({
+                        user: data.data.user,
+                        mailbox: data.data.mailbox,
+                        hasTokens: !!data.data.electronTokens
+                    }, null, 2);
+                    
+                    status.className = 'status success';
+                    status.textContent = 'Tokens exchanged successfully! Your Electron app should now work.';
+                    container.classList.remove('hidden');
+                    
+                    // Store tokens in localStorage for testing
+                    localStorage.setItem('electronTokens', JSON.stringify(data.data.electronTokens));
+                    localStorage.setItem('userInfo', JSON.stringify(data.data.user));
+                } else {
+                    status.className = 'status error';
+                    status.textContent = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = `Network error: ${error.message}`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Exchange for Tokens';
+                status.classList.remove('hidden');
+            }
+        });
+
+        // Test connection
+        document.getElementById('testConnection').addEventListener('click', async function() {
+            const button = this;
+            const status = document.getElementById('testStatus');
+            
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.className = 'status success';
+                    status.textContent = '✅ Backend connection successful! Your Electron app should work now.';
+                } else {
+                    status.className = 'status error';
+                    status.textContent = '❌ Backend connection failed';
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = `❌ Connection error: ${error.message}`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Test Connection';
+                status.classList.remove('hidden');
+            }
+        });
+
+        // Copy to clipboard function
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Show temporary success message
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.backgroundColor = '#34a853';
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '#34a853';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+    </script>
+</body>
+</html>

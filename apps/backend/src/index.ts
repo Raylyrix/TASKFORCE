@@ -137,6 +137,9 @@ fastify.register(require('./routes/oauth'));
 // Register report routes
 fastify.register(require('./routes/reports'));
 
+// Register electron bridge routes
+fastify.register(require('./routes/electron-bridge'));
+
 // Initialize AI service
 const aiService = new (require('./services/ai').AIService)();
 
