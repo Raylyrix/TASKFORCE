@@ -333,11 +333,26 @@ node scripts/check-env.js
 
 ## 📚 Documentation
 
+### 📖 **User Guides**
+- **[🚀 Quick Start Guide](QUICK_START_GUIDE.md)** - Get started in 5 minutes!
+- **[📋 Complete User Guide](USER_GUIDE.md)** - Comprehensive feature documentation
+- **[🎯 Features Showcase](FEATURES_SHOWCASE.md)** - All available features and capabilities
+
+### 🔧 **Technical Documentation**
 - **[Setup Guide](docs/SETUP.md)** - Complete installation instructions
 - **[OAuth Integration](docs/OAUTH.md)** - Gmail OAuth configuration
 - **[API Reference](docs/API.md)** - Complete endpoint documentation
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production setup
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+### 🚀 **Quick Setup**
+```bash
+# Run the quick start script
+node scripts/get-started.js
+
+# Or on Windows:
+scripts/get-started.bat
+```
 
 ## 🤝 Contributing
 
