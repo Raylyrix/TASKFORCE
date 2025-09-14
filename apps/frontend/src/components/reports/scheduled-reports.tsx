@@ -238,7 +238,7 @@ export function ScheduledReports() {
           </div>
 
           {createSchedule.error && (
-            <ErrorMessage message="Failed to create scheduled report. Please try again." />
+            <ErrorMessage error={new Error("Failed to create scheduled report. Please try again.")} />
           )}
         </div>
       )}

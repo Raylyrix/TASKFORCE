@@ -178,7 +178,7 @@ export function ReportGenerator() {
         </div>
 
         {generateReport.error && (
-          <ErrorMessage message="Failed to generate report. Please try again." />
+          <ErrorMessage error={new Error("Failed to generate report. Please try again.")} />
         )}
       </div>
 

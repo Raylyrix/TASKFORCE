@@ -3,7 +3,11 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
-import { createApiResponse } from '@taskforce/shared';
+// // import { createApiResponse } from '@taskforce/shared';
+// Temporary local implementation
+function createApiResponse(success: boolean, data: any = null, error: string | null = null) {
+  return { success, data, error };
+}
 
 // Load environment variables
 dotenv.config();
@@ -119,7 +123,7 @@ fastify.post('/auth/login', async (request, reply) => {
     reply.status(401);
     return createApiResponse(false, null, 'Invalid credentials');
   } catch (error) {
-    fastify.log.error(error);
+    console.error(error);
     reply.status(500);
     return createApiResponse(false, null, 'Internal server error');
   }
@@ -162,7 +166,7 @@ fastify.post('/api/v1/ai/query', async (request, reply) => {
 
     return createApiResponse(true, response.data || response);
   } catch (error) {
-    fastify.log.error('AI query error:', error);
+    console.error('AI query error:', error as any);
     reply.status(500);
     return createApiResponse(false, null, 'Failed to process AI query');
   }
@@ -182,7 +186,7 @@ fastify.post('/api/v1/ai/summarize', async (request, reply) => {
 
     return createApiResponse(true, response.data || response);
   } catch (error) {
-    fastify.log.error('AI summarization error:', error);
+    console.error('AI summarization error:', error as any);
     reply.status(500);
     return createApiResponse(false, null, 'Failed to summarize thread');
   }
@@ -205,7 +209,7 @@ fastify.post('/api/v1/ai/analyze', async (request, reply) => {
 
     return createApiResponse(true, response.data || response);
   } catch (error) {
-    fastify.log.error('AI analysis error:', error);
+    console.error('AI analysis error:', error as any);
     reply.status(500);
     return createApiResponse(false, null, 'Failed to analyze message');
   }
@@ -229,7 +233,7 @@ fastify.post('/api/v1/ai/draft', async (request, reply) => {
 
     return createApiResponse(true, response.data || response);
   } catch (error) {
-    fastify.log.error('AI draft generation error:', error);
+    console.error('AI draft generation error:', error as any);
     reply.status(500);
     return createApiResponse(false, null, 'Failed to generate draft reply');
   }
@@ -237,7 +241,7 @@ fastify.post('/api/v1/ai/draft', async (request, reply) => {
 
 // Error handler
 fastify.setErrorHandler((error, request, reply) => {
-  fastify.log.error(error);
+  console.error(error);
   reply.status(500).send(createApiResponse(false, null, 'Internal server error'));
 });
 
@@ -261,7 +265,7 @@ async function start() {
     console.log(`📈 Metrics: http://${host}:${port}/metrics`);
     
   } catch (error) {
-    fastify.log.error(error);
+    console.error(error);
     process.exit(1);
   }
 }

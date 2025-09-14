@@ -1,5 +1,9 @@
 import axios from 'axios';
-import { createApiResponse } from '@taskforce/shared';
+// import { createApiResponse } from '@taskforce/shared';
+// Temporary local implementation
+function createApiResponse(success: boolean, data: any = null, error: string | null = null) {
+  return { success, data, error };
+}
 
 export class AIService {
   private aiServiceUrl: string;

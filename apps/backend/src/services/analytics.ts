@@ -1,5 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import { DateRange, VolumeResponse, ResponseTimeResponse, ContactResponse } from '@taskforce/shared';
+// import { DateRange, VolumeResponse, ResponseTimeResponse, ContactResponse } from '@taskforce/shared';
+// Temporary local types
+type DateRange = { start: string; end: string; };
+type VolumeResponse = any;
+type ResponseTimeResponse = any;
+type ContactResponse = any;
 
 export class AnalyticsService {
   private prisma: PrismaClient;
@@ -151,13 +156,14 @@ export class AnalyticsService {
     }
 
     // Calculate overall summary
-    const allResponseTimes = responseTimeData
-      .flatMap(day => {
-        // Reconstruct response times for overall calculation
-        const threads = this.getThreadsForDay(organizationId, day.date);
-        return threads.map(t => t.responseTime!).filter(rt => rt > 0);
-      })
-      .sort((a, b) => a - b);
+    const allResponseTimes: number[] = [];
+    for (const day of responseTimeData) {
+      // Reconstruct response times for overall calculation
+      const threads = await this.getThreadsForDay(organizationId, day.date);
+      const dayResponseTimes = threads.map((t: any) => t.responseTime!).filter((rt: any) => rt > 0);
+      allResponseTimes.push(...dayResponseTimes);
+    }
+    allResponseTimes.sort((a, b) => a - b);
 
     const overallAvg = allResponseTimes.length > 0 
       ? allResponseTimes.reduce((sum, rt) => sum + rt, 0) / allResponseTimes.length 

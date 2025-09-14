@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client';
 import { OpenRouterClient } from '../clients/openrouter';
 import { hashString } from '@taskforce/shared';
 
@@ -20,10 +20,10 @@ export interface AIAnalysisResult {
 }
 
 export class AIAnalysisService {
-  private prisma: PrismaClient;
+  private prisma: any;
   private openRouterClient: OpenRouterClient;
 
-  constructor(prisma: PrismaClient, openRouterClient: OpenRouterClient) {
+  constructor(prisma: any, openRouterClient: OpenRouterClient) {
     this.prisma = prisma;
     this.openRouterClient = openRouterClient;
   }
@@ -51,7 +51,7 @@ export class AIAnalysisService {
 
       return {
         response,
-        charts,
+        charts: charts || [],
         sources: ['analytics_aggregates', 'messages', 'contacts'],
         confidence: intent.confidence
       };
@@ -407,7 +407,7 @@ Provide a comprehensive response that answers the user's question with specific 
   ): Promise<Array<{ type: string; data: any; title: string }> | undefined> {
     try {
       const chartData = await this.openRouterClient.generateChartData(query, data);
-      return chartData ? [chartData] : undefined;
+      return chartData ? [{ type: 'bar', data: chartData.data, title: chartData.title }] : undefined;
     } catch (error) {
       console.error('Chart generation error:', error);
       return undefined;

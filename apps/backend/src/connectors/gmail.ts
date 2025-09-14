@@ -20,7 +20,7 @@ export class GmailConnector extends BaseConnector {
       );
 
       // Get stored token from mailbox settings
-      const token = this.mailbox.settings?.token;
+      const token = (this.mailbox.settings as any)?.token;
       if (!token) {
         throw new Error('No authentication token found');
       }

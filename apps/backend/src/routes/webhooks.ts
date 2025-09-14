@@ -1,9 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { IngestionService } from '../services/ingestion';
-import { createApiResponse } from '@taskforce/shared';
+// import { createApiResponse } from '@taskforce/shared';
+// Temporary local implementation
+function createApiResponse(success: boolean, data: any = null, error: string | null = null) {
+  return { success, data, error };
+}
 
 export async function webhookRoutes(fastify: FastifyInstance) {
-  const ingestionService = new IngestionService(fastify.prisma);
+  const ingestionService = new IngestionService((fastify as any).prisma);
 
   // Gmail webhook handler
   fastify.post('/webhooks/gmail', async (request, reply) => {
@@ -19,7 +23,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       reply.status(200);
       return createApiResponse(true, { processed: true });
     } catch (error) {
-      fastify.log.error('Gmail webhook error:', error);
+      console.error('Gmail webhook error:', error as any);
       reply.status(500);
       return createApiResponse(false, null, 'Webhook processing failed');
     }
@@ -39,7 +43,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       reply.status(200);
       return createApiResponse(true, { processed: true });
     } catch (error) {
-      fastify.log.error('Outlook webhook error:', error);
+      console.error('Outlook webhook error:', error as any);
       reply.status(500);
       return createApiResponse(false, null, 'Webhook processing failed');
     }
@@ -81,7 +85,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       reply.status(200);
       return createApiResponse(true, { synced: true, mailboxId });
     } catch (error) {
-      fastify.log.error('Manual sync error:', error);
+      console.error('Manual sync error:', error as any);
       reply.status(500);
       return createApiResponse(false, null, 'Sync failed');
     }
@@ -97,7 +101,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       reply.status(200);
       return createApiResponse(true, { calculated: true, mailboxId });
     } catch (error) {
-      fastify.log.error('Response time calculation error:', error);
+      console.error('Response time calculation error:', error as any);
       reply.status(500);
       return createApiResponse(false, null, 'Calculation failed');
     }

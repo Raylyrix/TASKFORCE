@@ -6,7 +6,7 @@ import {
   HeartIcon, 
   ExclamationTriangleIcon,
   ClockIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   UsersIcon,
   BellIcon,
   EyeIcon
@@ -209,7 +209,7 @@ export default function AdvancedAIDashboard() {
             {[
               { id: 'sentiment', label: 'Sentiment & Relationships', icon: HeartIcon },
               { id: 'monitoring', label: 'Real-time Monitoring', icon: BellIcon },
-              { id: 'predictions', label: 'Predictive Analytics', icon: TrendingUpIcon }
+              { id: 'predictions', label: 'Predictive Analytics', icon: ArrowTrendingUpIcon }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -420,7 +420,7 @@ export default function AdvancedAIDashboard() {
               {emailForecast && (
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <TrendingUpIcon className="w-5 h-5 mr-2" />
+                    <ArrowTrendingUpIcon className="w-5 h-5 mr-2" />
                     Email Volume Forecast ({emailForecast.period})
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">

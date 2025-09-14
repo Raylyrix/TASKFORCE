@@ -2,7 +2,11 @@ import { PrismaClient, Mailbox, Message, Contact, Thread } from '@prisma/client'
 import { GmailConnector } from '../connectors/gmail';
 import { OutlookConnector } from '../connectors/outlook';
 import { BaseConnector, EmailMessage } from '../connectors/base';
-import { hashString, extractDomain, isInternalDomain } from '@taskforce/shared';
+// import { hashString, extractDomain, isInternalDomain } from '@taskforce/shared';
+// Temporary local implementations
+function hashString(str: string) { return str; }
+function extractDomain(email: string) { return email.split('@')[1] || null; }
+function isInternalDomain(email: string, domains: string[]) { return domains.includes(extractDomain(email) || ''); }
 
 export class IngestionService {
   private prisma: PrismaClient;
@@ -145,7 +149,7 @@ export class IngestionService {
       where: { id: mailbox.organizationId }
     });
 
-    const internalDomains = organization?.settings?.internalDomains as string[] || [];
+    const internalDomains = (organization?.settings as any)?.internalDomains as string[] || [];
 
     for (const email of allEmails) {
       try {

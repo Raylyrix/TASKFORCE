@@ -1,7 +1,12 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import { 
+  ExclamationTriangleIcon, 
+  ArrowPathIcon, 
+  HomeIcon, 
+  BugAntIcon 
+} from '@heroicons/react/24/outline';
 
 interface Props {
   children: ReactNode;
@@ -142,7 +147,7 @@ Please describe what you were doing when this error occurred:
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
           <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <ExclamationTriangleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
 
             <div className="text-center">
@@ -172,7 +177,7 @@ Please describe what you were doing when this error occurred:
                   onClick={this.handleRetry}
                   className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <ArrowPathIcon className="w-4 h-4 mr-2" />
                   Try Again
                 </button>
 
@@ -181,7 +186,7 @@ Please describe what you were doing when this error occurred:
                     onClick={this.handleReload}
                     className="flex-1 flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
-                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <ArrowPathIcon className="w-4 h-4 mr-2" />
                     Reload
                   </button>
 
@@ -189,7 +194,7 @@ Please describe what you were doing when this error occurred:
                     onClick={this.handleGoHome}
                     className="flex-1 flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
-                    <Home className="w-4 h-4 mr-2" />
+                    <HomeIcon className="w-4 h-4 mr-2" />
                     Home
                   </button>
                 </div>
@@ -198,7 +203,7 @@ Please describe what you were doing when this error occurred:
                   onClick={this.handleReportBug}
                   className="w-full flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <Bug className="w-4 h-4 mr-2" />
+                  <BugAntIcon className="w-4 h-4 mr-2" />
                   Report Bug
                 </button>
               </div>

@@ -31,7 +31,7 @@ export class OutlookConnector extends BaseConnector {
   async authenticate(): Promise<string> {
     try {
       // Get stored token from mailbox settings
-      const token = this.mailbox.settings?.token;
+      const token = (this.mailbox.settings as any)?.token;
       if (!token) {
         throw new Error('No authentication token found');
       }

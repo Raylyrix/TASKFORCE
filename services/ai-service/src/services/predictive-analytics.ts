@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client';
 import { OpenRouterClient } from '../clients/openrouter';
 
 export interface EmailForecast {
@@ -94,10 +94,10 @@ export interface CapacityPlanning {
 }
 
 export class PredictiveAnalyticsService {
-  private prisma: PrismaClient;
+  private prisma: any;
   private openRouterClient: OpenRouterClient;
 
-  constructor(prisma: PrismaClient, openRouterClient: OpenRouterClient) {
+  constructor(prisma: any, openRouterClient: OpenRouterClient) {
     this.prisma = prisma;
     this.openRouterClient = openRouterClient;
   }

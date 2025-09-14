@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client';
 import { OpenRouterClient } from '../clients/openrouter';
 import { EventEmitter } from 'events';
 
@@ -58,13 +58,13 @@ export interface RealTimeMetrics {
 }
 
 export class RealTimeMonitoringService extends EventEmitter {
-  private prisma: PrismaClient;
+  private prisma: any;
   private openRouterClient: OpenRouterClient;
   private activeAlerts: Map<string, EmailAlert> = new Map();
   private metricsCache: Map<string, RealTimeMetrics> = new Map();
   private patternDetectionInterval: NodeJS.Timeout | null = null;
 
-  constructor(prisma: PrismaClient, openRouterClient: OpenRouterClient) {
+  constructor(prisma: any, openRouterClient: OpenRouterClient) {
     super();
     this.prisma = prisma;
     this.openRouterClient = openRouterClient;

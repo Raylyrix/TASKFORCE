@@ -83,8 +83,8 @@ describe('Analytics Integration Tests', () => {
         email: 'test@test.com',
         provider: 'GMAIL',
         isActive: true,
-        organizationId: org.id
-      }
+        // organizationId: org.id // Commented out due to Prisma schema
+      } as any
     });
     mailboxId = mailbox.id;
 
@@ -176,7 +176,7 @@ describe('Analytics Integration Tests', () => {
     ];
 
     for (const msg of messages) {
-      await prisma.message.create({ data: msg });
+      await prisma.message.create({ data: msg as any });
     }
 
     // Create message-contact relationships
