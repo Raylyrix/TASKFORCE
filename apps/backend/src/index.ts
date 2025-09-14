@@ -130,19 +130,19 @@ fastify.post('/auth/login', async (request, reply) => {
 });
 
 // Register analytics routes
-fastify.register(require('./routes/analytics'));
+fastify.register(require('./routes/analytics').analyticsRoutes);
 
 // Register webhook routes
-fastify.register(require('./routes/webhooks'));
+fastify.register(require('./routes/webhooks').webhookRoutes);
 
 // Register OAuth routes
-fastify.register(require('./routes/oauth'));
+fastify.register(require('./routes/oauth').oauthRoutes);
 
 // Register report routes
-fastify.register(require('./routes/reports'));
+fastify.register(require('./routes/reports').reportRoutes);
 
 // Register electron bridge routes
-fastify.register(require('./routes/electron-bridge'));
+fastify.register(require('./routes/electron-bridge').electronBridgeRoutes);
 
 // Initialize AI service
 const aiService = new (require('./services/ai').AIService)();
