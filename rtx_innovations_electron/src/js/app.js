@@ -677,6 +677,13 @@ class TaskForceApp {
             helpBtn.addEventListener('click', () => this.showHelp());
         }
 
+        // Analytics Dashboard button
+        const analyticsDashboardBtn = document.getElementById('analyticsDashboardBtn');
+        if (analyticsDashboardBtn) {
+            console.log('Analytics Dashboard button found, adding listener');
+            analyticsDashboardBtn.addEventListener('click', () => this.openAnalyticsDashboard());
+        }
+
         // From selection change
         const fromSelect = document.getElementById('fromAddress');
         if (fromSelect) {
@@ -1922,6 +1929,43 @@ class TaskForceApp {
 
     showHelp() {
         this.showSuccess('Help documentation opened');
+    }
+
+    openAnalyticsDashboard() {
+        try {
+            console.log('🚀 Opening Analytics Dashboard...');
+            
+            // Check if user is authenticated
+            if (!this.isAuthenticated || !this.currentAccount) {
+                this.showError('Please sign in with Google first to access Analytics Dashboard');
+                return;
+            }
+
+            // Get the analytics dashboard URL (demo version for now)
+            const analyticsUrl = './analytics-dashboard-demo.html';
+            
+            // Open in new window
+            const analyticsWindow = window.open(
+                analyticsUrl,
+                'TaskforceAnalytics',
+                'width=1400,height=900,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
+            );
+            
+            if (analyticsWindow) {
+                console.log('✅ Analytics Dashboard opened successfully');
+                this.showSuccess('Analytics Dashboard opened in new window');
+                
+                // Focus the new window
+                analyticsWindow.focus();
+            } else {
+                console.error('❌ Failed to open Analytics Dashboard');
+                this.showError('Failed to open Analytics Dashboard. Please check if pop-ups are blocked.');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error opening Analytics Dashboard:', error);
+            this.showError('Error opening Analytics Dashboard: ' + error.message);
+        }
     }
 
     handleMenuAction(action) {

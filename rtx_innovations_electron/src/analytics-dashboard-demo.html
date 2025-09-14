@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskforce Analytics Dashboard - Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .demo-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .feature h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .feature p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .demo-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin: 20px 10px;
+        }
+        
+        .demo-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            background: #e8f5e8;
+            color: #2d5a2d;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .ai-demo {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .ai-query {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 3px solid #2196f3;
+            font-style: italic;
+            color: #333;
+        }
+        
+        .ai-response {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="logo">📊</div>
+        <h1>Taskforce Analytics Dashboard</h1>
+        <p class="subtitle">Professional Email Intelligence & AI Insights</p>
+        
+        <div class="status">
+            <i class="fas fa-check-circle"></i> 
+            <strong>Seamless Integration Complete!</strong> 
+            This dashboard opens automatically from your Taskforce Mailer app.
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>Real-time Analytics</h3>
+                <p>Monitor email volume, response times, and communication patterns in real-time.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                <h3>AI-Powered Insights</h3>
+                <p>Ask questions in natural language and get intelligent answers about your email data.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon"><i class="fas fa-users"></i></div>
+                <h3>Relationship Health</h3>
+                <p>Track the health of your professional relationships and communication patterns.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon"><i class="fas fa-file-export"></i></div>
+                <h3>Professional Reports</h3>
+                <p>Generate and export comprehensive reports in PDF, Excel, or CSV formats.</p>
+            </div>
+        </div>
+        
+        <div class="ai-demo">
+            <h3><i class="fas fa-robot"></i> AI Assistant Demo</h3>
+            <p>Try asking questions like these:</p>
+            
+            <div class="ai-query">
+                "What's my busiest day this week?"
+            </div>
+            <div class="ai-response">
+                <i class="fas fa-chart-bar"></i> Tuesday is your busiest day with 45 emails sent/received on average.
+            </div>
+            
+            <div class="ai-query">
+                "Show me contacts I haven't replied to recently"
+            </div>
+            <div class="ai-response">
+                <i class="fas fa-exclamation-triangle"></i> 3 contacts need follow-up: John Smith (5 days), Sarah Johnson (3 days), Mike Davis (2 days).
+            </div>
+            
+            <div class="ai-query">
+                "Analyze my communication patterns"
+            </div>
+            <div class="ai-response">
+                <i class="fas fa-lightbulb"></i> You respond fastest in the morning (avg 2.3 hours) and tend to send more emails on weekdays.
+            </div>
+        </div>
+        
+        <button class="demo-button" onclick="simulateAnalytics()">
+            <i class="fas fa-chart-line"></i> View Full Analytics
+        </button>
+        
+        <button class="demo-button" onclick="simulateAIQuery()">
+            <i class="fas fa-robot"></i> Try AI Assistant
+        </button>
+        
+        <button class="demo-button" onclick="simulateReport()">
+            <i class="fas fa-file-pdf"></i> Generate Report
+        </button>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>🚀 How It Works</h3>
+            <ol style="text-align: left; margin: 15px 0; line-height: 1.6;">
+                <li><strong>Sign in</strong> to Taskforce Mailer with Google (existing flow)</li>
+                <li><strong>Click</strong> the "Analytics Dashboard" button in the toolbar</li>
+                <li><strong>This dashboard opens</strong> automatically in a new window</li>
+                <li><strong>Start analyzing</strong> your email data with AI insights</li>
+                <li><strong>Export reports</strong> and share insights with your team</li>
+            </ol>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #666;">
+            <i class="fas fa-info-circle"></i> 
+            This is a demo. In the real application, you'll see your actual email analytics data.
+        </div>
+    </div>
+    
+    <script>
+        function simulateAnalytics() {
+            alert('📊 Full Analytics Dashboard would open here!\n\nFeatures:\n• Email volume trends\n• Response time analysis\n• Contact health scores\n• Thread analysis\n• Predictive insights');
+        }
+        
+        function simulateAIQuery() {
+            const query = prompt('🤖 Ask the AI Assistant anything about your email:\n\nExamples:\n• "What\'s my busiest day?"\n• "Show me VIP contacts"\n• "Analyze my response patterns"');
+            if (query) {
+                alert(`🤖 AI Response:\n\n"${query}"\n\n✅ I'd analyze your email data and provide intelligent insights with charts and recommendations!`);
+            }
+        }
+        
+        function simulateReport() {
+            alert('📄 Professional Report Generated!\n\n✅ Weekly Email Analytics Report\n• Executive summary with AI insights\n• Volume and response time trends\n• Contact health analysis\n• Recommendations for improvement\n\n📧 Report sent to your email!\n📊 Also available for download as PDF/Excel');
+        }
+        
+        // Auto-demo functionality
+        setTimeout(() => {
+            const container = document.querySelector('.demo-container');
+            container.style.animation = 'fadeIn 0.5s ease-in';
+        }, 100);
+        
+        // Add some interactive effects
+        document.querySelectorAll('.feature').forEach(feature => {
+            feature.addEventListener('mouseenter', () => {
+                feature.style.transform = 'translateY(-5px)';
+                feature.style.transition = 'transform 0.2s ease';
+            });
+            
+            feature.addEventListener('mouseleave', () => {
+                feature.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>
