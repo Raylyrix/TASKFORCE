@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "prebuild": "pnpm --filter @taskforce/backend prisma generate",
+    "prebuild": "cd apps/backend && npx prisma generate",
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "dev:backend": "pnpm --filter @taskforce/backend dev",
