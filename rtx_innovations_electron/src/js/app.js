@@ -684,6 +684,13 @@ class TaskForceApp {
             analyticsDashboardBtn.addEventListener('click', () => this.openAnalyticsDashboard());
         }
 
+        // Clear Auth Data button
+        const clearAuthBtn = document.getElementById('clearAuthBtn');
+        if (clearAuthBtn) {
+            console.log('Clear Auth Data button found, adding listener');
+            clearAuthBtn.addEventListener('click', () => this.clearAuthenticationData());
+        }
+
         // From selection change
         const fromSelect = document.getElementById('fromAddress');
         if (fromSelect) {
@@ -1965,6 +1972,65 @@ class TaskForceApp {
         } catch (error) {
             console.error('❌ Error opening Analytics Dashboard:', error);
             this.showError('Error opening Analytics Dashboard: ' + error.message);
+        }
+    }
+
+    clearAuthenticationData() {
+        try {
+            console.log('🧹 Clearing authentication data...');
+            
+            // Show confirmation dialog
+            const confirmed = confirm(
+                'Are you sure you want to clear all authentication data?\n\n' +
+                'This will:\n' +
+                '• Remove all stored OAuth tokens\n' +
+                '• Clear account information\n' +
+                '• Reset authentication status\n' +
+                '• Allow fresh login\n\n' +
+                'Click OK to continue or Cancel to abort.'
+            );
+            
+            if (!confirmed) {
+                console.log('❌ User cancelled authentication data clearing');
+                return;
+            }
+            
+            // Clear authentication state
+            this.isAuthenticated = false;
+            this.currentAccount = null;
+            
+            // Clear localStorage authentication data
+            const authKeys = [
+                'gmail_oauth_token',
+                'gmail_refresh_token',
+                'gmail_access_token',
+                'gmail_token_expiry',
+                'current_account',
+                'is_authenticated',
+                'gmail_user_info',
+                'oauth_state'
+            ];
+            
+            authKeys.forEach(key => {
+                localStorage.removeItem(key);
+                console.log(`🗑️ Removed: ${key}`);
+            });
+            
+            // Clear any session storage
+            sessionStorage.clear();
+            
+            // Update UI to reflect logged out state
+            this.updateUI();
+            this.populateAccountsDropdown();
+            
+            // Show success message
+            this.showSuccess('✅ Authentication data cleared successfully! You can now sign in with a fresh account.');
+            
+            console.log('✅ Authentication data cleared successfully');
+            
+        } catch (error) {
+            console.error('❌ Error clearing authentication data:', error);
+            this.showError('Error clearing authentication data: ' + error.message);
         }
     }
 

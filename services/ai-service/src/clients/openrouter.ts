@@ -1,5 +1,10 @@
 import axios from 'axios';
-import { hashString } from '@taskforce/shared';
+import crypto from 'crypto';
+
+// Temporary local implementation
+function hashString(input: string): string {
+  return crypto.createHash('sha256').update(input).digest('hex');
+}
 
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
@@ -33,10 +38,17 @@ export class OpenRouterClient {
 
   constructor() {
     this.apiKey = process.env.OPENROUTER_API_KEY || '';
-    this.defaultModel = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-nano-9b-v2:free';
+    this.defaultModel = process.env.OPENROUTER_MODEL || 'openai/gpt-3.5-turbo';
     
     if (!this.apiKey) {
-      console.warn('⚠️ OpenRouter API key not found. AI features will be limited.');
+      console.error('❌ OpenRouter API key not found. Please set OPENROUTER_API_KEY in .env file.');
+      console.log('🔧 To fix this:');
+      console.log('1. Open .env file in project root');
+      console.log('2. Add: OPENROUTER_API_KEY="your-api-key-here"');
+      console.log('3. Restart the AI service');
+    } else {
+      console.log('✅ OpenRouter API key loaded successfully');
+      console.log(`🤖 Using model: ${this.defaultModel}`);
     }
   }
 

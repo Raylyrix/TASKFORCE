@@ -1,6 +1,6 @@
 'use client';
 
-import { Dashboard } from '@/components/dashboard/dashboard';
+import { ProductionDashboard } from '@/components/dashboard/production-dashboard';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,8 +35,8 @@ export default function HomePage() {
       <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 p-6">
-          <Dashboard />
+        <main className="flex-1">
+          <ProductionDashboard />
         </main>
       </div>
     </div>

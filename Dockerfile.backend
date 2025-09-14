@@ -1,10 +1,13 @@
+# Backend API Dockerfile
 FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
 
 # Install pnpm
 RUN npm install -g pnpm
-
-# Set working directory
-WORKDIR /app
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -14,38 +17,41 @@ COPY packages/shared/package.json ./packages/shared/
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Build the application
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Copy environment file
+COPY apps/backend/.env ./apps/backend/
+
 # Build the application
-RUN pnpm build
-
-# Production stage
-FROM node:18-alpine AS production
-
-# Install pnpm
 RUN npm install -g pnpm
+RUN pnpm build --filter @taskforce/backend
 
-# Set working directory
+# Production image
+FROM base AS runner
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/backend/package.json ./apps/backend/
-COPY packages/shared/package.json ./packages/shared/
+ENV NODE_ENV production
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 backend
 
 # Copy built application
-COPY --from=base /app/apps/backend/dist ./apps/backend/dist
-COPY --from=base /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=backend:nodejs /app/apps/backend/dist ./dist
+COPY --from=builder --chown=backend:nodejs /app/apps/backend/package.json ./
+COPY --from=builder --chown=backend:nodejs /app/node_modules ./node_modules
 
-# Create logs directory
-RUN mkdir -p logs
+# Copy environment file
+COPY --from=builder --chown=backend:nodejs /app/apps/backend/.env ./
 
-# Expose port
+USER backend
+
 EXPOSE 4000
 
-# Start the application
-CMD ["node", "apps/backend/dist/index.js"]
+ENV PORT 4000
+
+CMD ["node", "dist/simple-server.js"]

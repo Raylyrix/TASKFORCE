@@ -1,7 +1,7 @@
 {
-  "name": "taskforce-analytics-platform",
-  "version": "4.0.0",
-  "description": "Taskforce Mailer Advanced Analytics & AI Platform",
+  "name": "taskforce-mailer",
+  "version": "4.0.1",
+  "description": "Professional email analytics platform with AI-powered insights and seamless desktop integration",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -21,9 +21,17 @@
     "lint:fix": "pnpm -r lint --fix",
     "type-check": "pnpm -r type-check",
     "clean": "pnpm -r clean",
-    "setup": "pnpm install && pnpm -r setup",
-    "deploy:staging": "scripts/deploy.sh staging",
-    "deploy:production": "scripts/deploy.sh production",
+    "setup": "pnpm install && pnpm build",
+    "setup:dev": "pnpm install && cp env.example .env",
+    "start:production": "PowerShell -ExecutionPolicy Bypass -File scripts/start-production.ps1",
+    "test:production": "PowerShell -ExecutionPolicy Bypass -File scripts/test-production-system.ps1",
+    "deploy": "pnpm build && pnpm start:production",
+    "db:push": "cd apps/backend && npx prisma db push",
+    "db:migrate": "cd apps/backend && npx prisma migrate dev",
+    "db:generate": "cd apps/backend && npx prisma generate",
+    "db:studio": "cd apps/backend && npx prisma studio",
+    "electron:build": "cd rtx_innovations_electron && npm run build",
+    "electron:dev": "cd rtx_innovations_electron && npm run dev",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
@@ -38,5 +46,28 @@
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
-  }
+  },
+  "keywords": [
+    "email",
+    "analytics",
+    "ai",
+    "automation",
+    "productivity",
+    "gmail",
+    "oauth",
+    "dashboard",
+    "electron",
+    "nextjs",
+    "fastify"
+  ],
+  "author": "Taskforce Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Raylyrix/TASKFORCE.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Raylyrix/TASKFORCE/issues"
+  },
+  "homepage": "https://github.com/Raylyrix/TASKFORCE#readme"
 }

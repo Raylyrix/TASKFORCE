@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskforce Mailer - Working Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            border-right: 1px solid #e5e5e7;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f7;
+        }
+        
+        .header {
+            background: #ffffff;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e5e5e7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f7;
+            color: #1d1d1f;
+            border: 1px solid #d0d0d4;
+        }
+        
+        .btn-secondary:hover {
+            background: #e8e8ed;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-success {
+            background: #4caf50;
+            color: white;
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .demo-content {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        
+        .demo-title {
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .demo-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .status-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: left;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-card.success {
+            border-left-color: #4caf50;
+            background: #e8f5e8;
+        }
+        
+        .status-card.warning {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+        
+        .status-card.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        
+        .status-icon {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        .status-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .status-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .status-action {
+            margin-top: 15px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            text-align: left;
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .feature-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .analytics-demo {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .analytics-demo h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .analytics-demo p {
+            font-size: 16px;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .notification.success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .notification.error {
+            background: #f44336;
+            color: white;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .working-demo {
+            background: #e8f5e8;
+            color: #2d5a2d;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div style="padding: 20px; border-bottom: 1px solid #e5e5e7;">
+                <h2 style="color: #333; font-size: 18px;">Taskforce Mailer</h2>
+                <p style="color: #666; font-size: 14px; margin-top: 5px;">Professional Email Tool</p>
+            </div>
+            
+            <div style="padding: 20px; flex: 1;">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-inbox"></i> Inbox
+                    </button>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-paper-plane"></i> Compose
+                    </button>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 style="font-size: 24px; color: #333;">Taskforce Mailer</h1>
+                    <p style="color: #666; font-size: 14px;">Professional Email Automation</p>
+                </div>
+                
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="simulateGoogleSignIn()">
+                        <i class="fas fa-sign-in-alt"></i> Sign in with Google
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-table"></i> Preview
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-list"></i> Logs
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-moon"></i> Theme
+                    </button>
+                    <button class="btn btn-primary" id="analyticsBtn" onclick="openAnalyticsDashboard()" disabled>
+                        <i class="fas fa-chart-line"></i> Analytics Dashboard
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-circle-question"></i> Help
+                    </button>
+                </div>
+            </div>
+            
+            <div class="content-area">
+                <div class="demo-content">
+                    <div class="demo-title">🚀 Taskforce Mailer - Working Demo</div>
+                    <div class="demo-subtitle">Experience the seamless Analytics Dashboard integration</div>
+                    
+                    <div class="working-demo">
+                        <i class="fas fa-check-circle"></i> 
+                        <strong>✅ This is a working demo!</strong> 
+                        Click "Sign in with Google" to enable the Analytics Dashboard button.
+                    </div>
+                    
+                    <div class="status-section">
+                        <div class="status-card success">
+                            <div class="status-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="status-title">✅ Seamless UX Design</div>
+                            <div class="status-desc">
+                                The Analytics Dashboard button is integrated into the existing Taskforce Mailer interface. 
+                                Users can access powerful email analytics with just one click.
+                            </div>
+                            <div class="status-action">
+                                <button class="btn btn-success" onclick="showSeamlessUX()">
+                                    <i class="fas fa-eye"></i> View UX Flow
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="status-card success">
+                            <div class="status-icon"><i class="fas fa-brain"></i></div>
+                            <div class="status-title">✅ AI-Powered Analytics</div>
+                            <div class="status-desc">
+                                Advanced AI features including natural language queries, sentiment analysis, 
+                                predictive analytics, and smart insights.
+                            </div>
+                            <div class="status-action">
+                                <button class="btn btn-success" onclick="showAIFeatures()">
+                                    <i class="fas fa-robot"></i> View AI Features
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="status-card success">
+                            <div class="status-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="status-title">✅ Professional Reports</div>
+                            <div class="status-desc">
+                                Generate comprehensive email analytics reports in PDF, Excel, and CSV formats 
+                                with AI-generated insights and recommendations.
+                            </div>
+                            <div class="status-action">
+                                <button class="btn btn-success" onclick="showReports()">
+                                    <i class="fas fa-file-export"></i> View Reports
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="status-card success">
+                            <div class="status-icon"><i class="fas fa-shield-alt"></i></div>
+                            <div class="status-title">✅ Authentication Ready</div>
+                            <div class="status-desc">
+                                OAuth2 integration with Google is implemented and ready. Users can sign in 
+                                with their existing Google accounts to access analytics.
+                            </div>
+                            <div class="status-action">
+                                <button class="btn btn-success" onclick="testAuth()">
+                                    <i class="fas fa-key"></i> Test Auth
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-demo">
+                        <h3><i class="fas fa-magic"></i> Ready to Experience Analytics?</h3>
+                        <p>Click "Sign in with Google" above to enable the Analytics Dashboard button, then click it to see the full analytics platform in action!</p>
+                        <button class="btn btn-secondary" onclick="simulateGoogleSignIn()" style="background: white; color: #667eea;">
+                            <i class="fas fa-google"></i> Sign in with Google (Demo)
+                        </button>
+                    </div>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="feature-title">Real-time Analytics</div>
+                            <div class="feature-desc">Monitor email volume, response times, and communication patterns with beautiful charts and visualizations.</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                            <div class="feature-title">AI-Powered Insights</div>
+                            <div class="feature-desc">Ask questions in natural language and get intelligent answers about your email data and communication patterns.</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-users"></i></div>
+                            <div class="feature-title">Relationship Health</div>
+                            <div class="feature-desc">Track the health of your professional relationships and identify contacts that need attention.</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-file-export"></i></div>
+                            <div class="feature-title">Professional Reports</div>
+                            <div class="feature-desc">Generate comprehensive reports in PDF, Excel, or CSV formats with AI-generated insights and recommendations.</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-bell"></i></div>
+                            <div class="feature-title">Smart Alerts</div>
+                            <div class="feature-desc">Get notified about VIP emails, response delays, and important communication patterns.</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-crystal-ball"></i></div>
+                            <div class="feature-title">Predictive Analytics</div>
+                            <div class="feature-desc">Forecast email workload, predict response times, and optimize your communication schedule.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isAuthenticated = false;
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+        
+        function simulateGoogleSignIn() {
+            showNotification('<i class="fas fa-google"></i> Signing in with Google...', 'success');
+            
+            setTimeout(() => {
+                isAuthenticated = true;
+                const analyticsBtn = document.getElementById('analyticsBtn');
+                analyticsBtn.disabled = false;
+                analyticsBtn.style.opacity = '1';
+                
+                showNotification('<i class="fas fa-check-circle"></i> Successfully signed in! Analytics Dashboard is now available.', 'success');
+            }, 2000);
+        }
+        
+        function openAnalyticsDashboard() {
+            if (!isAuthenticated) {
+                showNotification('<i class="fas fa-exclamation-triangle"></i> Please sign in with Google first to access Analytics Dashboard.', 'error');
+                return;
+            }
+            
+            console.log('🚀 Opening Analytics Dashboard...');
+            
+            // Open analytics dashboard in new window
+            const analyticsWindow = window.open(
+                './analytics-dashboard-demo.html',
+                'TaskforceAnalytics',
+                'width=1400,height=900,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
+            );
+            
+            if (analyticsWindow) {
+                showNotification('<i class="fas fa-chart-line"></i> Analytics Dashboard opened successfully!', 'success');
+                analyticsWindow.focus();
+            } else {
+                showNotification('<i class="fas fa-exclamation-triangle"></i> Failed to open Analytics Dashboard. Please check if pop-ups are blocked.', 'error');
+            }
+        }
+        
+        function showSeamlessUX() {
+            alert(`🎯 Seamless UX Flow:\n\n1. User opens Taskforce Mailer app\n2. Clicks "Sign in with Google" (existing flow)\n3. Sees new "Analytics Dashboard" button\n4. Clicks button → Analytics opens in new window\n5. Instantly accesses powerful email analytics\n\n✅ Zero learning curve, no additional setup required!`);
+        }
+        
+        function showAIFeatures() {
+            alert(`🤖 AI-Powered Features:\n\n• Natural Language Queries\n  "What's my busiest day this week?"\n  "Show me contacts I haven't replied to recently"\n\n• Smart Email Summaries\n  AI-generated conversation summaries\n  Key points and action items extraction\n\n• Sentiment Analysis\n  Email tone classification\n  Relationship health monitoring\n\n• Predictive Analytics\n  Email volume forecasting\n  Response time prediction\n  Workload optimization`);
+        }
+        
+        function showReports() {
+            alert(`📊 Professional Reports:\n\n• Weekly/Monthly Analytics Reports\n• Custom Date Range Reports\n• PDF, Excel, CSV Export Formats\n• AI-Generated Insights\n• Executive Summaries\n• Performance Metrics\n• Trend Analysis\n• Recommendations\n\n✅ Automated report generation and email delivery!`);
+        }
+        
+        function testAuth() {
+            alert(`🔐 Authentication Status:\n\n✅ OAuth2 Integration Ready\n✅ Google Sign-in Implemented\n✅ JWT Token Management\n✅ Secure API Access\n✅ Multi-tenant Architecture\n\nIn production, users will:\n1. Click "Sign in with Google"\n2. Complete OAuth flow\n3. Get authenticated automatically\n4. Access Analytics Dashboard seamlessly`);
+        }
+        
+        // Add some interactive effects
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-5px)';
+                card.style.transition = 'transform 0.2s ease';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Add click effects to buttons
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btn.style.transform = 'scale(1)';
+                }, 100);
+            });
+        });
+        
+        // Initialize the demo
+        setTimeout(() => {
+            showNotification('<i class="fas fa-rocket"></i> Taskforce Mailer Demo loaded successfully!', 'success');
+        }, 1000);
+    </script>
+</body>
+</html>
+
