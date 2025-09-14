@@ -65,6 +65,53 @@ try {
     exit 1
 }
 
+# Check Redis
+Write-Host "`n🗄️ Checking Redis..." -ForegroundColor Cyan
+if (-not (Test-Port 6379)) {
+    Write-Host "⚠️ Redis not running on port 6379. Checking Docker containers..." -ForegroundColor Yellow
+    
+    # Check if Docker is available and Redis container exists
+    $dockerCheck = Get-Command docker -ErrorAction SilentlyContinue
+    if ($dockerCheck) {
+        # Check if Redis container exists
+        try {
+            $redisContainer = docker ps -a --filter "name=redis" --format "{{.Names}}" | Where-Object { $_ -match "redis" }
+            
+            if ($redisContainer) {
+                Write-Host "🐳 Found Redis container: $redisContainer" -ForegroundColor Cyan
+                Write-Host "🔄 Starting Redis container..." -ForegroundColor Yellow
+                docker start $redisContainer
+                Start-Sleep -Seconds 3
+                
+                if (Test-Port 6379) {
+                    Write-Host "✅ Redis container started successfully" -ForegroundColor Green
+                } else {
+                    Write-Host "❌ Failed to start Redis container" -ForegroundColor Red
+                    Write-Host "   Try: docker run -d --name my-redis -p 6379:6379 redis:alpine" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "🐳 No Redis container found. Creating new one..." -ForegroundColor Cyan
+                docker run -d --name my-redis -p 6379:6379 redis:alpine
+                Start-Sleep -Seconds 5
+                
+                if (Test-Port 6379) {
+                    Write-Host "✅ Redis container created and started" -ForegroundColor Green
+                } else {
+                    Write-Host "❌ Failed to create Redis container" -ForegroundColor Red
+                }
+            }
+        } catch {
+            Write-Host "❌ Docker command failed. Please check Docker installation" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "❌ Docker not available. Please install Docker or start Redis manually" -ForegroundColor Red
+        Write-Host "   Docker: https://docs.docker.com/get-docker/" -ForegroundColor Yellow
+        Write-Host "   Manual: redis-server" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ Redis is running" -ForegroundColor Green
+}
+
 # Setup database
 Write-Host "`n🗄️ Setting up database..." -ForegroundColor Cyan
 Set-Location "apps/backend"

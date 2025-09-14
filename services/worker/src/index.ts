@@ -8,16 +8,49 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Initialize Redis connection
-const redis = new IORedis(process.env['REDIS_URL'] || 'redis://localhost:6379');
+// Initialize Redis connection with retry logic
+const redis = new IORedis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  lazyConnect: true,
+  connectTimeout: 30000,
+  commandTimeout: 30000,
+  enableReadyCheck: false,
+  maxRetriesPerRequest: null
+});
+
+// Test Redis connection
+redis.on('connect', () => {
+  console.log('✅ Connected to Redis');
+});
+
+redis.on('error', (err) => {
+  console.error('❌ Redis connection error:', err.message);
+});
+
+redis.on('ready', () => {
+  console.log('✅ Redis is ready');
+});
 
 // Initialize Prisma
 const prisma = new PrismaClient();
 
+// Test Redis connection before proceeding
+async function testRedisConnection() {
+  try {
+    await redis.ping();
+    console.log('✅ Redis connection test successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Redis connection test failed:', error);
+    return false;
+  }
+}
+
 // Initialize ingestion service
 // const ingestionService = new IngestionService(prisma);
 
-// Create queues
+// Create queues with connection
 const ingestionQueue = new Queue('ingestion', { connection: redis });
 const analyticsQueue = new Queue('analytics', { connection: redis });
 const aiQueue = new Queue('ai-processing', { connection: redis });
@@ -40,10 +73,21 @@ interface AIJob {
   content: string;
 }
 
-// Ingestion Worker
-const ingestionWorker = new Worker<IngestionJob>(
-  'ingestion',
-  async (job) => {
+// Initialize workers with connection test
+async function initializeWorkers() {
+  const isRedisConnected = await testRedisConnection();
+  
+  if (!isRedisConnected) {
+    console.error('❌ Cannot start workers without Redis connection');
+    process.exit(1);
+  }
+
+  console.log('🚀 Starting worker services...');
+
+  // Ingestion Worker
+  const ingestionWorker = new Worker<IngestionJob>(
+    'ingestion',
+    async (job) => {
     const { mailboxId, isInitial } = job.data;
     
     console.log(`🔄 Processing ingestion job for mailbox ${mailboxId} (initial: ${isInitial})`);
@@ -513,50 +557,57 @@ cron.schedule('0 */4 * * *', async () => {
   }
 });
 
-// Error handling
-ingestionWorker.on('error', (error) => {
-  console.error('❌ Ingestion worker error:', error);
-});
+  // Error handling
+  ingestionWorker.on('error', (error) => {
+    console.error('❌ Ingestion worker error:', error);
+  });
 
-analyticsWorker.on('error', (error) => {
-  console.error('❌ Analytics worker error:', error);
-});
+  analyticsWorker.on('error', (error) => {
+    console.error('❌ Analytics worker error:', error);
+  });
 
-aiWorker.on('error', (error) => {
-  console.error('❌ AI worker error:', error);
-});
+  aiWorker.on('error', (error) => {
+    console.error('❌ AI worker error:', error);
+  });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down workers...');
-  
-  await ingestionWorker.close();
-  await analyticsWorker.close();
-  await aiWorker.close();
-  
-  await redis.disconnect();
-  await prisma.$disconnect();
-  
-  console.log('✅ Workers shut down gracefully');
-  process.exit(0);
-});
+  // Graceful shutdown
+  process.on('SIGINT', async () => {
+    console.log('\n🛑 Shutting down workers...');
+    
+    await ingestionWorker.close();
+    await analyticsWorker.close();
+    await aiWorker.close();
+    
+    await redis.disconnect();
+    await prisma.$disconnect();
+    
+    console.log('✅ Workers shut down gracefully');
+    process.exit(0);
+  });
 
-process.on('SIGTERM', async () => {
-  console.log('\n🛑 Shutting down workers...');
-  
-  await ingestionWorker.close();
-  await analyticsWorker.close();
-  await aiWorker.close();
-  
-  await redis.disconnect();
-  await prisma.$disconnect();
-  
-  console.log('✅ Workers shut down gracefully');
-  process.exit(0);
-});
+  process.on('SIGTERM', async () => {
+    console.log('\n🛑 Shutting down workers...');
+    
+    await ingestionWorker.close();
+    await analyticsWorker.close();
+    await aiWorker.close();
+    
+    await redis.disconnect();
+    await prisma.$disconnect();
+    
+    console.log('✅ Workers shut down gracefully');
+    process.exit(0);
+  });
 
-console.log('🚀 Background workers started successfully!');
-console.log('📧 Ingestion worker: Processing email sync jobs');
-console.log('📊 Analytics worker: Processing analytics aggregation');
-console.log('🤖 AI worker: Processing AI analysis jobs');
-console.log('⏰ Scheduled jobs: Every 6 hours (ingestion), Daily at 1 AM (analytics)');
+  console.log('🚀 Background workers started successfully!');
+  console.log('📧 Ingestion worker: Processing email sync jobs');
+  console.log('📊 Analytics worker: Processing analytics aggregation');
+  console.log('🤖 AI worker: Processing AI analysis jobs');
+  console.log('⏰ Scheduled jobs: Every 6 hours (ingestion), Daily at 1 AM (analytics)');
+}
+
+// Start the workers
+initializeWorkers().catch((error) => {
+  console.error('❌ Failed to initialize workers:', error);
+  process.exit(1);
+});

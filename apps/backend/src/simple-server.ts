@@ -76,7 +76,7 @@ fastify.get('/auth/google/callback', async (request, reply) => {
       })
     });
     
-    const tokens = await tokenResponse.json();
+    const tokens = await tokenResponse.json() as any;
     
     if (tokens.access_token) {
       // Get user info
@@ -86,7 +86,7 @@ fastify.get('/auth/google/callback', async (request, reply) => {
         }
       });
       
-      const userInfo = await userResponse.json();
+      const userInfo = await userResponse.json() as any;
       
       // Generate JWT token
       const jwtToken = fastify.jwt.sign({
