@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc --skipLibCheck",
+    "build": "node build.js",
     "start": "node dist/index.js",
     "test": "jest",
     "test:ci": "jest --ci --coverage --watchAll=false",
