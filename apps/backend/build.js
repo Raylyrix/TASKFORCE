@@ -14,31 +14,23 @@ if (!fs.existsSync(envPath) && fs.existsSync(envExamplePath)) {
 try {
   const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 
-  if (isCI) {
-    // In CI, avoid DB auth issues by generating client using a temporary SQLite schema
-    const sourceSchemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
-    const ciSchemaDir = path.join(__dirname, 'prisma');
-    const ciSchemaPath = path.join(ciSchemaDir, 'schema.ci.generated.prisma');
-
-    if (!fs.existsSync(sourceSchemaPath)) {
-      throw new Error(`Prisma schema not found at ${sourceSchemaPath}`);
+  // Ensure DATABASE_URL exists (Prisma generate reads schema and env but should not connect)
+  if (isCI && !process.env.DATABASE_URL) {
+    const fallbackDbUrl = 'postgresql://postgres:postgres@localhost:5432/taskforce_ci';
+    try {
+      const currentEnv = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+      if (!currentEnv.includes('DATABASE_URL=')) {
+        fs.appendFileSync(envPath, `\nDATABASE_URL="${fallbackDbUrl}"\n`);
+        console.log('🧩 Added fallback DATABASE_URL for CI generation');
+      }
+      process.env.DATABASE_URL = fallbackDbUrl;
+    } catch (_) {
+      // ignore
     }
-
-    const original = fs.readFileSync(sourceSchemaPath, 'utf8');
-
-    // Replace datasource to use SQLite while keeping all models/enums identical
-    const ciSchema = original
-      .replace(/provider\s*=\s*"postgresql"/g, 'provider = "sqlite"')
-      .replace(/url\s*=\s*env\("DATABASE_URL"\).*\n/g, 'url      = "file:./dev.db"\n');
-
-    fs.writeFileSync(ciSchemaPath, ciSchema, 'utf8');
-
-    console.log('🔧 Generating Prisma client (CI mode, SQLite schema)...');
-    execSync(`npx prisma generate --schema ${ciSchemaPath}`, { stdio: 'inherit', cwd: __dirname });
-  } else {
-    console.log('🔧 Generating Prisma client...');
-    execSync('npx prisma generate', { stdio: 'inherit', cwd: __dirname });
   }
+
+  console.log('🔧 Generating Prisma client...');
+  execSync('npx prisma generate', { stdio: 'inherit', cwd: __dirname });
 
   console.log('🏗️ Compiling TypeScript...');
   execSync('npx tsc --skipLibCheck', { stdio: 'inherit', cwd: __dirname });
