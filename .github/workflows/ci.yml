@@ -77,21 +77,22 @@ jobs:
       - name: Setup environment variables
         run: |
           cp env.example .env
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/taskforce_test" >> .env
-          echo "REDIS_URL=redis://localhost:6379" >> .env
-          echo "JWT_SECRET=test-jwt-secret-key" >> .env
-          echo "GMAIL_CLIENT_ID=test-client-id" >> .env
-          echo "GMAIL_CLIENT_SECRET=test-client-secret" >> .env
-          echo "OPENROUTER_API_KEY=test-api-key" >> .env
-          echo "CONSENT_CONTENT=false" >> .env
+          sed -i 's#^DATABASE_URL=.*#DATABASE_URL=postgresql://postgres:postgres@localhost:5432/taskforce_test#' .env || echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/taskforce_test" >> .env
+          sed -i 's#^REDIS_URL=.*#REDIS_URL=redis://localhost:6379#' .env || echo "REDIS_URL=redis://localhost:6379" >> .env
+          sed -i 's#^JWT_SECRET=.*#JWT_SECRET=test-jwt-secret-key#' .env || echo "JWT_SECRET=test-jwt-secret-key" >> .env
+          sed -i 's#^GMAIL_CLIENT_ID=.*#GMAIL_CLIENT_ID=test-client-id#' .env || echo "GMAIL_CLIENT_ID=test-client-id" >> .env
+          sed -i 's#^GMAIL_CLIENT_SECRET=.*#GMAIL_CLIENT_SECRET=test-client-secret#' .env || echo "GMAIL_CLIENT_SECRET=test-client-secret" >> .env
+          sed -i 's#^OPENROUTER_API_KEY=.*#OPENROUTER_API_KEY=test-api-key#' .env || echo "OPENROUTER_API_KEY=test-api-key" >> .env
+          sed -i 's#^CONSENT_CONTENT=.*#CONSENT_CONTENT=false#' .env || echo "CONSENT_CONTENT=false" >> .env
 
       - name: Build packages
         run: pnpm build
 
       - name: Run database migrations
-        run: |
-          cd apps/backend
-          pnpm prisma migrate deploy
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/taskforce_test
+        run: pnpm prisma migrate deploy
 
       - name: Run tests
         run: pnpm test:ci
