@@ -88,6 +88,17 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "PostgreSQL is ready!"
+              break
+            fi
+            echo "Waiting for PostgreSQL... ($i/30)"
+            sleep 2
+          done
+
       - name: Run database migrations
         working-directory: apps/backend
         env:
@@ -95,6 +106,14 @@ jobs:
         run: pnpm prisma migrate deploy
 
       - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:Rayvical@localhost:5432/taskforce_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-key
+          GMAIL_CLIENT_ID: test-client-id
+          GMAIL_CLIENT_SECRET: test-client-secret
+          OPENROUTER_API_KEY: test-api-key
+          CONSENT_CONTENT: false
         run: pnpm test:ci
 
       - name: Run linting

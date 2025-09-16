@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   description: 'Advanced email analytics and AI-powered insights',
   keywords: ['email', 'analytics', 'AI', 'productivity', 'insights'],
   authors: [{ name: 'Taskforce Team' }],
-  viewport: 'width=device-width, initial-scale=1',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
