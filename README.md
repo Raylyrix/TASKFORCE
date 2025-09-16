@@ -67,31 +67,31 @@ taskforce-mailer/
 ### Installation
 
 1. **Clone the repository**
-   ```bash
+```bash
    git clone https://github.com/Raylyrix/TASKFORCE.git
    cd TASKFORCE
    ```
 
 2. **Install dependencies**
-   ```bash
+```bash
    pnpm install
-   ```
+```
 
 3. **Setup environment**
-   ```bash
+```bash
    cp env.example .env
    # Edit .env with your configuration
    ```
 
 4. **Setup database**
-   ```bash
+```bash
    cd apps/backend
    npx prisma db push
    cd ../..
-   ```
+```
 
 5. **Start all services**
-   ```bash
+```bash
    # Windows
    PowerShell -ExecutionPolicy Bypass -File scripts/start-production.ps1
    

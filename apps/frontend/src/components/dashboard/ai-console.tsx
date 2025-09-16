@@ -13,7 +13,7 @@ interface AIResponse {
   response: string;
   charts?: Array<{
     type: string;
-    data: any;
+    data: unknown;
     title: string;
   }>;
   confidence?: number;
@@ -104,7 +104,6 @@ export function AIConsole() {
         </div>
       </form>
 
-      {/* Sample Queries */}
       <div className="space-y-2">
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Try asking:

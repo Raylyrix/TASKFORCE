@@ -1,6 +1,6 @@
 {
   "name": "task-force-mailer",
-      "version": "3.0.29",
+  "version": "3.0.29",
   "description": "TASK FORCE – Mass mailer with Google Sheets integration",
   "main": "src/main.js",
   "homepage": "./",
@@ -17,7 +17,8 @@
     "build-linux": "npm run build && npm run gen-icons && electron-builder --linux",
     "build-all": "npm run build && npm run gen-icons && electron-builder -mwl",
     "dist": "npm run build && npm run gen-icons && electron-builder",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "test": "jest"
   },
   "keywords": [
     "email",
@@ -27,7 +28,10 @@
     "gmail",
     "desktop-app"
   ],
-  "author": { "name": "RTX Innovations", "email": "rayvicalraylyrix@gmail.com" },
+  "author": {
+    "name": "RTX Innovations",
+    "email": "rayvicalraylyrix@gmail.com"
+  },
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2",
@@ -78,10 +82,14 @@
         "repo": "TASKFORCE"
       }
     ],
-
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "TASK-FORCE-Setup-${version}.${ext}",
       "icon": "assets/icons/icon.ico",
@@ -89,14 +97,20 @@
       "executableName": "TaskForceMailer"
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "icon": "assets/icons/icon.icns",
       "category": "public.app-category.business",
       "identity": null,
       "artifactName": "TASK-FORCE-${version}-${arch}.${ext}"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "assets/icons/icon256.png",
       "category": "Utility",
       "maintainer": "RTX Innovations <rayvicalraylyrix@gmail.com>",

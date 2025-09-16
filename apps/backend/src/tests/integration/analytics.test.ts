@@ -16,7 +16,7 @@ describe('Analytics Integration Tests', () => {
     prisma = new PrismaClient({
       datasources: {
         db: {
-          url: process.env.TEST_DATABASE_URL || 'postgresql://postgres:password@localhost:5432/taskforce_test'
+          url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/taskforce_test'
         }
       }
     });
@@ -38,7 +38,7 @@ describe('Analytics Integration Tests', () => {
     fastify.decorate('redis', redis);
 
     // Register routes
-    fastify.register(require('../routes/analytics'), { prefix: '/api/v1' });
+    fastify.register(require('../../routes/analytics'), { prefix: '/api/v1' });
   });
 
   afterAll(async () => {

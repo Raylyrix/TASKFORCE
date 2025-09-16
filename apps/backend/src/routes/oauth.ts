@@ -173,7 +173,8 @@ export async function oauthRoutes(fastify: FastifyInstance) {
     } catch (error) {
       console.error('OAuth callback error:', error as any);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      reply.redirect(`${frontendUrl}/auth/callback?success=false&error=${encodeURIComponent(error.message)}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      reply.redirect(`${frontendUrl}/auth/callback?success=false&error=${encodeURIComponent(errorMessage)}`);
     }
   });
 

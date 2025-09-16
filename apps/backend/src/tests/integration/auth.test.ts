@@ -13,7 +13,7 @@ describe('Authentication Integration Tests', () => {
     prisma = new PrismaClient({
       datasources: {
         db: {
-          url: process.env.TEST_DATABASE_URL || 'postgresql://postgres:password@localhost:5432/taskforce_test'
+          url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/taskforce_test'
         }
       }
     });

@@ -2,10 +2,12 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "outDir": "./dist",
     "rootDir": "../..",
-    "strict": false,
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -25,8 +27,12 @@
     "emitDecoratorMetadata": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@taskforce/shared": ["../../packages/shared/src"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@taskforce/shared": [
+        "../../packages/shared/src"
+      ]
     }
   },
   "include": [
