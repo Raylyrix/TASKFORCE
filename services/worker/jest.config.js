@@ -4,7 +4,9 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      useESM: false,
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -16,10 +18,4 @@ module.exports = {
   // setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'], // Commented out since setup.ts doesn't exist
   // Allow packages with no tests to pass
   passWithNoTests: true,
-  // Include Jest globals
-  globals: {
-    'ts-jest': {
-      useESM: false,
-    },
-  },
 };

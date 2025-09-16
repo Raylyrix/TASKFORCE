@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import Fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
