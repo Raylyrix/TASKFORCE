@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: taskforce
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Rayvical}
     ports:
       - "5432:5432"
     volumes:
@@ -48,7 +48,7 @@ services:
     container_name: taskforce-backend
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/taskforce
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-Rayvical}@postgres:5432/taskforce
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
@@ -132,7 +132,7 @@ services:
     container_name: taskforce-worker
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/taskforce
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-Rayvical}@postgres:5432/taskforce
       REDIS_URL: redis://redis:6379
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
     depends_on:
