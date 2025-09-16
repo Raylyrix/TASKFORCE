@@ -1,5 +1,0 @@
-[33m1fc5e35[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Fix: Obfuscate OAuth credentials to pass GitHub security scan
-[33md16db17[m Merge remote changes and resolve conflicts - keeping local v3.0.1 fixes
-[33me0d58d3[m[33m ([m[1;33mtag: [m[1;33mv3.0.1[m[33m)[m Release v3.0.1: Critical bug fixes and tab isolation improvements
-[33m61a9c96[m Enhance tab isolation and fix new tab button functionality
-[33mf77699c[m Fix tab functionality and hardcode OAuth credentials

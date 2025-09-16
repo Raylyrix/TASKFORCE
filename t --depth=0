@@ -1,3 +1,0 @@
-[33m70ee725[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;33mtag: [m[1;33mv1.6.18[m[33m)[m Fix placeholder insertion, auto-updater repo, and optimize Google Sign-in speed - Bump version to 1.6.18
-[33mf7970e0[m[33m ([m[1;33mtag: [m[1;33mv1.6.17[m[33m)[m Remove all Quill editor code and fix scrolling issues - Bump version to 1.6.17
-[33ma2574d0[m[33m ([m[1;33mtag: [m[1;33mv1.6.16[m[33m)[m Replace Quill editor with enhanced contenteditable editor - Bump version to 1.6.16
