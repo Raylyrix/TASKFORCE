@@ -144,6 +144,9 @@ fastify.register(require('./routes/reports').reportRoutes);
 // Register electron bridge routes
 fastify.register(require('./routes/electron-bridge').electronBridgeRoutes);
 
+// Register dates routes
+fastify.register(require('./routes/dates').datesRoutes);
+
 // Initialize AI service
 const aiService = new (require('./services/ai').AIService)();
 

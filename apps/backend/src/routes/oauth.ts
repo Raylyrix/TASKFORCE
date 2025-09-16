@@ -178,6 +178,69 @@ export async function oauthRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Google Calendar freebusy
+  fastify.post('/api/v1/google/freebusy', async (request, reply) => {
+    try {
+      const { accessToken, timeMin, timeMax, calendars } = request.body as {
+        accessToken: string; timeMin: string; timeMax: string; calendars: string[];
+      };
+      const oauth2Client = new google.auth.OAuth2();
+      oauth2Client.setCredentials({ access_token: accessToken });
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      const resp = await calendar.freebusy.query({
+        requestBody: {
+          timeMin,
+          timeMax,
+          items: calendars.map(email => ({ id: email }))
+        }
+      });
+      return createApiResponse(true, resp.data);
+    } catch (error) {
+      console.error('Freebusy error:', error as any);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      reply.status(500);
+      return createApiResponse(false, null, errorMessage);
+    }
+  });
+
+  // Google Meet link creation via Calendar event insert
+  fastify.post('/api/v1/google/meet', async (request, reply) => {
+    try {
+      const { accessToken, summary, start, end, attendees } = request.body as {
+        accessToken: string;
+        summary: string;
+        start: { dateTime: string; timeZone?: string };
+        end: { dateTime: string; timeZone?: string };
+        attendees?: { email: string }[];
+      };
+      const oauth2Client = new google.auth.OAuth2();
+      oauth2Client.setCredentials({ access_token: accessToken });
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      const resp = await calendar.events.insert({
+        calendarId: 'primary',
+        requestBody: {
+          summary,
+          start,
+          end,
+          attendees,
+          conferenceData: {
+            createRequest: {
+              requestId: `req-${Date.now()}`,
+              conferenceSolutionKey: { type: 'hangoutsMeet' }
+            }
+          }
+        },
+        conferenceDataVersion: 1
+      });
+      return createApiResponse(true, resp.data);
+    } catch (error) {
+      console.error('Meet create error:', error as any);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      reply.status(500);
+      return createApiResponse(false, null, errorMessage);
+    }
+  });
+
   // Check authentication status
   fastify.get('/auth/status', async (request, reply) => {
     try {
