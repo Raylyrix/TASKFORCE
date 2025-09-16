@@ -21,9 +21,11 @@ const customJestConfig = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
-  }
+  },
+  // Allow packages with no tests to pass
+  passWithNoTests: true
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

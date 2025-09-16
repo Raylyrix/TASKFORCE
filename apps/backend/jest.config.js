@@ -20,7 +20,9 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
   testTimeout: 30000,
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@taskforce/shared$': '<rootDir>/../../packages/shared/src'
-  }
+  },
+  // Allow packages with no tests to pass
+  passWithNoTests: true
 };
