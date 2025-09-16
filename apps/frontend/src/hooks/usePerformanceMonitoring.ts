@@ -141,6 +141,16 @@ export function usePerformanceMonitoring(config: PerformanceConfig = {}) {
     }
   }, [enableNetworkMonitoring]);
 
+  // Get session ID
+  const getSessionId = useCallback(() => {
+    let sessionId = sessionStorage.getItem('performance_session_id');
+    if (!sessionId) {
+      sessionId = `perf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('performance_session_id', sessionId);
+    }
+    return sessionId;
+  }, []);
+
   // Report metrics
   const reportMetrics = useCallback(() => {
     const metrics = { ...metricsRef.current };
@@ -167,17 +177,7 @@ export function usePerformanceMonitoring(config: PerformanceConfig = {}) {
         console.error('Failed to report performance metrics:', err);
       });
     }
-  }, [onMetricsUpdate]);
-
-  // Get session ID
-  const getSessionId = useCallback(() => {
-    let sessionId = sessionStorage.getItem('performance_session_id');
-    if (!sessionId) {
-      sessionId = `perf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('performance_session_id', sessionId);
-    }
-    return sessionId;
-  }, []);
+  }, [onMetricsUpdate, getSessionId]);
 
   // Initialize performance monitoring
   useEffect(() => {
@@ -217,8 +217,9 @@ export function usePerformanceMonitoring(config: PerformanceConfig = {}) {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       
-      if (observerRef.current) {
-        observerRef.current.disconnect();
+      const observer = observerRef.current;
+      if (observer) {
+        observer.disconnect();
       }
     };
   }, [measurePageLoadTime, measureWebVitals, measureMemoryUsage, measureNetworkTiming, reportMetrics, reportInterval]);

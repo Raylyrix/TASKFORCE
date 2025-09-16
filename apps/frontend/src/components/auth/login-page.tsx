@@ -91,7 +91,7 @@ export function LoginPage() {
             {/* Features List */}
             <div className="mt-8">
               <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
-                What you'll get:
+                What you&apos;ll get:
               </h3>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li className="flex items-center">

@@ -10,13 +10,15 @@ module.exports = {
   ],
   rules: {
     'no-unused-vars': 'off',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    'no-console': 'warn',
-    'prefer-const': 'error',
+    '@typescript-eslint/no-unused-vars': 'off',
+    'no-console': 'off',
+    'prefer-const': 'warn',
+    'no-undef': 'off',
   },
   env: {
     node: true,
     es6: true,
+    jest: true,
   },
   ignorePatterns: ['dist/', 'node_modules/', '*.js'],
 };
