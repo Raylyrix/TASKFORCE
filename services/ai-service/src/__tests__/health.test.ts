@@ -1,5 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
-
 describe('AI Service Health Check', () => {
   it('should pass basic health check', () => {
     expect(true).toBe(true);

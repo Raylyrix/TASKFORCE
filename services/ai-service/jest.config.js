@@ -15,4 +15,10 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   // Allow packages with no tests to pass
   passWithNoTests: true,
+  // Include Jest globals
+  globals: {
+    'ts-jest': {
+      useESM: false,
+    },
+  },
 };
