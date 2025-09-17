@@ -150,6 +150,9 @@ fastify.register(require('./routes/dates').datesRoutes);
 // Register scheduling routes
 fastify.register(require('./routes/scheduling').schedulingRoutes);
 
+// Register auto-setup routes
+fastify.register(require('./routes/auto-setup').autoSetupRoutes);
+
 // Initialize services
 const aiService = new (require('./services/ai').AIService)();
 const analyticsService = new (require('./services/analytics').AnalyticsService)(prisma);
