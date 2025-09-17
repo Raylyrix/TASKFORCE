@@ -5,28 +5,19 @@ const { execSync } = require('child_process');
 function createFallbackPrismaClient() {
   console.log('🔧 Creating fallback Prisma client...');
   
-  const prismaClientPath = path.join(__dirname, '../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/index.d.ts');
-  const fallbackTypesPath = path.join(__dirname, 'src/types/prisma-fallback.ts');
-  
-  // Create the @prisma/client directory if it doesn't exist
-  const prismaClientDir = path.dirname(prismaClientPath);
-  if (!fs.existsSync(prismaClientDir)) {
-    fs.mkdirSync(prismaClientDir, { recursive: true });
+  // Ensure the types directory exists
+  const typesDir = path.join(__dirname, 'src/types');
+  if (!fs.existsSync(typesDir)) {
+    fs.mkdirSync(typesDir, { recursive: true });
   }
   
-  // Create a minimal Prisma client type definition
-  const fallbackContent = `// Fallback Prisma client types for CI builds
-export * from '../types/prisma-fallback';
-export { PrismaClient } from '../types/prisma-fallback';
-export { Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report } from '../types/prisma-fallback';
-`;
-  
-  try {
-    fs.writeFileSync(prismaClientPath, fallbackContent);
-    console.log('✅ Fallback Prisma client created');
-  } catch (error) {
-    console.log('⚠️  Could not create fallback Prisma client, but continuing...');
+  // Ensure the lib directory exists
+  const libDir = path.join(__dirname, 'src/lib');
+  if (!fs.existsSync(libDir)) {
+    fs.mkdirSync(libDir, { recursive: true });
   }
+  
+  console.log('✅ Type definitions are available');
 }
 
 // Copy env.example to .env if .env doesn't exist

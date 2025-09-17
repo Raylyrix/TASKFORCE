@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { getPrismaClient } from '../utils/prisma-import';
+
 import { google } from 'googleapis';
+import { getPrismaClient, type PrismaClient, type Mailbox, type Message, type Contact, type Thread, type User, type Organization, type Analytics, type Report } from '../lib/prisma';
+
 
 // Simple API response helper
 function createApiResponse(success: boolean, data: any = null, error: string | null = null) {

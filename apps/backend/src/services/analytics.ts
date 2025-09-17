@@ -1,4 +1,5 @@
-import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
+import { getPrismaClient, type PrismaClient, type Mailbox, type Message, type Contact, type Thread, type User, type Organization, type Analytics, type Report } from '../lib/prisma';
+
 // Types: PrismaClient
 // import { DateRange, VolumeResponse, ResponseTimeResponse, ContactResponse } from '@taskforce/shared';
 // Temporary local types

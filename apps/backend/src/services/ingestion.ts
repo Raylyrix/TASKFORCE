@@ -1,8 +1,9 @@
-import { getPrismaClient, getPrismaTypes } from '../utils/prisma-import';
 // Types: PrismaClient, Mailbox, Message, Contact, Thread
 import { GmailConnector } from '../connectors/gmail';
 import { OutlookConnector } from '../connectors/outlook';
 import { BaseConnector, EmailMessage } from '../connectors/base';
+import { getPrismaClient, type PrismaClient, type Mailbox, type Message, type Contact, type Thread, type User, type Organization, type Analytics, type Report } from '../lib/prisma';
+
 // import { hashString, extractDomain, isInternalDomain } from '@taskforce/shared';
 // Temporary local implementations
 function hashString(str: string) { return str; }

@@ -1,4 +1,3 @@
-import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
 // Types: PrismaClient
 import { AnalyticsService } from './analytics';
 import { AIService } from './ai';
@@ -9,6 +8,8 @@ import Handlebars from 'handlebars';
 import moment from 'moment';
 import fs from 'fs';
 import path from 'path';
+import { getPrismaClient, type PrismaClient, type Mailbox, type Message, type Contact, type Thread, type User, type Organization, type Analytics, type Report } from '../lib/prisma';
+
 
 export interface ReportConfig {
   userId: string;

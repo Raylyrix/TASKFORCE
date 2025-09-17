@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { BaseConnector, EmailMessage, SyncResult, ConnectorConfig } from './base';
-import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
+import { getPrismaClient, type PrismaClient, type Mailbox, type Message, type Contact, type Thread, type User, type Organization, type Analytics, type Report } from '../lib/prisma';
+
 // Types: Mailbox
 
 export class GmailConnector extends BaseConnector {

@@ -1,5 +1,4 @@
 import { FastifyInstance } from 'fastify';
-import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
 // Types: PrismaClient
 import { ReportingService } from '../services/reporting';
 // import { createApiResponse } from '@taskforce/shared';
@@ -8,6 +7,8 @@ function createApiResponse(success: boolean, data: any = null, error: string | n
   return { success, data, error };
 }
 import { z } from 'zod';
+import { getPrismaClient, type PrismaClient, type Mailbox, type Message, type Contact, type Thread, type User, type Organization, type Analytics, type Report } from '../lib/prisma';
+
 
 const reportConfigSchema = {
   type: 'object',

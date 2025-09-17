@@ -1,8 +1,10 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
-import { getPrismaClient } from './utils/prisma-import';
+
 import dotenv from 'dotenv';
+import { getPrismaClient, type PrismaClient, type Mailbox, type Message, type Contact, type Thread, type User, type Organization, type Analytics, type Report } from './lib/prisma';
+
 // // import { createApiResponse } from '@taskforce/shared';
 // Temporary local implementation
 function createApiResponse(success: boolean, data: any = null, error: string | null = null) {
