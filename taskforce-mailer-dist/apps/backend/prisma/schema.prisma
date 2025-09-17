@@ -1,0 +1,562 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Multi-tenant organization structure
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String?  @unique
+  settings  Json?    // Organization-specific settings
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users        User[]
+  teams        Team[]
+  mailboxes    Mailbox[]
+  analytics    AnalyticsAggregate[]
+  aiRequests   AIRequest[]
+  reports      Report[]
+  rules        AutomationRule[]
+
+  @@map("organizations")
+}
+
+// User management with RBAC
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  avatar         String?
+  role           UserRole  @default(VIEWER)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  preferences    Json?     // User UI preferences
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  teamMemberships TeamMembership[]
+  auditLogs      AuditLog[]
+  reports        Report[]
+  
+  // Dates scheduling relations
+  eventTypes     EventType[]
+  bookings       Booking[]
+  calendarIntegrations CalendarIntegration[]
+
+  @@map("users")
+}
+
+// Team structure for collaboration
+model Team {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  department     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        TeamMembership[]
+  mailboxes      Mailbox[]
+
+  @@map("teams")
+}
+
+model TeamMembership {
+  id        String       @id @default(cuid())
+  role      TeamRole     @default(MEMBER)
+  joinedAt  DateTime     @default(now())
+
+  // Relations
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId    String
+  team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@map("team_memberships")
+}
+
+// Email provider connections
+model Mailbox {
+  id             String        @id @default(cuid())
+  email          String
+  provider       EmailProvider
+  providerId     String        // Provider-specific ID
+  displayName    String?
+  isActive       Boolean       @default(true)
+  lastSyncAt     DateTime?
+  syncCursor     String?       // For incremental sync
+  settings       Json?         // Provider-specific settings
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  teamId         String?
+  team           Team?         @relation(fields: [teamId], references: [id])
+  messages       Message[]
+  threads        Thread[]
+  contacts       Contact[]
+
+  @@unique([email, organizationId])
+  @@map("mailboxes")
+}
+
+// Email messages metadata
+model Message {
+  id            String      @id @default(cuid())
+  messageId     String      // Provider message ID
+  threadId      String?     // Provider thread ID
+  subject       String?
+  fromEmail     String
+  fromName      String?
+  toEmails      String[]    // Array of recipient emails
+  ccEmails      String[]    @default([])
+  bccEmails     String[]    @default([])
+  receivedAt    DateTime
+  sentAt        DateTime?
+  size          Int?        // Message size in bytes
+  hasAttachments Boolean    @default(false)
+  attachmentCount Int?      @default(0)
+  isRead        Boolean     @default(false)
+  isImportant   Boolean     @default(false)
+  labels        String[]    @default([]) // Gmail labels or Outlook categories
+  snippet       String?     // Email preview snippet
+  bodyHash      String?     // Hash of email body for deduplication
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  mailboxId     String
+  mailbox       Mailbox     @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  thread        Thread?     @relation(fields: [threadId], references: [id])
+  contacts      MessageContact[]
+  aiAnalysis    AIAnalysis[]
+
+  @@unique([messageId, mailboxId])
+  @@index([receivedAt])
+  @@index([fromEmail])
+  @@index([threadId])
+  @@map("messages")
+}
+
+// Email threads/conversations
+model Thread {
+  id                String    @id @default(cuid())
+  threadId          String    // Provider thread ID
+  subject           String?
+  messageCount      Int       @default(1)
+  lastMessageAt     DateTime
+  isResolved        Boolean   @default(false)
+  responseTime      Int?      // Response time in minutes
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  mailboxId         String
+  mailbox           Mailbox   @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  messages          Message[]
+
+  @@unique([threadId, mailboxId])
+  @@index([lastMessageAt])
+  @@map("threads")
+}
+
+// Contact management
+model Contact {
+  id                String    @id @default(cuid())
+  email             String
+  name              String?
+  domain            String?   // Extracted from email domain
+  isInternal        Boolean   @default(false)
+  responseRate      Float?    // Calculated response rate
+  avgResponseTime   Int?      // Average response time in minutes
+  lastContactAt     DateTime?
+  contactCount      Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  mailboxId         String
+  mailbox           Mailbox   @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  messages          MessageContact[]
+
+  @@unique([email, mailboxId])
+  @@index([domain])
+  @@map("contacts")
+}
+
+// Junction table for message-contacts relationship
+model MessageContact {
+  id        String   @id @default(cuid())
+  role      ContactRole @default(TO) // TO, CC, BCC, FROM
+
+  // Relations
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, contactId, role])
+  @@map("message_contacts")
+}
+
+// Pre-computed analytics aggregates
+model AnalyticsAggregate {
+  id             String    @id @default(cuid())
+  date           DateTime  @db.Date
+  metric         String    // 'volume', 'response_time', 'contact_health', etc.
+  value          Float
+  metadata       Json?     // Additional metric-specific data
+  createdAt      DateTime  @default(now())
+
+  // Relations
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date, metric])
+  @@index([date])
+  @@index([metric])
+  @@map("analytics_aggregates")
+}
+
+// AI analysis results
+model AIAnalysis {
+  id              String      @id @default(cuid())
+  analysisType    AnalysisType
+  result          Json        // AI analysis result
+  confidence      Float?      // Confidence score 0-1
+  model           String      // AI model used
+  promptHash      String      // Hash of prompt for caching
+  processingTime  Int?        // Processing time in ms
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  messageId       String
+  message         Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([analysisType])
+  @@index([promptHash])
+  @@map("ai_analyses")
+}
+
+// AI request logging
+model AIRequest {
+  id              String      @id @default(cuid())
+  promptHash      String      // SHA256 hash of prompt
+  model           String
+  tokensUsed      Int?
+  cost            Float?      // Cost in USD
+  responseTime    Int?        // Response time in ms
+  success         Boolean
+  errorMessage    String?
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([promptHash])
+  @@index([createdAt])
+  @@map("ai_requests")
+}
+
+// Automation rules
+model AutomationRule {
+  id              String      @id @default(cuid())
+  name            String
+  description     String?
+  conditions      Json        // Rule conditions
+  actions         Json        // Rule actions
+  isActive        Boolean     @default(true)
+  lastTriggeredAt DateTime?
+  triggerCount    Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("automation_rules")
+}
+
+// Generated reports
+model Report {
+  id              String      @id @default(cuid())
+  name            String
+  type            ReportType
+  template        String?     // Report template used
+  data            Json        // Report data
+  filePath        String?     // Path to generated file
+  fileSize        Int?        // File size in bytes
+  isScheduled     Boolean     @default(false)
+  scheduledAt     DateTime?
+  generatedAt     DateTime    @default(now())
+
+  // Relations
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  generatedById   String
+  generatedBy     User        @relation(fields: [generatedById], references: [id])
+
+  @@map("reports")
+}
+
+// Dates Scheduling System Models
+
+// Event types that users can create for booking
+model EventType {
+  id              String      @id @default(cuid())
+  title           String
+  description     String?
+  durationMin     Int         // Duration in minutes
+  type            EventTypeType @default(ONE_ON_ONE)
+  bufferBefore    Int         @default(0) // Buffer time before in minutes
+  bufferAfter     Int         @default(0) // Buffer time after in minutes
+  isActive        Boolean     @default(true)
+  requiresConfirmation Boolean @default(false)
+  maxBookings     Int?        // Max bookings per day
+  price           Float?      // Optional pricing
+  currency        String?     @default("USD")
+  settings        Json?       // Additional settings (location, requirements, etc.)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  ownerId         String
+  owner           User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
+  availability    Availability[]
+  questions       BookingQuestion[]
+
+  @@map("event_types")
+}
+
+// User availability settings
+model Availability {
+  id              String      @id @default(cuid())
+  dayOfWeek       Int         // 0-6 (Sunday-Saturday)
+  startTime       String      // "09:00" format
+  endTime         String      // "17:00" format
+  isAvailable     Boolean     @default(true)
+  timeZone        String      @default("UTC")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  eventTypeId     String
+  eventType       EventType   @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([eventTypeId, dayOfWeek, startTime])
+  @@map("availability")
+}
+
+// Booking records
+model Booking {
+  id              String      @id @default(cuid())
+  attendeeEmail   String
+  attendeeName    String?
+  startTime       DateTime
+  endTime         DateTime
+  timeZone        String      @default("UTC")
+  status          BookingStatus @default(PENDING)
+  meetingLink     String?     // Google Meet or other meeting link
+  location        String?     // Physical location if applicable
+  notes           String?     // Additional notes
+  confirmationCode String?    // Unique confirmation code
+  rescheduledFrom String?     // ID of original booking if rescheduled
+  cancelledAt     DateTime?
+  cancelledBy     String?     // User ID who cancelled
+  cancellationReason String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  eventTypeId     String
+  eventType       EventType   @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  attendeeId      String?     // If attendee has an account
+  attendee        User?       @relation(fields: [attendeeId], references: [id])
+  responses       BookingResponse[]
+
+  @@index([attendeeEmail])
+  @@index([startTime])
+  @@index([status])
+  @@map("bookings")
+}
+
+// Booking questions/forms
+model BookingQuestion {
+  id              String      @id @default(cuid())
+  question        String
+  type            QuestionType @default(TEXT)
+  isRequired      Boolean     @default(false)
+  options         String[]    @default([]) // For multiple choice questions
+  placeholder     String?
+  order           Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  eventTypeId     String
+  eventType       EventType   @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  responses       BookingResponse[]
+
+  @@map("booking_questions")
+}
+
+// Booking responses
+model BookingResponse {
+  id              String      @id @default(cuid())
+  answer          String
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  bookingId       String
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        BookingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, questionId])
+  @@map("booking_responses")
+}
+
+// Calendar integration settings
+model CalendarIntegration {
+  id              String      @id @default(cuid())
+  provider        CalendarProvider
+  calendarId      String      // External calendar ID
+  calendarName    String?
+  isActive        Boolean     @default(true)
+  syncToken       String?     // For incremental sync
+  lastSyncAt      DateTime?
+  settings        Json?       // Provider-specific settings
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, calendarId])
+  @@map("calendar_integrations")
+}
+
+// Audit logging for compliance
+model AuditLog {
+  id              String      @id @default(cuid())
+  action          String      // Action performed
+  resource        String      // Resource affected
+  resourceId      String?     // ID of affected resource
+  details         Json?       // Additional details
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Enums
+enum UserRole {
+  VIEWER
+  ANALYST
+  MANAGER
+  ADMIN
+  OWNER
+}
+
+enum TeamRole {
+  MEMBER
+  LEAD
+  ADMIN
+}
+
+enum EmailProvider {
+  GMAIL
+  OUTLOOK
+  EXCHANGE
+}
+
+enum ContactRole {
+  FROM
+  TO
+  CC
+  BCC
+}
+
+enum AnalysisType {
+  PRIORITY
+  SENTIMENT
+  SUMMARY
+  TASK_EXTRACTION
+  CATEGORIZATION
+  SMART_REPLY
+}
+
+enum ReportType {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  CUSTOM
+  EXECUTIVE
+}
+
+// Dates scheduling enums
+enum EventTypeType {
+  ONE_ON_ONE
+  GROUP
+  ROUND_ROBIN
+  COLLECTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum QuestionType {
+  TEXT
+  TEXTAREA
+  SELECT
+  MULTISELECT
+  NUMBER
+  EMAIL
+  PHONE
+  DATE
+  TIME
+  BOOLEAN
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+  APPLE
+  CALDAV
+}
