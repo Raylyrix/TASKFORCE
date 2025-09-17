@@ -75,12 +75,31 @@
 
 ## 📦 **Installation & Setup**
 
-### **For End Users**
-1. Download the latest release from GitHub
-2. Run the installer (Windows) or setup script
-3. Launch the application
+### **For End Users - One-Click Installation! 🚀**
+
+**Windows Users:**
+1. Download `Taskforce-Mailer-Setup-5.0.0.exe` from GitHub Releases
+2. Double-click the installer and follow the setup wizard
+3. Launch "Taskforce Mailer" from your desktop or Start Menu
 4. Complete the seamless setup process
 5. Start using all features immediately!
+
+**macOS Users:**
+1. Download `Taskforce-Mailer-5.0.0.dmg` (Intel) or `Taskforce-Mailer-5.0.0-arm64.dmg` (Apple Silicon)
+2. Open the DMG file and drag to Applications folder
+3. Launch from Applications or Spotlight
+4. Complete the seamless setup process
+5. Start using all features immediately!
+
+**Linux Users:**
+1. Download `Taskforce-Mailer-5.0.0.AppImage` or `Taskforce-Mailer-5.0.0.deb`
+2. For AppImage: Make executable and run (`chmod +x` and `./Taskforce-Mailer-5.0.0.AppImage`)
+3. For DEB: Install with `sudo dpkg -i Taskforce-Mailer-5.0.0.deb`
+4. Launch from applications menu
+5. Complete the seamless setup process
+6. Start using all features immediately!
+
+**✨ No complex installation steps - just download and run!**
 
 ### **For Developers**
 ```bash

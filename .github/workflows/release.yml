@@ -13,7 +13,7 @@ env:
   PNPM_VERSION: '8'
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
     
     services:
@@ -103,49 +103,182 @@ jobs:
       - name: Run linting
         run: pnpm lint
 
-      - name: Create build artifacts
-        run: |
-          mkdir -p dist
-          cp -r apps/backend/dist dist/backend
-          cp -r apps/frontend/.next dist/frontend
-          cp -r services/worker/dist dist/worker
-          cp -r services/ai-service/dist dist/ai-service
-          cp package.json pnpm-lock.yaml pnpm-workspace.yaml dist/
-          cp -r electron-app dist/electron-app
-          cp -r docker-compose.production.yml dist/
-          cp -r env.example dist/
-          cp -r README.md dist/
-          cp -r RELEASE_NOTES_v5.0.0.md dist/
+  build-windows:
+    runs-on: windows-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Upload build artifacts
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Install Electron Builder
+        run: pnpm add -D electron electron-builder
+
+      - name: Create Windows installer
+        run: |
+          cd electron-app
+          npm install
+          npx electron-builder --win nsis --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: taskforce-mailer-build
-          path: dist/
-          retention-days: 30
+          name: windows-installer
+          path: electron-app/dist/*.exe
+
+  build-macos:
+    runs-on: macos-latest
+    needs: test
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Install Electron Builder
+        run: pnpm add -D electron electron-builder
+
+      - name: Create macOS installer
+        run: |
+          cd electron-app
+          npm install
+          npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer-${{ matrix.arch }}
+          path: electron-app/dist/*.{dmg,zip}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Install Electron Builder
+        run: pnpm add -D electron electron-builder
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot rpm
+
+      - name: Create Linux installer
+        run: |
+          cd electron-app
+          npm install
+          npx electron-builder --linux AppImage deb --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installer
+          path: electron-app/dist/*.{AppImage,deb}
 
   create-release:
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: [build-windows, build-macos, build-linux]
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - name: Download build artifacts
+      - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
-          name: taskforce-mailer-build
-          path: dist/
+          name: windows-installer
+          path: windows/
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-installer-x64
+          path: macos-x64/
+      
+      - name: Download macOS ARM64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-installer-arm64
+          path: macos-arm64/
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-installer
+          path: linux/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          name: 🚀 Taskforce Mailer ${{ github.ref_name }} - Production Ready
+          name: 🚀 Taskforce Mailer ${{ github.ref_name }} - Ready to Install
           body_path: RELEASE_NOTES_v5.0.0.md
           draft: false
           prerelease: false
           files: |
-            dist/**/*
+            windows/**/*
+            macos-x64/**/*
+            macos-arm64/**/*
+            linux/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

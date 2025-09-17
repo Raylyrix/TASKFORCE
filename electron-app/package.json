@@ -1,8 +1,9 @@
 {
   "name": "taskforce-mailer-desktop",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "description": "Taskforce Mailer - Enterprise Email Management Desktop App",
   "main": "main.js",
+  "homepage": "./",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
@@ -17,27 +18,108 @@
     "appId": "com.taskforce.mailer",
     "productName": "Taskforce Mailer",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "assets"
     },
     "files": [
       "main.js",
       "preload.js",
-      "renderer/**/*",
-      "node_modules/**/*"
+      "../apps/frontend/.next/**/*",
+      "../apps/backend/dist/**/*",
+      "../services/worker/dist/**/*",
+      "../services/ai-service/dist/**/*",
+      "../packages/shared/dist/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.git*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.git*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/node_modules/.cache",
+      "!**/node_modules/.pnpm"
+    ],
+    "extraResources": [
+      {
+        "from": "../apps/frontend/.next",
+        "to": "frontend",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../apps/backend/dist",
+        "to": "backend",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../services/worker/dist",
+        "to": "worker",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../services/ai-service/dist",
+        "to": "ai-service",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../packages/shared/dist",
+        "to": "shared",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../env.example",
+        "to": "env.example"
+      },
+      {
+        "from": "../docker-compose.production.yml",
+        "to": "docker-compose.production.yml"
+      }
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ],
       "icon": "assets/icon.ico",
       "publisherName": "Taskforce",
       "requestedExecutionLevel": "asInvoker"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ],
       "icon": "assets/icon.icns",
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist"
     },
     "linux": {
-      "target": "AppImage",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64", "arm64"]
+        }
+      ],
       "icon": "assets/icon.png",
       "category": "Office"
     },
@@ -46,7 +128,28 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Taskforce Mailer"
+      "shortcutName": "Taskforce Mailer",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false
+    },
+    "dmg": {
+      "title": "Taskforce Mailer",
+      "icon": "assets/icon.icns",
+      "background": "assets/dmg-background.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   },
   "devDependencies": {

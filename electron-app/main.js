@@ -34,8 +34,18 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, serve the built React app
-    mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
+    // In production, serve the built Next.js app
+    const frontendPath = path.join(process.resourcesPath, 'frontend');
+    const indexPath = path.join(frontendPath, 'static', 'index.html');
+    
+    // Try to load the built Next.js app
+    try {
+      mainWindow.loadFile(indexPath);
+    } catch (error) {
+      console.error('Failed to load built app, falling back to localhost:', error);
+      // Fallback to localhost if built files not found
+      mainWindow.loadURL('http://localhost:3000');
+    }
   }
 
   // Show window when ready
