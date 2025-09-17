@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { google } from 'googleapis';
-import { PrismaClient } from '@prisma/client';
+import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
+// Types: PrismaClient
 // import { createApiResponse } from '@taskforce/shared';
 // Temporary local implementation
 function createApiResponse(success: boolean, data: any = null, error: string | null = null) {

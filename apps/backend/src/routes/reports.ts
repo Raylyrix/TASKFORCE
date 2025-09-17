@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
+// Types: PrismaClient
 import { ReportingService } from '../services/reporting';
 // import { createApiResponse } from '@taskforce/shared';
 // Temporary local implementation

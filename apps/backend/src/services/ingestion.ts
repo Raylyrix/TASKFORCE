@@ -1,4 +1,5 @@
-import { PrismaClient, Mailbox, Message, Contact, Thread } from '@prisma/client';
+import { getPrismaClient, getPrismaTypes } from '../utils/prisma-import';
+// Types: PrismaClient, Mailbox, Message, Contact, Thread
 import { GmailConnector } from '../connectors/gmail';
 import { OutlookConnector } from '../connectors/outlook';
 import { BaseConnector, EmailMessage } from '../connectors/base';

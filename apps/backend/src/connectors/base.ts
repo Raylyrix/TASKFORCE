@@ -1,4 +1,5 @@
-import { Mailbox } from '@prisma/client';
+import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
+// Types: Mailbox
 
 export interface EmailMessage {
   messageId: string;

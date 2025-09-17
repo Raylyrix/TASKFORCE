@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
-import { PrismaClient } from '@prisma/client';
+import { getPrismaClient } from './utils/prisma-import';
 import dotenv from 'dotenv';
 // // import { createApiResponse } from '@taskforce/shared';
 // Temporary local implementation
@@ -13,7 +13,7 @@ function createApiResponse(success: boolean, data: any = null, error: string | n
 dotenv.config();
 
 // Initialize Prisma
-const prisma = new PrismaClient();
+const prisma = getPrismaClient();
 
 // Create Fastify instance
 const fastify = Fastify({

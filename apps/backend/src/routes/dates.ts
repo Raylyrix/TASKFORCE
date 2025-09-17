@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { getPrismaClient } from '../utils/prisma-import';
 import { google } from 'googleapis';
 
 // Simple API response helper
@@ -15,7 +15,7 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 export async function datesRoutes(fastify: FastifyInstance) {
-  const prisma = (fastify as any).prisma as PrismaClient;
+  const prisma = getPrismaClient();
 
   // ===== EVENT TYPES =====
 

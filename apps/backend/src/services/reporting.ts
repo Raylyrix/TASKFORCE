@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { getPrismaClient, PrismaClient, Mailbox, Message, Contact, Thread, User, Organization, Analytics, Report, getPrismaTypes } from '../utils/prisma-import';
+// Types: PrismaClient
 import { AnalyticsService } from './analytics';
 import { AIService } from './ai';
 import puppeteer from 'puppeteer';
