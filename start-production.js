@@ -1,95 +1,105 @@
 const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 
-console.log('🚀 Starting Taskforce Mailer - Production Mode');
-console.log('================================================\n');
+console.log('🚀 Starting Taskforce Mailer Production Environment...\n');
 
-// Ensure .env exists
-const envPath = path.join(__dirname, '.env');
-const envExamplePath = path.join(__dirname, 'env.example');
-if (!fs.existsSync(envPath) && fs.existsSync(envExamplePath)) {
-  console.log('📋 Copying env.example to .env...');
-  fs.copyFileSync(envExamplePath, envPath);
-  console.log('✅ Environment file created');
-}
-
-// Test Supabase connection first
-console.log('🔍 Testing Supabase connection...');
-const { createClient } = require('@supabase/supabase-js');
-
-const supabaseUrl = 'https://mcyiohpzduyqmjsepedo.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jeWlvaHB6ZHV5cW1qc2VwZWRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwODg5NTcsImV4cCI6MjA3MzY2NDk1N30.-sOcgTWdyavYUnOLIjlbDK_C5f2KnntN2_PjiN0JhBk';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jeWlvaHB6ZHV5cW1qc2VwZWRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODA4ODk1NywiZXhwIjoyMDczNjY0OTU3fQ.VmgFAJdPH2CIqGvjg6QnkG11WjbEMoGq_y62SGSbhJE';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-async function testSupabase() {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('scheduled_emails')
-      .select('count')
-      .limit(1);
-    
-    if (error) {
-      console.log('⚠️  Supabase connection issue:', error.message);
-      console.log('💡 Please run the setup-supabase-database.sql script in your Supabase dashboard');
-    } else {
-      console.log('✅ Supabase connection successful');
-    }
-  } catch (err) {
-    console.log('⚠️  Supabase test failed:', err.message);
-  }
-}
-
-// Start the application
-async function startApp() {
-  await testSupabase();
+// Function to start a service
+function startService(name, command, args, cwd, env = {}) {
+  console.log(`📦 Starting ${name}...`);
   
-  console.log('\n🔧 Starting Backend...');
-  const backendProcess = spawn('npx', ['tsx', 'apps/backend/src/simple-server.ts'], {
-    cwd: __dirname,
-    stdio: 'inherit',
-    shell: true,
+  const child = spawn(command, args, {
+    cwd: cwd,
+    env: { ...process.env, ...env },
+    stdio: 'pipe',
+    shell: true
   });
 
-  backendProcess.on('error', (error) => {
-    console.error(`❌ Backend failed to start: ${error}`);
-  });
-
-  backendProcess.on('exit', (code) => {
-    if (code !== 0) {
-      console.warn(`⚠️  Backend exited with code ${code}`);
+  child.stdout.on('data', (data) => {
+    const output = data.toString();
+    if (output.trim()) {
+      console.log(`[${name}] ${output.trim()}`);
     }
   });
 
-  // Wait a moment for backend to start
-  setTimeout(() => {
-    console.log('\n🎨 Starting Frontend...');
-    const frontendProcess = spawn('pnpm', ['--filter=./apps/frontend', 'dev'], {
-      cwd: __dirname,
-      stdio: 'inherit',
-      shell: true,
-    });
-
-    frontendProcess.on('error', (error) => {
-      console.error(`❌ Frontend failed to start: ${error}`);
-    });
-
-    frontendProcess.on('exit', (code) => {
-      if (code !== 0) {
-        console.warn(`⚠️  Frontend exited with code ${code}`);
-      }
-    });
-  }, 3000);
-
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('\n🛑 Shutting down...');
-    backendProcess.kill();
-    process.exit(0);
+  child.stderr.on('data', (data) => {
+    const output = data.toString();
+    if (output.trim() && !output.includes('EADDRINUSE')) {
+      console.log(`[${name}] ${output.trim()}`);
+    }
   });
+
+  child.on('error', (error) => {
+    console.error(`❌ Failed to start ${name}:`, error.message);
+  });
+
+  return child;
 }
 
-startApp().catch(console.error);
+// Start services in order
+const services = [];
+
+// 1. Start Backend
+console.log('🔧 Starting Backend Service...');
+const backend = startService('Backend', 'npx', ['tsx', 'src/index.ts'], path.join(__dirname, 'apps/backend'), {
+  PORT: '4000',
+  NODE_ENV: 'production'
+});
+services.push(backend);
+
+// Wait a bit for backend to start
+setTimeout(() => {
+  // 2. Start Worker Service
+  console.log('🔧 Starting Worker Service...');
+  const worker = startService('Worker', 'npx', ['tsx', 'src/index.ts'], path.join(__dirname, 'services/worker'), {
+    PORT: '4002',
+    NODE_ENV: 'production'
+  });
+  services.push(worker);
+
+  // 3. Start AI Service
+  console.log('🔧 Starting AI Service...');
+  const aiService = startService('AI Service', 'npx', ['tsx', 'src/index.ts'], path.join(__dirname, 'services/ai-service'), {
+    PORT: '4001',
+    NODE_ENV: 'production'
+  });
+  services.push(aiService);
+
+  // 4. Start Frontend
+  setTimeout(() => {
+    console.log('🔧 Starting Frontend Service...');
+    const frontend = startService('Frontend', 'pnpm', ['dev'], path.join(__dirname, 'apps/frontend'), {
+      PORT: '3000',
+      NODE_ENV: 'production'
+    });
+    services.push(frontend);
+  }, 2000);
+
+}, 3000);
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down services...');
+  services.forEach(service => {
+    if (service && !service.killed) {
+      service.kill('SIGTERM');
+    }
+  });
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down services...');
+  services.forEach(service => {
+    if (service && !service.killed) {
+      service.kill('SIGTERM');
+    }
+  });
+  process.exit(0);
+});
+
+console.log('✅ All services starting...');
+console.log('🌐 Frontend: http://localhost:3000');
+console.log('🔧 Backend: http://localhost:4000');
+console.log('🤖 AI Service: http://localhost:4001');
+console.log('⚙️ Worker Service: http://localhost:4002');
+console.log('\nPress Ctrl+C to stop all services');

@@ -1,6 +1,6 @@
 {
   "name": "taskforce-mailer-desktop",
-  "version": "5.0.0",
+  "version": "5.0.5",
   "description": "Taskforce Mailer - Enterprise Email Management Desktop App",
   "main": "main.js",
   "homepage": "./",

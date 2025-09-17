@@ -1,6 +1,6 @@
 {
   "name": "@taskforce/worker",
-  "version": "1.0.0",
+  "version": "5.0.5",
   "description": "Taskforce Analytics Background Worker",
   "main": "dist/index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist",
+    "clean": "if exist dist rmdir /s /q dist",
     "setup": "echo 'Worker setup complete'"
   },
   "dependencies": {

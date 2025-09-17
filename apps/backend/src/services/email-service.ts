@@ -1,4 +1,4 @@
-import * as nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 import crypto from 'crypto-js';
 
 export interface EmailOptions {

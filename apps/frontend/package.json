@@ -1,6 +1,6 @@
 {
   "name": "@taskforce/frontend",
-  "version": "4.0.0",
+  "version": "5.0.5",
   "description": "Taskforce Analytics Frontend Dashboard",
   "scripts": {
     "dev": "next dev -p 3000",
@@ -12,7 +12,7 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf .next out",
+    "clean": "if exist .next rmdir /s /q .next && if exist out rmdir /s /q out",
     "setup": "echo 'Frontend setup complete'"
   },
   "dependencies": {

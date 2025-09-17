@@ -1,6 +1,6 @@
 {
   "name": "@taskforce/shared",
-  "version": "1.0.0",
+  "version": "5.0.5",
   "description": "Shared types and utilities for Taskforce Analytics",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,7 +9,7 @@
     "dev": "tsc --watch",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
-    "clean": "rm -rf dist",
+    "clean": "if exist dist rmdir /s /q dist",
     "setup": "echo 'Shared package setup complete'"
   },
   "dependencies": {
