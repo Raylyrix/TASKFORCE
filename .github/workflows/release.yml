@@ -276,7 +276,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: 🚀 Taskforce Mailer ${{ github.ref_name }} - Ready to Install
-          body_path: RELEASE_NOTES_v5.0.6.md
+          body_path: RELEASE_NOTES_v5.0.7.md
           draft: false
           prerelease: false
           files: |

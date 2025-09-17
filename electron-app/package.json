@@ -1,7 +1,8 @@
 {
   "name": "taskforce-mailer-desktop",
-  "version": "5.0.6",
+  "version": "5.0.7",
   "description": "Taskforce Mailer - Enterprise Email Management Desktop App",
+  "author": "Taskforce Team",
   "main": "main.js",
   "homepage": "./",
   "scripts": {
@@ -80,17 +81,16 @@
         "to": "docker-compose.production.yml"
       }
     ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64", "arm64"]
-        }
-      ],
-      "icon": "assets/icon.ico",
-      "publisherName": "Taskforce",
-      "requestedExecutionLevel": "asInvoker"
-    },
+          "win": {
+            "target": [
+              {
+                "target": "nsis",
+                "arch": ["x64", "arm64"]
+              }
+            ],
+            "icon": "assets/icon.ico",
+            "requestedExecutionLevel": "asInvoker"
+          },
     "mac": {
       "target": [
         {
@@ -153,8 +153,8 @@
     }
   },
   "devDependencies": {
-    "electron": "workspace:*",
-    "electron-builder": "workspace:*"
+    "electron": "^38.1.1",
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "electron-store": "^8.1.0",

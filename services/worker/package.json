@@ -1,6 +1,6 @@
 {
   "name": "@taskforce/worker",
-  "version": "5.0.6",
+  "version": "5.0.7",
   "description": "Taskforce Analytics Background Worker",
   "main": "dist/index.js",
   "scripts": {
