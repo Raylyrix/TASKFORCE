@@ -50,6 +50,11 @@ model User {
   teamMemberships TeamMembership[]
   auditLogs      AuditLog[]
   reports        Report[]
+  
+  // Dates scheduling relations
+  eventTypes     EventType[]
+  bookings       Booking[]
+  calendarIntegrations CalendarIntegration[]
 
   @@map("users")
 }
@@ -315,6 +320,145 @@ model Report {
   @@map("reports")
 }
 
+// Dates Scheduling System Models
+
+// Event types that users can create for booking
+model EventType {
+  id              String      @id @default(cuid())
+  title           String
+  description     String?
+  durationMin     Int         // Duration in minutes
+  type            EventTypeType @default(ONE_ON_ONE)
+  bufferBefore    Int         @default(0) // Buffer time before in minutes
+  bufferAfter     Int         @default(0) // Buffer time after in minutes
+  isActive        Boolean     @default(true)
+  requiresConfirmation Boolean @default(false)
+  maxBookings     Int?        // Max bookings per day
+  price           Float?      // Optional pricing
+  currency        String?     @default("USD")
+  settings        Json?       // Additional settings (location, requirements, etc.)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  ownerId         String
+  owner           User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
+  availability    Availability[]
+  questions       BookingQuestion[]
+
+  @@map("event_types")
+}
+
+// User availability settings
+model Availability {
+  id              String      @id @default(cuid())
+  dayOfWeek       Int         // 0-6 (Sunday-Saturday)
+  startTime       String      // "09:00" format
+  endTime         String      // "17:00" format
+  isAvailable     Boolean     @default(true)
+  timeZone        String      @default("UTC")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  eventTypeId     String
+  eventType       EventType   @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([eventTypeId, dayOfWeek, startTime])
+  @@map("availability")
+}
+
+// Booking records
+model Booking {
+  id              String      @id @default(cuid())
+  attendeeEmail   String
+  attendeeName    String?
+  startTime       DateTime
+  endTime         DateTime
+  timeZone        String      @default("UTC")
+  status          BookingStatus @default(PENDING)
+  meetingLink     String?     // Google Meet or other meeting link
+  location        String?     // Physical location if applicable
+  notes           String?     // Additional notes
+  confirmationCode String?    // Unique confirmation code
+  rescheduledFrom String?     // ID of original booking if rescheduled
+  cancelledAt     DateTime?
+  cancelledBy     String?     // User ID who cancelled
+  cancellationReason String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  eventTypeId     String
+  eventType       EventType   @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  attendeeId      String?     // If attendee has an account
+  attendee        User?       @relation(fields: [attendeeId], references: [id])
+  responses       BookingResponse[]
+
+  @@index([attendeeEmail])
+  @@index([startTime])
+  @@index([status])
+  @@map("bookings")
+}
+
+// Booking questions/forms
+model BookingQuestion {
+  id              String      @id @default(cuid())
+  question        String
+  type            QuestionType @default(TEXT)
+  isRequired      Boolean     @default(false)
+  options         String[]    @default([]) // For multiple choice questions
+  placeholder     String?
+  order           Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  eventTypeId     String
+  eventType       EventType   @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  responses       BookingResponse[]
+
+  @@map("booking_questions")
+}
+
+// Booking responses
+model BookingResponse {
+  id              String      @id @default(cuid())
+  answer          String
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  bookingId       String
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        BookingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, questionId])
+  @@map("booking_responses")
+}
+
+// Calendar integration settings
+model CalendarIntegration {
+  id              String      @id @default(cuid())
+  provider        CalendarProvider
+  calendarId      String      // External calendar ID
+  calendarName    String?
+  isActive        Boolean     @default(true)
+  syncToken       String?     // For incremental sync
+  lastSyncAt      DateTime?
+  settings        Json?       // Provider-specific settings
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, calendarId])
+  @@map("calendar_integrations")
+}
+
 // Audit logging for compliance
 model AuditLog {
   id              String      @id @default(cuid())
@@ -378,4 +522,41 @@ enum ReportType {
   QUARTERLY
   CUSTOM
   EXECUTIVE
+}
+
+// Dates scheduling enums
+enum EventTypeType {
+  ONE_ON_ONE
+  GROUP
+  ROUND_ROBIN
+  COLLECTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum QuestionType {
+  TEXT
+  TEXTAREA
+  SELECT
+  MULTISELECT
+  NUMBER
+  EMAIL
+  PHONE
+  DATE
+  TIME
+  BOOLEAN
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+  APPLE
+  CALDAV
 }
