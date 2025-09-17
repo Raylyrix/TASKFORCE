@@ -202,19 +202,14 @@ export class EmailService {
    * Get delivery statistics
    */
   async getDeliveryStats(): Promise<any> {
-    try {
-      // This would typically connect to your email provider's API
-      // For now, return basic stats
-      return {
-        totalSent: 0,
-        totalFailed: 0,
-        successRate: 0,
-        lastSent: null,
-      };
-    } catch (error) {
-      console.error('❌ Failed to get delivery stats:', error);
-      return null;
-    }
+    // This would typically connect to your email provider's API
+    // For now, return basic stats
+    return {
+      totalSent: 0,
+      totalFailed: 0,
+      successRate: 0,
+      lastSent: null,
+    };
   }
 
   /**
