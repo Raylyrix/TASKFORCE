@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { AutoSetupService } from '../services/auto-setup';
 
-export async function autoSetupRoutes(fastify: FastifyInstance) {
+async function autoSetupRoutes(fastify: FastifyInstance) {
   const autoSetupService = AutoSetupService.getInstance();
 
   // GET /api/v1/auto-setup/status
@@ -152,3 +152,5 @@ export async function autoSetupRoutes(fastify: FastifyInstance) {
     }
   });
 }
+
+export { autoSetupRoutes };

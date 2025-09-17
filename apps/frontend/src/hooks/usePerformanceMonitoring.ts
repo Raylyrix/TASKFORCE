@@ -217,9 +217,10 @@ export function usePerformanceMonitoring(config: PerformanceConfig = {}) {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       
-      const observer = observerRef.current;
-      if (observer) {
-        observer.disconnect();
+      // Capture the observer reference to avoid stale closure
+      const currentObserver = observerRef.current;
+      if (currentObserver) {
+        currentObserver.disconnect();
       }
     };
   }, [measurePageLoadTime, measureWebVitals, measureMemoryUsage, measureNetworkTiming, reportMetrics, reportInterval]);

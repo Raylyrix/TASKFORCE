@@ -19,7 +19,7 @@ export default function HomePage() {
 
   useEffect(() => {
     // Check if running in Electron
-    setIsElectron(typeof window !== 'undefined' && window.electronAPI);
+    setIsElectron(typeof window !== 'undefined' && !!(window as any).electronAPI);
     
     // Check if setup is needed
     const checkSetup = async () => {

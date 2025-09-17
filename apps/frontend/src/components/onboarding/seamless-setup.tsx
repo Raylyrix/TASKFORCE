@@ -249,7 +249,7 @@ export function SeamlessSetup() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Taskforce Mailer</h1>
           <p className="text-gray-600">
-            Let's set up your enterprise email management system in just a few steps
+            Let&apos;s set up your enterprise email management system in just a few steps
           </p>
         </div>
 
@@ -288,7 +288,7 @@ export function SeamlessSetup() {
             <div className="text-center">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Setting up your database...</h3>
               <p className="text-gray-600 mb-6">
-                We're automatically configuring your secure cloud database. This will only take a moment.
+                We&apos;re automatically configuring your secure cloud database. This will only take a moment.
               </p>
               <button
                 onClick={() => handleAutoSetup('supabase')}

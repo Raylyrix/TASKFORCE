@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "node build.js",
+    "build": "node build-simple.js",
     "start": "node dist/index.js",
     "test": "jest",
     "test:ci": "jest --ci --coverage --watchAll=false",
