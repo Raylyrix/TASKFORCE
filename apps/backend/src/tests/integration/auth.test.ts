@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { getPrismaClient, type PrismaClient } from '../../lib/prisma';
 import Redis from 'ioredis';
 
 // Integration tests for authentication - DISABLED FOR CI
@@ -16,13 +16,7 @@ describe.skip('Authentication Integration Tests', () => {
     }
 
     // Initialize test database
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://postgres:Rayvical@localhost:5432/taskforce_test'
-        }
-      }
-    });
+    prisma = getPrismaClient();
 
     // Initialize test Redis
     redis = new Redis({

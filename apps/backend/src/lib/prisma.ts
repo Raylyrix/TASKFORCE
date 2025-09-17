@@ -30,7 +30,9 @@ function createMockPrismaClient(): PrismaClient {
     create: () => Promise.resolve({}),
     createMany: () => Promise.resolve({}),
     update: () => Promise.resolve({}),
+    updateMany: () => Promise.resolve({}),
     delete: () => Promise.resolve({}),
+    deleteMany: () => Promise.resolve({}),
     upsert: () => Promise.resolve({}),
     count: () => Promise.resolve(0),
   };
@@ -47,6 +49,9 @@ function createMockPrismaClient(): PrismaClient {
     eventType: mockDelegate,
     availability: mockDelegate,
     booking: mockDelegate,
+    auditLog: mockDelegate,
+    analyticsAggregate: mockDelegate,
+    messageContact: mockDelegate,
     $connect: async () => {
       console.log('Mock Prisma client connected');
     },

@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { getPrismaClient, type PrismaClient } from '../../lib/prisma';
 import Redis from 'ioredis';
 
 // Integration tests for analytics endpoints - DISABLED FOR CI
@@ -19,13 +19,7 @@ describe.skip('Analytics Integration Tests', () => {
     }
 
     // Initialize test services
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://postgres:Rayvical@localhost:5432/taskforce_test'
-        }
-      }
-    });
+    prisma = getPrismaClient();
 
     redis = new Redis({
       host: process.env.TEST_REDIS_HOST || 'localhost',

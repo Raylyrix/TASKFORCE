@@ -13,6 +13,9 @@ export interface PrismaClient {
   eventType: any; // For dates feature
   availability: any; // For dates feature
   booking: any; // For dates feature
+  auditLog: any; // For audit logging
+  analyticsAggregate: any; // For analytics aggregation
+  messageContact: any; // For message-contact relationships
   $connect: () => Promise<void>;
   $disconnect: () => Promise<void>;
   $transaction: <T>(fn: (prisma: PrismaClient) => Promise<T>) => Promise<T>;
@@ -25,8 +28,11 @@ export interface UserDelegate {
   findUnique: (args: any) => Promise<User | null>;
   findFirst: (args?: any) => Promise<User | null>;
   create: (args: any) => Promise<User>;
+  createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<User>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<User>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<User>;
   count: (args?: any) => Promise<number>;
 }
@@ -36,8 +42,11 @@ export interface OrganizationDelegate {
   findUnique: (args: any) => Promise<Organization | null>;
   findFirst: (args?: any) => Promise<Organization | null>;
   create: (args: any) => Promise<Organization>;
+  createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<Organization>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<Organization>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<Organization>;
   count: (args?: any) => Promise<number>;
 }
@@ -47,8 +56,11 @@ export interface MailboxDelegate {
   findUnique: (args: any) => Promise<Mailbox | null>;
   findFirst: (args?: any) => Promise<Mailbox | null>;
   create: (args: any) => Promise<Mailbox>;
+  createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<Mailbox>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<Mailbox>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<Mailbox>;
   count: (args?: any) => Promise<number>;
 }
@@ -60,7 +72,9 @@ export interface MessageDelegate {
   create: (args: any) => Promise<Message>;
   createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<Message>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<Message>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<Message>;
   count: (args?: any) => Promise<number>;
 }
@@ -70,8 +84,11 @@ export interface ContactDelegate {
   findUnique: (args: any) => Promise<Contact | null>;
   findFirst: (args?: any) => Promise<Contact | null>;
   create: (args: any) => Promise<Contact>;
+  createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<Contact>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<Contact>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<Contact>;
   count: (args?: any) => Promise<number>;
 }
@@ -81,8 +98,11 @@ export interface ThreadDelegate {
   findUnique: (args: any) => Promise<Thread | null>;
   findFirst: (args?: any) => Promise<Thread | null>;
   create: (args: any) => Promise<Thread>;
+  createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<Thread>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<Thread>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<Thread>;
   count: (args?: any) => Promise<number>;
 }
@@ -92,8 +112,11 @@ export interface AnalyticsDelegate {
   findUnique: (args: any) => Promise<Analytics | null>;
   findFirst: (args?: any) => Promise<Analytics | null>;
   create: (args: any) => Promise<Analytics>;
+  createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<Analytics>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<Analytics>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<Analytics>;
   count: (args?: any) => Promise<number>;
 }
@@ -103,8 +126,11 @@ export interface ReportDelegate {
   findUnique: (args: any) => Promise<Report | null>;
   findFirst: (args?: any) => Promise<Report | null>;
   create: (args: any) => Promise<Report>;
+  createMany: (args: any) => Promise<any>;
   update: (args: any) => Promise<Report>;
+  updateMany: (args: any) => Promise<any>;
   delete: (args: any) => Promise<Report>;
+  deleteMany: (args?: any) => Promise<any>;
   upsert: (args: any) => Promise<Report>;
   count: (args?: any) => Promise<number>;
 }
