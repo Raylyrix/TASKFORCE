@@ -56,7 +56,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --ignore-scripts --no-optional
 
       - name: Setup environment variables
         run: |
@@ -122,13 +122,13 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --ignore-scripts --no-optional
 
       - name: Build application
         run: pnpm build
 
       - name: Install Electron Builder
-        run: pnpm add -D electron electron-builder
+        run: pnpm add -D electron electron-builder -w
 
       - name: Create Windows installer
         run: |
@@ -165,14 +165,19 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --ignore-scripts --no-optional
 
       - name: Build application
         run: pnpm build
 
       - name: Install Electron Builder
-        run: pnpm add -D electron electron-builder
+        run: pnpm add -D electron electron-builder -w
 
       - name: Create macOS installer
         run: |
@@ -207,13 +212,13 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --ignore-scripts --no-optional
 
       - name: Build application
         run: pnpm build
 
       - name: Install Electron Builder
-        run: pnpm add -D electron electron-builder
+        run: pnpm add -D electron electron-builder -w
 
       - name: Install Linux dependencies
         run: |
