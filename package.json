@@ -1,6 +1,6 @@
 {
   "name": "taskforce-mailer",
-  "version": "5.0.5",
+  "version": "5.0.6",
   "description": "Professional email analytics platform with AI-powered insights and seamless desktop integration",
   "private": true,
   "workspaces": [

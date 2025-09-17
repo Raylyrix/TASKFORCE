@@ -1,6 +1,6 @@
 {
   "name": "@taskforce/backend",
-  "version": "5.0.5",
+  "version": "5.0.6",
   "description": "Taskforce Analytics Backend API",
   "main": "dist/index.js",
   "scripts": {

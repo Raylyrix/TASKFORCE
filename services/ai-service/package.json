@@ -1,6 +1,6 @@
 {
   "name": "@taskforce/ai-service",
-  "version": "5.0.5",
+  "version": "5.0.6",
   "description": "Taskforce AI Service with OpenRouter Integration",
   "main": "dist/index.js",
   "scripts": {
