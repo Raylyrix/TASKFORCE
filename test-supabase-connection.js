@@ -1,5 +1,23 @@
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+
+// Load environment variables manually since dotenv might not be available
+const fs = require('fs');
+const path = require('path');
+
+// Try to load .env file manually
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const [key, ...valueParts] = line.split('=');
+    if (key && valueParts.length > 0) {
+      const value = valueParts.join('=').trim();
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
 
 // Your Supabase credentials
 const supabaseUrl = 'https://mcyiohpzduyqmjsepedo.supabase.co';

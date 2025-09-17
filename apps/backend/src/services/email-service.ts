@@ -105,7 +105,7 @@ export class EmailService {
   /**
    * Process and validate attachments
    */
-  private processAttachments(attachments: any[]): nodemailer.Attachment[] {
+  private processAttachments(attachments: any[]): any[] {
     return attachments.map((attachment, index) => {
       if (typeof attachment === 'string') {
         // File path

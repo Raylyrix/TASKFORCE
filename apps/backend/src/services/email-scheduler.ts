@@ -16,7 +16,6 @@ export class EmailScheduler {
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
       password: process.env.REDIS_PASSWORD,
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
     });
@@ -269,7 +268,12 @@ export class EmailScheduler {
       }
 
       // Remove job from queue
-      await this.queue.remove(job => job.data.emailId === emailId);
+      const jobs = await this.queue.getJobs(['waiting', 'delayed', 'active']);
+      for (const job of jobs) {
+        if (job.data.emailId === emailId) {
+          await job.remove();
+        }
+      }
 
       console.log(`✅ Email ${emailId} cancelled successfully`);
       return true;
