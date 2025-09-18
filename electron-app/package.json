@@ -2,7 +2,14 @@
   "name": "taskforce-mailer-desktop",
   "version": "5.0.7",
   "description": "Taskforce Mailer - Enterprise Email Management Desktop App",
-  "author": "Taskforce Team",
+  "author": {
+    "name": "Taskforce Team",
+    "email": "team@taskforce.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taskforce/mailer.git"
+  },
   "main": "main.js",
   "homepage": "./",
   "scripts": {
@@ -88,7 +95,6 @@
                 "arch": ["x64", "arm64"]
               }
             ],
-            "icon": "assets/icon.ico",
             "requestedExecutionLevel": "asInvoker"
           },
     "mac": {
@@ -102,7 +108,6 @@
           "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "assets/icon.icns",
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -120,7 +125,6 @@
           "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "assets/icon.png",
       "category": "Office"
     },
     "nsis": {
@@ -129,15 +133,10 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Taskforce Mailer",
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico",
       "deleteAppDataOnUninstall": false
     },
     "dmg": {
       "title": "Taskforce Mailer",
-      "icon": "assets/icon.icns",
-      "background": "assets/dmg-background.png",
       "contents": [
         {
           "x": 130,
